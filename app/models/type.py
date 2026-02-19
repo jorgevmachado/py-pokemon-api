@@ -1,22 +1,30 @@
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
 
-from sqlalchemy import UUID, func,ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, Relationship
+from sqlalchemy import UUID, ForeignKey, func
+from sqlalchemy.orm import Mapped, Relationship, mapped_column
 
-from app.models.base import table_registry, default_lazy
+from app.models.base import default_lazy, table_registry
+
 
 @table_registry.mapped_as_dataclass
 class TypeWeaknessFK:
     __tablename__ = 'type_weaknesses'
-    type_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True)
-    weakness_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True)
+    type_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True
+    )
+    weakness_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True
+    )
+
 
 @table_registry.mapped_as_dataclass
 class Type:
     __tablename__ = 'types'
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, init=False, default=uuid4)
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), primary_key=True, init=False, default=uuid4
+    )
     url: Mapped[str]
     name: Mapped[str] = mapped_column(unique=True)
     order: Mapped[int]

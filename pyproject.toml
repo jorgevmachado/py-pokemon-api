@@ -34,3 +34,23 @@ dev = [
     "freezegun (>=1.5.5,<2.0.0)",
     "testcontainers (>=4.14.1,<5.0.0)"
 ]
+[tool.ruff]
+line-length = 79
+extend-exclude = ['migrations']
+
+[tool.ruff.lint]
+preview = true
+select = ['I', 'F', 'E', 'W', 'PL', 'PT', 'FAST']
+
+[tool.ruff.format]
+preview = true
+quote-style = 'single'
+
+[tool.pytest.ini_options]
+pythonpath = "."
+addopts = '-p no:warnings'
+asyncio_default_fixture_loop_scope = 'function'
+
+[tool.coverage.run]
+core = "ctrace"
+concurrency = ["thread", "greenlet"]

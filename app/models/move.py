@@ -1,15 +1,19 @@
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
+
 from sqlalchemy import UUID, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import table_registry
 
+
 @table_registry.mapped_as_dataclass
 class Move:
     __tablename__ = 'moves'
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, init=False, default=uuid4)
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), primary_key=True, init=False, default=uuid4
+    )
     pp: Mapped[int]
     url: Mapped[str]
     type: Mapped[str]

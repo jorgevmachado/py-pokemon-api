@@ -1,43 +1,70 @@
-from uuid import uuid4
 from datetime import datetime
-from sqlalchemy import UUID, func,ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, Relationship
+from uuid import uuid4
 
-from app.models import GrowthRate, Move, Type, Ability
-from app.models.base import table_registry, default_lazy
+from sqlalchemy import UUID, ForeignKey, func
+from sqlalchemy.orm import Mapped, Relationship, mapped_column
+
+from app.models.ability import Ability
+from app.models.base import default_lazy, table_registry
+from app.models.growth_rate import GrowthRate
+from app.models.move import Move
+from app.models.type import Type
 from app.shared.status_enum import StatusEnum
+
 
 @table_registry.mapped_as_dataclass
 class PokemonMoveFK:
     __tablename__ = 'pokemon_moves'
 
-    pokemon_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True)
-    move_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('moves.id'), primary_key=True)
+    pokemon_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True
+    )
+    move_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('moves.id'), primary_key=True
+    )
+
 
 @table_registry.mapped_as_dataclass
 class PokemonAbilityFK:
     __tablename__ = 'pokemon_abilities'
 
-    pokemon_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True)
-    ability_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('abilities.id'), primary_key=True)
+    pokemon_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True
+    )
+    ability_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('abilities.id'), primary_key=True
+    )
+
 
 @table_registry.mapped_as_dataclass
 class PokemonTypeFK:
     __tablename__ = 'pokemon_types'
-    pokemon_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True)
-    type_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True)
+    pokemon_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True
+    )
+    type_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True
+    )
+
 
 @table_registry.mapped_as_dataclass
 class PokemonEvolutionFK:
     __tablename__ = 'pokemon_evolutions'
-    pokemon_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True)
-    evolution_id: Mapped[str] = mapped_column(UUID(as_uuid=False),ForeignKey('pokemon.id'), primary_key=True)
+    pokemon_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True
+    )
+    evolution_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True
+    )
+
 
 @table_registry.mapped_as_dataclass
 class Pokemon:
     __tablename__ = 'pokemon'
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, init=False, default=uuid4)
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), primary_key=True, init=False, default=uuid4
+    )
     hp: Mapped[int] = mapped_column(nullable=True)
     url: Mapped[str]
     name: Mapped[str] = mapped_column(unique=True)
@@ -74,24 +101,23 @@ class Pokemon:
     )
     deleted_at: Mapped[datetime] = mapped_column(init=False, nullable=True)
     # FK
-    growth_rate_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('growth_rates.id'))
+    growth_rate_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('growth_rates.id')
+    )
     growth_rate: Mapped['GrowthRate'] = Relationship(
         lazy=default_lazy,
     )
     # FK
     moves: Mapped[list['Move']] = Relationship(
-        lazy=default_lazy,
-        secondary='pokemon_moves'
+        lazy=default_lazy, secondary='pokemon_moves'
     )
     # FK
     types: Mapped[list['Type']] = Relationship(
-        lazy=default_lazy,
-        secondary='pokemon_types'
+        lazy=default_lazy, secondary='pokemon_types'
     )
     # FK
     abilities: Mapped[list['Ability']] = Relationship(
-        lazy=default_lazy,
-        secondary='pokemon_abilities'
+        lazy=default_lazy, secondary='pokemon_abilities'
     )
     # FK
     evolutions: Mapped[list['Pokemon']] = Relationship(

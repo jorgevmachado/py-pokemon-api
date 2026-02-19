@@ -1,7 +1,8 @@
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, ConfigDict
 
-from app.models import Pokedex, CapturedPokemon
+from pydantic import BaseModel, ConfigDict, EmailStr
+
+from app.models import CapturedPokemon, Pokedex
 from app.shared.gender_enum import GenderEnum
 from app.shared.role_enum import RoleEnum
 from app.shared.status_enum import StatusEnum
@@ -15,6 +16,7 @@ class UserCreateSchema(BaseModel):
     gender: GenderEnum
     password: str
     date_of_birth: datetime
+
 
 class UserPublicSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)

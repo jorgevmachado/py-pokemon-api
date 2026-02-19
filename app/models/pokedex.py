@@ -1,10 +1,11 @@
-from uuid import uuid4
 from datetime import datetime
-from sqlalchemy import UUID, func,ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, Relationship
+from uuid import uuid4
 
-from app.models import Pokemon
-from app.models.base import table_registry, default_lazy
+from sqlalchemy import UUID, ForeignKey, func
+from sqlalchemy.orm import Mapped, Relationship, mapped_column
+
+from app.models.base import default_lazy, table_registry
+from app.models.pokemon import Pokemon
 from app.models.user import User
 
 
@@ -12,7 +13,9 @@ from app.models.user import User
 class Pokedex:
     __tablename__ = 'pokedex'
 
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, init=False, default=uuid4)
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), primary_key=True, init=False, default=uuid4
+    )
     hp: Mapped[int]
     wins: Mapped[int]
     level: Mapped[int]
@@ -43,14 +46,15 @@ class Pokedex:
     )
     deleted_at: Mapped[datetime] = mapped_column(init=False, nullable=True)
 
-    pokemon_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('pokemon.id'))
-    trainer_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('users.id'))
-    # FK
-    pokemon: Mapped['Pokemon'] = Relationship(
-        lazy=default_lazy
+    pokemon_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('pokemon.id')
+    )
+    trainer_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('users.id')
     )
     # FK
+    pokemon: Mapped['Pokemon'] = Relationship(lazy=default_lazy)
+    # FK
     trainer: Mapped['User'] = Relationship(
-        lazy=default_lazy,
-        back_populates='pokedex'
+        lazy=default_lazy, back_populates='pokedex'
     )
