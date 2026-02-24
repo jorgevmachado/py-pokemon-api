@@ -45,9 +45,7 @@ class User:
     updated_at: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now(), onupdate=func.now()
     )
-    deleted_at: Mapped[datetime | None] = mapped_column(
-        init=False, default=None
-    )
+    deleted_at: Mapped[datetime | None] = mapped_column(init=False, default=None)
     # FK
     pokedex: Mapped[list['Pokedex']] = relationship(
         init=False, lazy=default_lazy, back_populates='trainer'

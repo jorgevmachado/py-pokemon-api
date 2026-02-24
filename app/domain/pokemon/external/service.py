@@ -9,6 +9,9 @@ from app.domain.pokemon.external.schemas import (
 from app.domain.pokemon.external.schemas.name import (
     PokemonExternalByNameSchemaResponse,
 )
+from app.domain.pokemon.external.schemas.specie import (
+    PokemonExternalSpecieSchemaResponse,
+)
 from app.shared.image import ensure_external_image
 from app.shared.number import ensure_order_number
 
@@ -82,4 +85,28 @@ class PokemonExternalService:
             raise HTTPException(
                 status_code=HTTPStatus.SERVICE_UNAVAILABLE,
                 detail='Failed to execute external request:(name).',
+            )
+
+    @staticmethod
+    async def pokemon_external_specie_by_name(
+        name: str,
+    ) -> PokemonExternalSpecieSchemaResponse | None:
+        try:
+            async with httpx.AsyncClient(verify=False) as client:
+                response = await client.get(
+                    f'{PokemonExternalService.BASE_URL}/pokemon-species/{name}',
+                    timeout=10.0,
+                )
+                response.raise_for_status()
+                response_data = response.json()
+
+                if not response_data or 'name' not in response_data:
+                    return None
+
+                return PokemonExternalSpecieSchemaResponse(**response_data)
+        except httpx.HTTPError as e:
+            print(f'# => pokemon_external_specie_by_name => error => {e}')
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                detail='Failed to execute external request:(specie).',
             )

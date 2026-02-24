@@ -17,13 +17,9 @@ Session = Annotated[AsyncSession, Depends(get_session)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-@router.post(
-    '/', status_code=HTTPStatus.CREATED, response_model=UserPublicSchema
-)
+@router.post('/', status_code=HTTPStatus.CREATED, response_model=UserPublicSchema)
 async def create_user(user: UserCreateSchema, session: Session):
-    db_user = await session.scalar(
-        select(User).where(User.email == user.email)
-    )
+    db_user = await session.scalar(select(User).where(User.email == user.email))
 
     if db_user and db_user.email == user.email:
         raise HTTPException(
