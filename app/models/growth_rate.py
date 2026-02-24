@@ -8,7 +8,7 @@ from app.models.base import table_registry
 
 
 @table_registry.mapped_as_dataclass
-class GrowthRate:
+class PokemonGrowthRate:
     __tablename__ = 'growth_rates'
 
     id: Mapped[str] = mapped_column(

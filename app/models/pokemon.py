@@ -4,11 +4,11 @@ from uuid import uuid4
 from sqlalchemy import UUID, ForeignKey, func
 from sqlalchemy.orm import Mapped, Relationship, mapped_column
 
-from app.models.ability import Ability
+from app.models.ability import PokemonAbility
 from app.models.base import default_lazy, table_registry
-from app.models.growth_rate import GrowthRate
-from app.models.move import Move
-from app.models.type import Type
+from app.models.growth_rate import PokemonGrowthRate
+from app.models.move import PokemonMove
+from app.models.type import PokemonType
 from app.shared.status_enum import StatusEnum
 
 
@@ -104,19 +104,19 @@ class Pokemon:
     growth_rate_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False), ForeignKey('growth_rates.id')
     )
-    growth_rate: Mapped['GrowthRate'] = Relationship(
+    growth_rate: Mapped['PokemonGrowthRate'] = Relationship(
         lazy=default_lazy,
     )
     # FK
-    moves: Mapped[list['Move']] = Relationship(
+    moves: Mapped[list['PokemonMove']] = Relationship(
         lazy=default_lazy, secondary='pokemon_moves'
     )
     # FK
-    types: Mapped[list['Type']] = Relationship(
+    types: Mapped[list['PokemonType']] = Relationship(
         lazy=default_lazy, secondary='pokemon_types'
     )
     # FK
-    abilities: Mapped[list['Ability']] = Relationship(
+    abilities: Mapped[list['PokemonAbility']] = Relationship(
         lazy=default_lazy, secondary='pokemon_abilities'
     )
     # FK

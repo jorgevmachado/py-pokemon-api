@@ -8,7 +8,7 @@ from app.models.base import table_registry
 
 
 @table_registry.mapped_as_dataclass
-class Ability:
+class PokemonAbility:
     __tablename__ = 'abilities'
 
     id: Mapped[str] = mapped_column(

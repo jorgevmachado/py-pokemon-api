@@ -19,7 +19,7 @@ class TypeWeaknessFK:
 
 
 @table_registry.mapped_as_dataclass
-class Type:
+class PokemonType:
     __tablename__ = 'types'
 
     id: Mapped[str] = mapped_column(
@@ -39,9 +39,9 @@ class Type:
     background_color: Mapped[str]
 
     # FK
-    weaknesses: Mapped[list['Type']] = Relationship(
+    weaknesses: Mapped[list['PokemonType']] = Relationship(
         lazy=default_lazy,
         secondary='type_weaknesses',
-        primaryjoin='Type.id == type_weaknesses.c.type_id',
-        secondaryjoin='Type.id == type_weaknesses.c.weakness_id',
+        primaryjoin='PokemonType.id == type_weaknesses.c.type_id',
+        secondaryjoin='PokemonType.id == type_weaknesses.c.weakness_id',
     )
