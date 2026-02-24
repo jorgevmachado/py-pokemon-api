@@ -3,6 +3,9 @@ from app.domain.pokemon.external.schemas.base import (
     PokemonExternalBaseSchemaResponse,
     PokemonExternalLanguage,
 )
+from app.domain.pokemon.external.schemas.evolution import (
+    PokemonExternalEvolutionsDetailsSchemaResponse,
+)
 from app.domain.pokemon.external.schemas.growth_rate import (
     PokemonExternalGrowthRateSchemaResponse,
 )
@@ -26,4 +29,5 @@ __all__ = [
     'PokemonSpecieEvolutionChainResponse',
     'PokemonExternalMoveSchemaResponse',
     'PokemonExternalGrowthRateSchemaResponse',
+    'PokemonExternalEvolutionsDetailsSchemaResponse',
 ]

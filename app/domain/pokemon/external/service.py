@@ -7,6 +7,9 @@ from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseSchemaResponse,
     PokemonExternalGrowthRateSchemaResponse,
 )
+from app.domain.pokemon.external.schemas.evolution import (
+    PokemonExternalEvolutionSchemaResponse,
+)
 from app.domain.pokemon.external.schemas.move import (
     PokemonExternalMoveSchemaResponse,
 )
@@ -156,4 +159,26 @@ class PokemonExternalService:
             raise HTTPException(
                 status_code=HTTPStatus.SERVICE_UNAVAILABLE,
                 detail='Failed to execute external request:(growth_rate).',
+            )
+
+    @staticmethod
+    async def pokemon_external_evolution_by_order(
+        order: int,
+    ) -> PokemonExternalEvolutionSchemaResponse | None:
+        try:
+            async with httpx.AsyncClient(verify=False) as client:
+                response = await client.get(
+                    f'{PokemonExternalService.BASE_URL}/evolution-chain/{order}',
+                    timeout=10.0,
+                )
+                response.raise_for_status()
+                response_data = response.json()
+                if not response_data or 'id' not in response_data:
+                    return None
+                return PokemonExternalEvolutionSchemaResponse(**response_data)
+        except httpx.HTTPError as e:
+            print(f'# => pokemon_external_evolution_by_order => error => {e}')
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                detail='Failed to execute external request:(evolution_chain).',
             )

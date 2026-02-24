@@ -10,6 +10,9 @@ from app.domain.pokemon.external.schemas import (
     PokemonExternalGrowthRateSchemaResponse,
     PokemonExternalMoveSchemaResponse,
 )
+from app.domain.pokemon.external.schemas.evolution import (
+    PokemonExternalEvolutionSchemaResponse,
+)
 from app.domain.pokemon.external.schemas.name import (
     PokemonExternalByNameSchemaResponse,
 )
@@ -2068,6 +2071,178 @@ class TestPokemonExternalServiceByGrowthRateOrder:
 
             with pytest.raises(HTTPException) as exc_info:
                 await PokemonExternalService.pokemon_external_growth_rate_by_order(0)
+
+        assert exc_info.value.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+        assert text_detail in exc_info.value.detail
+
+
+class TestPokemonExternalServiceByEvolutionOrder:
+    """Test scope for pokemon_external_evolution_by_order method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_external_by_evolution_order_success():
+        """Should return pokemon data when API request is successful"""
+
+        mock_response_data = {
+            'baby_trigger_item': None,
+            'chain': {
+                'evolution_details': [],
+                'evolves_to': [
+                    {
+                        'evolution_details': [
+                            {
+                                'base_form_id': None,
+                                'gender': None,
+                                'held_item': None,
+                                'item': None,
+                                'known_move': None,
+                                'known_move_type': None,
+                                'location': None,
+                                'min_affection': None,
+                                'min_beauty': None,
+                                'min_damage_taken': None,
+                                'min_happiness': None,
+                                'min_level': 16,
+                                'min_move_count': None,
+                                'min_steps': None,
+                                'needs_multiplayer': False,
+                                'needs_overworld_rain': False,
+                                'party_species': None,
+                                'party_type': None,
+                                'region_id': None,
+                                'relative_physical_stats': None,
+                                'time_of_day': '',
+                                'trade_species': None,
+                                'trigger': {
+                                    'name': 'level-up',
+                                    'url': 'https://pokeapi.co/api/v2/evolution-trigger/1/',
+                                },
+                                'turn_upside_down': False,
+                                'used_move': None,
+                            }
+                        ],
+                        'evolves_to': [
+                            {
+                                'evolution_details': [
+                                    {
+                                        'base_form_id': None,
+                                        'gender': None,
+                                        'held_item': None,
+                                        'item': None,
+                                        'known_move': None,
+                                        'known_move_type': None,
+                                        'location': None,
+                                        'min_affection': None,
+                                        'min_beauty': None,
+                                        'min_damage_taken': None,
+                                        'min_happiness': None,
+                                        'min_level': 32,
+                                        'min_move_count': None,
+                                        'min_steps': None,
+                                        'needs_multiplayer': False,
+                                        'needs_overworld_rain': False,
+                                        'party_species': None,
+                                        'party_type': None,
+                                        'region_id': None,
+                                        'relative_physical_stats': None,
+                                        'time_of_day': '',
+                                        'trade_species': None,
+                                        'trigger': {
+                                            'name': 'level-up',
+                                            'url': 'https://pokeapi.co/api/v2/evolution-trigger/1/',
+                                        },
+                                        'turn_upside_down': False,
+                                        'used_move': None,
+                                    }
+                                ],
+                                'evolves_to': [],
+                                'is_baby': False,
+                                'species': {
+                                    'name': 'venusaur',
+                                    'url': 'https://pokeapi.co/api/v2/pokemon-species/3/',
+                                },
+                            }
+                        ],
+                        'is_baby': False,
+                        'species': {
+                            'name': 'ivysaur',
+                            'url': 'https://pokeapi.co/api/v2/pokemon-species/2/',
+                        },
+                    }
+                ],
+                'is_baby': False,
+                'species': {
+                    'name': 'bulbasaur',
+                    'url': 'https://pokeapi.co/api/v2/pokemon-species/1/',
+                },
+            },
+            'id': 1,
+        }
+        mock_response = MagicMock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status.return_value = None
+        mock_response.__bool__.return_value = True
+
+        with patch('httpx.AsyncClient') as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value = mock_client
+
+            result = await PokemonExternalService.pokemon_external_evolution_by_order(1)
+
+            assert isinstance(result, PokemonExternalEvolutionSchemaResponse)
+            assert result.id == mock_response_data['id']
+            assert len(result.chain.evolves_to) == len(
+                mock_response_data['chain']['evolves_to']
+            )
+            assert len(result.chain.evolution_details) == len(
+                mock_response_data['chain']['evolution_details']
+            )
+            assert result.chain.is_baby is mock_response_data['chain']['is_baby']
+            assert result.chain.species.name == 'bulbasaur'
+            assert result.baby_trigger_item is mock_response_data['baby_trigger_item']
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_external_by_evolution_order_no_name_key():
+        """Should return None when name key is missing in response"""
+
+        mock_response_data = {}
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status.return_value = None
+        mock_response.__bool__.return_value = True
+
+        with patch('httpx.AsyncClient') as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value = mock_client
+
+            result = await PokemonExternalService.pokemon_external_evolution_by_order(0)
+
+            assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_external_by_evolution_order_http_error():
+        """Should raise HTTPException when HTTP request fails"""
+        text_detail = 'Failed to execute external request:(evolution_chain)'
+
+        with patch('httpx.AsyncClient') as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.get.side_effect = httpx.HTTPError('Connection error')
+            mock_client_class.return_value = mock_client
+
+            with pytest.raises(HTTPException) as exc_info:
+                await PokemonExternalService.pokemon_external_evolution_by_order(0)
 
         assert exc_info.value.status_code == HTTPStatus.SERVICE_UNAVAILABLE
         assert text_detail in exc_info.value.detail
