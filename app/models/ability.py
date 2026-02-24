@@ -19,9 +19,7 @@ class PokemonAbility:
     order: Mapped[int]
     slot: Mapped[int]
     is_hidden: Mapped[bool]
-    created_at: Mapped[datetime] = mapped_column(
-        init=False, server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now(), onupdate=func.now()
     )

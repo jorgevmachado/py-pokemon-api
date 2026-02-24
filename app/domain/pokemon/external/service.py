@@ -5,6 +5,7 @@ from fastapi import HTTPException
 
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseSchemaResponse,
+    PokemonExternalGrowthRateSchemaResponse,
 )
 from app.domain.pokemon.external.schemas.move import (
     PokemonExternalMoveSchemaResponse,
@@ -53,10 +54,7 @@ class PokemonExternalService:
                     }
                     for item in results
                 ]
-                return [
-                    PokemonExternalBaseSchemaResponse(**item)
-                    for item in new_results
-                ]
+                return [PokemonExternalBaseSchemaResponse(**item) for item in new_results]
         except HTTPException:
             raise
         except httpx.HTTPError as e:
@@ -136,4 +134,26 @@ class PokemonExternalService:
             raise HTTPException(
                 status_code=HTTPStatus.SERVICE_UNAVAILABLE,
                 detail='Failed to execute external request:(move).',
+            )
+
+    @staticmethod
+    async def pokemon_external_growth_rate_by_order(
+        order: int,
+    ) -> PokemonExternalGrowthRateSchemaResponse | None:
+        try:
+            async with httpx.AsyncClient(verify=False) as client:
+                response = await client.get(
+                    f'{PokemonExternalService.BASE_URL}/growth-rate/{order}',
+                    timeout=10.0,
+                )
+                response.raise_for_status()
+                response_data = response.json()
+                if not response_data or 'name' not in response_data:
+                    return None
+                return PokemonExternalGrowthRateSchemaResponse(**response_data)
+        except httpx.HTTPError as e:
+            print(f'# => pokemon_external_growth_rate_by_order => error => {e}')
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                detail='Failed to execute external request:(growth_rate).',
             )

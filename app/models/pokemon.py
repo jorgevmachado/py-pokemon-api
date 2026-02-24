@@ -93,9 +93,7 @@ class Pokemon:
     evolution_chain_url: Mapped[str] = mapped_column(nullable=True)
     evolves_from_species: Mapped[str] = mapped_column(nullable=True)
     has_gender_differences: Mapped[bool] = mapped_column(nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        init=False, server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now(), onupdate=func.now()
     )

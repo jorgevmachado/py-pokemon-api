@@ -7,6 +7,7 @@ from fastapi import HTTPException
 
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseSchemaResponse,
+    PokemonExternalGrowthRateSchemaResponse,
     PokemonExternalMoveSchemaResponse,
 )
 from app.domain.pokemon.external.schemas.name import (
@@ -62,8 +63,7 @@ class TestPokemonExternalServiceList:
             assert isinstance(result, list)
             assert len(result) == expected_list_size
             assert all(
-                isinstance(item, PokemonExternalBaseSchemaResponse)
-                for item in result
+                isinstance(item, PokemonExternalBaseSchemaResponse) for item in result
             )
             assert result[0].name == 'bulbasaur'
             assert result[0].order == expected_first_order
@@ -321,9 +321,7 @@ class TestPokemonExternalServiceByName:
             mock_client.get.return_value = mock_response
             mock_client_class.return_value = mock_client
 
-            result = await PokemonExternalService.pokemon_external_by_name(
-                'invalid'
-            )
+            result = await PokemonExternalService.pokemon_external_by_name('invalid')
 
             assert result is None
 
@@ -377,9 +375,7 @@ class TestPokemonExternalServiceBySpecie:
             'is_legendary': False,
             'hatch_counter': 20,
             'base_happiness': 70,
-            'evolution_chain': {
-                'url': 'https://pokeapi.co/api/v2/evolution-chain/1/'
-            },
+            'evolution_chain': {'url': 'https://pokeapi.co/api/v2/evolution-chain/1/'},
             'evolves_from_species': None,
             'has_gender_differences': False,
         }
@@ -395,9 +391,7 @@ class TestPokemonExternalServiceBySpecie:
             mock_client.get.return_value = mock_response
             mock_client_class.return_value = mock_client
 
-            result = await PokemonExternalService.pokemon_external_specie_by_name(
-                name
-            )
+            result = await PokemonExternalService.pokemon_external_specie_by_name(name)
 
             assert isinstance(result, PokemonExternalSpecieSchemaResponse)
             assert result.name == mock_response_data['name']
@@ -444,9 +438,7 @@ class TestPokemonExternalServiceBySpecie:
             mock_client_class.return_value = mock_client
 
             with pytest.raises(HTTPException) as exc_info:
-                await PokemonExternalService.pokemon_external_specie_by_name(
-                    'invalid'
-                )
+                await PokemonExternalService.pokemon_external_specie_by_name('invalid')
 
         assert exc_info.value.status_code == HTTPStatus.SERVICE_UNAVAILABLE
         assert text_detail in exc_info.value.detail
@@ -476,9 +468,7 @@ class TestPokemonExternalServiceByMoveName:
                 },
                 'super': {'use_after': None, 'use_before': None},
             },
-            'contest_effect': {
-                'url': 'https://pokeapi.co/api/v2/contest-effect/14/'
-            },
+            'contest_effect': {'url': 'https://pokeapi.co/api/v2/contest-effect/14/'},
             'contest_type': {
                 'name': 'cool',
                 'url': 'https://pokeapi.co/api/v2/contest-type/1/',
@@ -1936,9 +1926,7 @@ class TestPokemonExternalServiceByMoveName:
             mock_client.get.return_value = mock_response
             mock_client_class.return_value = mock_client
 
-            result = await PokemonExternalService.pokemon_external_move_by_name(
-                name
-            )
+            result = await PokemonExternalService.pokemon_external_move_by_name(name)
 
             assert isinstance(result, PokemonExternalMoveSchemaResponse)
             assert result.name == mock_response_data['name']
@@ -1947,12 +1935,8 @@ class TestPokemonExternalServiceByMoveName:
             assert result.power == mock_response_data['power']
             assert result.pp == mock_response_data['pp']
             assert result.priority == mock_response_data['priority']
-            assert len(result.effect_changes) == len(
-                mock_response_data['effect_changes']
-            )
-            assert len(result.effect_entries) == len(
-                mock_response_data['effect_entries']
-            )
+            assert len(result.effect_changes) == len(mock_response_data['effect_changes'])
+            assert len(result.effect_entries) == len(mock_response_data['effect_entries'])
             assert len(result.learned_by_pokemon) == len(
                 mock_response_data['learned_by_pokemon']
             )
@@ -1978,9 +1962,7 @@ class TestPokemonExternalServiceByMoveName:
             mock_client.get.return_value = mock_response
             mock_client_class.return_value = mock_client
 
-            result = await PokemonExternalService.pokemon_external_move_by_name(
-                'invalid'
-            )
+            result = await PokemonExternalService.pokemon_external_move_by_name('invalid')
 
             assert result is None
 
@@ -1998,9 +1980,94 @@ class TestPokemonExternalServiceByMoveName:
             mock_client_class.return_value = mock_client
 
             with pytest.raises(HTTPException) as exc_info:
-                await PokemonExternalService.pokemon_external_move_by_name(
-                    'invalid'
-                )
+                await PokemonExternalService.pokemon_external_move_by_name('invalid')
+
+        assert exc_info.value.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+        assert text_detail in exc_info.value.detail
+
+
+class TestPokemonExternalServiceByGrowthRateOrder:
+    """Test scope for pokemon_external_growth_rate_by_order method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_external_by_growth_rate_order_success():
+        """Should return pokemon data when API request is successful"""
+
+        mock_response_data = {
+            'name': 'medium',
+            'id': 2,
+            'formula': 'x^3',
+            'levels': [{'experience': 0, 'level': 1}, {'experience': 8, 'level': 2}],
+            'descriptions': [
+                {
+                    'description': 'moyenne',
+                    'language': {
+                        'name': 'fr',
+                        'url': 'https://pokeapi.co/api/v2/language/5/',
+                    },
+                }
+            ],
+        }
+        mock_response = MagicMock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status.return_value = None
+        mock_response.__bool__.return_value = True
+
+        with patch('httpx.AsyncClient') as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value = mock_client
+
+            result = await PokemonExternalService.pokemon_external_growth_rate_by_order(2)
+
+            assert isinstance(result, PokemonExternalGrowthRateSchemaResponse)
+            assert result.name == mock_response_data['name']
+            assert result.id == mock_response_data['id']
+            assert result.formula == mock_response_data['formula']
+            assert len(result.levels) == len(mock_response_data['levels'])
+            assert len(result.descriptions) == len(mock_response_data['descriptions'])
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_external_by_growth_rate_order_no_name_key():
+        """Should return None when name key is missing in response"""
+
+        mock_response_data = {}
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status.return_value = None
+        mock_response.__bool__.return_value = True
+
+        with patch('httpx.AsyncClient') as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value = mock_client
+
+            result = await PokemonExternalService.pokemon_external_growth_rate_by_order(0)
+
+            assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_external_by_growth_rate_order_http_error():
+        """Should raise HTTPException when HTTP request fails"""
+        text_detail = 'Failed to execute external request:(growth_rate)'
+
+        with patch('httpx.AsyncClient') as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.get.side_effect = httpx.HTTPError('Connection error')
+            mock_client_class.return_value = mock_client
+
+            with pytest.raises(HTTPException) as exc_info:
+                await PokemonExternalService.pokemon_external_growth_rate_by_order(0)
 
         assert exc_info.value.status_code == HTTPStatus.SERVICE_UNAVAILABLE
         assert text_detail in exc_info.value.detail
