@@ -25,6 +25,7 @@
 ```bash
    poetry add fastapi[standard]
    fastapi dev app/main.py
+   pytest tests/app/domain/pokemon/external/test_external_service.py -v
 ```
 ### sqlalchemy
 #### Ferramenta para gerenciamento de banco de dados
