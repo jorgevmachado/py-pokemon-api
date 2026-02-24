@@ -31,3 +31,16 @@ class PokemonRepository:
             query.offset(pokemon_filter.offset).limit(pokemon_filter.limit)
         )
         return pokemons.all()
+
+    async def find_one(self, name: str) -> Pokemon | None:
+        return await self.session.scalar(
+            select(Pokemon)
+            .options(
+                selectinload(Pokemon.growth_rate),
+                selectinload(Pokemon.moves),
+                selectinload(Pokemon.types),
+                selectinload(Pokemon.abilities),
+                selectinload(Pokemon.evolutions),
+            )
+            .where(Pokemon.name == name)
+        )

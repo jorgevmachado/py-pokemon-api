@@ -189,3 +189,118 @@ class TestPokemonRepositoryList:
 
         assert isinstance(result, list)
         assert len(result) == total_result
+
+
+class TestPokemonRepositoryFindOne:
+    """Test scope for find one method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_find_one_success(session):
+        """Should return pokemon when found by name"""
+        pokemon = PokemonFactory(name='Pikachu')
+        session.add(pokemon)
+        await session.commit()
+
+        repository = PokemonRepository(session=session)
+        result = await repository.find_one(name='Pikachu')
+
+        assert result is not None
+        assert isinstance(result, Pokemon)
+        assert result.name == 'Pikachu'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_find_one_not_found(session):
+        """Should return None when pokemon is not found"""
+        repository = PokemonRepository(session=session)
+        result = await repository.find_one(name='NonExistentPokemon')
+
+        assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_find_one_with_related_data(session):
+        """Should load pokemon with all related relationships"""
+        pokemon = PokemonFactory(name='Charizard')
+        session.add(pokemon)
+        await session.commit()
+
+        repository = PokemonRepository(session=session)
+        result = await repository.find_one(name='Charizard')
+
+        assert result is not None
+        assert result.name == 'Charizard'
+        assert hasattr(result, 'growth_rate')
+        assert hasattr(result, 'moves')
+        assert hasattr(result, 'types')
+        assert hasattr(result, 'abilities')
+        assert hasattr(result, 'evolutions')
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_find_one_case_sensitive(session):
+        """Should match pokemon name with exact case"""
+        pokemon = PokemonFactory(name='bulbasaur')
+        session.add(pokemon)
+        await session.commit()
+
+        repository = PokemonRepository(session=session)
+        result = await repository.find_one(name='bulbasaur')
+
+        assert result is not None
+        assert result.name == 'bulbasaur'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_find_one_case_mismatch(session):
+        """Should return None when pokemon name case does not match"""
+        pokemon = PokemonFactory(name='Squirtle')
+        session.add(pokemon)
+        await session.commit()
+
+        repository = PokemonRepository(session=session)
+        result = await repository.find_one(name='squirtle')
+
+        assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_find_one_database_error():
+        """Should raise exception when database query fails"""
+        mock_session = AsyncMock()
+        mock_session.scalar = AsyncMock(side_effect=Exception('Database error'))
+
+        repository = PokemonRepository(session=mock_session)
+
+        with pytest.raises(Exception, match='Database error'):
+            await repository.find_one(name='AnyPokemon')
+
+        mock_session.scalar.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_find_one_empty_string_name(session):
+        """Should return None when searching with empty string"""
+        pokemon = PokemonFactory(name='Venusaur')
+        session.add(pokemon)
+        await session.commit()
+
+        repository = PokemonRepository(session=session)
+        result = await repository.find_one(name='')
+
+        assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_find_one_with_special_characters(session):
+        """Should find pokemon with special characters in name"""
+        pokemon = PokemonFactory(name='Nidoran♂')
+        session.add(pokemon)
+        await session.commit()
+
+        repository = PokemonRepository(session=session)
+        result = await repository.find_one(name='Nidoran♂')
+
+        assert result is not None
+        assert result.name == 'Nidoran♂'
