@@ -1,0 +1,33 @@
+from typing import Annotated
+
+from fastapi import Depends, Query
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.database import get_session
+from app.models import Pokemon
+from app.shared.schemas import FilterPage
+
+Session = Annotated[AsyncSession, Depends(get_session)]
+
+
+class PokemonRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    async def total(self):
+        return await self.session.scalar(select(func.count()).select_from(Pokemon))
+
+    async def list(self, pokemon_filter: Annotated[FilterPage, Query()] = FilterPage()):
+        query = select(Pokemon).options(
+            selectinload(Pokemon.growth_rate),
+            selectinload(Pokemon.moves),
+            selectinload(Pokemon.types),
+            selectinload(Pokemon.abilities),
+            selectinload(Pokemon.evolutions),
+        )
+        pokemons = await self.session.scalars(
+            query.offset(pokemon_filter.offset).limit(pokemon_filter.limit)
+        )
+        return pokemons.all()
