@@ -55,7 +55,5 @@ async def get_user(user_id: str, session: Session, current_user: CurrentUser):
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='User not found')
 
     if current_user.id != user_id:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
-        )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions')
     return db_user

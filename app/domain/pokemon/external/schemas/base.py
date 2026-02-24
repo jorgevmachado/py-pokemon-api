@@ -22,3 +22,23 @@ class PokemonExternalBaseSchemaResponse(BaseModel):
     order: int
     name: str
     external_image: str
+
+
+class PokemonExternalBaseMoveSchemaResponse(BaseModel):
+    model_config = ConfigDict(extra='ignore')
+    move: PokemonExternalBase
+
+
+class PokemonExternalBaseAbilitySchemaResponse(BaseModel):
+    model_config = ConfigDict(extra='ignore')
+
+    slot: int
+    ability: PokemonExternalBase
+    is_hidden: bool
+
+
+class PokemonExternalBaseTypeSchemaResponse(BaseModel):
+    model_config = ConfigDict(extra='ignore')
+
+    slot: int
+    type: PokemonExternalBase

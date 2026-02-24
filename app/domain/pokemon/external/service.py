@@ -3,13 +3,13 @@ from http import HTTPStatus
 import httpx
 from fastapi import HTTPException
 
+from app.domain.pokemon.external.business import PokemonExternalBusiness
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseSchemaResponse,
+    PokemonExternalEvolutionSchemaResponse,
     PokemonExternalGrowthRateSchemaResponse,
 )
-from app.domain.pokemon.external.schemas.evolution import (
-    PokemonExternalEvolutionSchemaResponse,
-)
+from app.domain.pokemon.external.schemas.fetch_one import PokemonFetchOneSchemaResponse
 from app.domain.pokemon.external.schemas.move import (
     PokemonExternalMoveSchemaResponse,
 )
@@ -19,8 +19,10 @@ from app.domain.pokemon.external.schemas.name import (
 from app.domain.pokemon.external.schemas.specie import (
     PokemonExternalSpecieSchemaResponse,
 )
+from app.domain.pokemon.schema import PokemonSchema
 from app.shared.image import ensure_external_image
 from app.shared.number import ensure_order_number
+from app.shared.status_enum import StatusEnum
 
 
 class PokemonExternalService:
@@ -181,4 +183,116 @@ class PokemonExternalService:
             raise HTTPException(
                 status_code=HTTPStatus.SERVICE_UNAVAILABLE,
                 detail='Failed to execute external request:(evolution_chain).',
+            )
+
+    @staticmethod
+    async def fetch_by_name(
+        pokemon: PokemonSchema,
+    ) -> PokemonFetchOneSchemaResponse | None:
+        try:
+            pokemon_name_response = await PokemonExternalService.pokemon_external_by_name(
+                pokemon.name
+            )
+            if pokemon_name_response is None:
+                return PokemonFetchOneSchemaResponse(
+                    pokemon=pokemon,
+                    types=[],
+                    moves=[],
+                    abilities=[],
+                )
+            types = pokemon_name_response.types
+            moves = pokemon_name_response.moves
+            abilities = pokemon_name_response.abilities
+            attributes = PokemonExternalBusiness.ensure_attributes(pokemon_name_response)
+
+            pokemon_with_pokemon_name = PokemonSchema(
+                url=pokemon.url,
+                name=pokemon.name,
+                order=pokemon.order,
+                status=StatusEnum.INCOMPLETE,
+                external_image=pokemon.external_image,
+                hp=attributes.hp,
+                image=PokemonExternalBusiness.ensure_image(pokemon_name_response.sprites),
+                speed=attributes.speed,
+                height=attributes.height,
+                weight=attributes.weight,
+                attack=attributes.attack,
+                defense=attributes.defense,
+                habitat=None,
+                is_baby=False,
+                shape_url=None,
+                shape_name=None,
+                is_mythical=False,
+                gender_rate=None,
+                is_legendary=False,
+                capture_rate=None,
+                hatch_counter=None,
+                base_happiness=None,
+                special_attack=attributes.special_attack,
+                base_experience=attributes.base_experience,
+                special_defense=attributes.special_defense,
+                evolution_chain_url=None,
+                evolves_from_species=None,
+                has_gender_differences=False,
+            )
+
+            pokemon_specie_response = await (
+                PokemonExternalService.pokemon_external_specie_by_name(pokemon.name)
+            )
+
+            if pokemon_specie_response is None:
+                return PokemonFetchOneSchemaResponse(
+                    pokemon=pokemon_with_pokemon_name,
+                    types=types,
+                    moves=moves,
+                    abilities=abilities,
+                )
+
+            specie_attributes = PokemonExternalBusiness.ensure_specie_attributes(
+                pokemon_specie_response
+            )
+
+            return PokemonFetchOneSchemaResponse(
+                pokemon=PokemonSchema(
+                    url=pokemon_with_pokemon_name.url,
+                    name=pokemon_with_pokemon_name.name,
+                    order=pokemon_with_pokemon_name.order,
+                    status=StatusEnum.INCOMPLETE,
+                    external_image=pokemon_with_pokemon_name.external_image,
+                    hp=attributes.hp,
+                    image=PokemonExternalBusiness.ensure_image(
+                        pokemon_with_pokemon_name.image
+                    ),
+                    speed=pokemon_with_pokemon_name.speed,
+                    height=pokemon_with_pokemon_name.height,
+                    weight=pokemon_with_pokemon_name.weight,
+                    attack=pokemon_with_pokemon_name.attack,
+                    defense=pokemon_with_pokemon_name.defense,
+                    habitat=specie_attributes.habitat,
+                    is_baby=specie_attributes.is_baby,
+                    shape_url=specie_attributes.shape_url,
+                    shape_name=specie_attributes.shape_name,
+                    is_mythical=specie_attributes.is_mythical,
+                    gender_rate=specie_attributes.gender_rate,
+                    is_legendary=specie_attributes.is_legendary,
+                    capture_rate=specie_attributes.capture_rate,
+                    hatch_counter=specie_attributes.hatch_counter,
+                    base_happiness=specie_attributes.base_happiness,
+                    special_attack=pokemon_with_pokemon_name.special_attack,
+                    base_experience=pokemon_with_pokemon_name.base_experience,
+                    special_defense=pokemon_with_pokemon_name.special_defense,
+                    evolution_chain_url=specie_attributes.evolution_chain_url,
+                    evolves_from_species=specie_attributes.evolves_from_species,
+                    has_gender_differences=specie_attributes.has_gender_differences,
+                ),
+                types=types,
+                moves=moves,
+                abilities=abilities,
+            )
+
+        except httpx.HTTPError as e:
+            print(f'# => fetch_by_name => error => {e}')
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                detail='Failed to execute external request:(fetch_by_name).',
             )

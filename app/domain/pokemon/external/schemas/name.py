@@ -2,20 +2,12 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
-from app.domain.pokemon.external.schemas.base import PokemonExternalBase
-
-
-class PokemonExternalByNameTypeSchemaResponse(BaseModel):
-    model_config = ConfigDict(extra='ignore')
-
-    slot: int
-    type: PokemonExternalBase
-
-
-class PokemonExternalByNameMoveSchemaResponse(BaseModel):
-    model_config = ConfigDict(extra='ignore')
-
-    move: PokemonExternalBase
+from app.domain.pokemon.external.schemas.base import (
+    PokemonExternalBase,
+    PokemonExternalBaseAbilitySchemaResponse,
+    PokemonExternalBaseMoveSchemaResponse,
+    PokemonExternalBaseTypeSchemaResponse,
+)
 
 
 class PokemonExternalByNameStatsSchemaResponse(BaseModel):
@@ -23,14 +15,6 @@ class PokemonExternalByNameStatsSchemaResponse(BaseModel):
 
     stat: PokemonExternalBase
     base_stat: int
-
-
-class PokemonExternalByNameAbilitySchemaResponse(BaseModel):
-    model_config = ConfigDict(extra='ignore')
-
-    slot: int
-    ability: PokemonExternalBase
-    is_hidden: bool
 
 
 class PokemonExternalByNameSpritesDreamWorldSchema(BaseModel):
@@ -70,13 +54,13 @@ class PokemonExternalByNameSchemaResponse(BaseModel):
 
     name: str
     order: int
-    types: list[PokemonExternalByNameTypeSchemaResponse]
-    moves: list[PokemonExternalByNameMoveSchemaResponse]
+    types: list[PokemonExternalBaseTypeSchemaResponse]
+    moves: list[PokemonExternalBaseMoveSchemaResponse]
     stats: list[PokemonExternalByNameStatsSchemaResponse]
     height: int
     weight: int
     sprites: PokemonExternalByNameSpritesSchemaResponse
-    abilities: list[PokemonExternalByNameAbilitySchemaResponse]
+    abilities: list[PokemonExternalBaseAbilitySchemaResponse]
     base_experience: int
 
 
