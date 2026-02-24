@@ -109,7 +109,7 @@ class TestPokemonExternalServiceList:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__.return_value = mock_client
-            mock_client.__aexit__.return_value = False
+            mock_client.__aexit__.return_value = None
             mock_client.get.return_value = mock_response
             mock_client_class.return_value = mock_client
 
@@ -136,7 +136,7 @@ class TestPokemonExternalServiceList:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__.return_value = mock_client
-            mock_client.__aexit__.return_value = False
+            mock_client.__aexit__.return_value = None
             mock_client.get.side_effect = httpx.HTTPError('Connection error')
             mock_client_class.return_value = mock_client
 
@@ -157,26 +157,121 @@ class TestPokemonExternalServiceByName:
     async def test_pokemon_external_by_name_success():
         """Should return pokemon data when API request is successful"""
 
-        order = 1
         name = 'bulbasaur'
-        height = 7
-        weight = 69
-        base_experience = 64
         image = 'https://example.com/bulbasaur.png'
 
+        total_stats = 6
         mock_response_data = {
-            'name': 'bulbasaur',
-            'order': order,
-            'height': height,
-            'weight': weight,
-            'base_experience': base_experience,
-            'types': [],
-            'moves': [],
-            'stats': [],
-            'abilities': [],
+            'name': name,
+            'order': 1,
+            'height': 7,
+            'weight': 69,
+            'base_experience': 64,
+            'types': [
+                {
+                    'slot': 1,
+                    'type': {
+                        'name': 'grass',
+                        'url': 'https://pokeapi.co/api/v2/type/12/',
+                    },
+                }
+            ],
+            'moves': [
+                {
+                    'move': {
+                        'name': 'razor-wind',
+                        'url': 'https://pokeapi.co/api/v2/move/13/',
+                    },
+                    'version_group_details': [
+                        {
+                            'level_learned_at': 0,
+                            'move_learn_method': {
+                                'name': 'egg',
+                                'url': 'https://pokeapi.co/api/v2/move-learn-method/2/',
+                            },
+                            'order': None,
+                            'version_group': {
+                                'name': 'gold-silver',
+                                'url': 'https://pokeapi.co/api/v2/version-group/3/',
+                            },
+                        },
+                        {
+                            'level_learned_at': 0,
+                            'move_learn_method': {
+                                'name': 'egg',
+                                'url': 'https://pokeapi.co/api/v2/move-learn-method/2/',
+                            },
+                            'order': None,
+                            'version_group': {
+                                'name': 'crystal',
+                                'url': 'https://pokeapi.co/api/v2/version-group/4/',
+                            },
+                        },
+                    ],
+                }
+            ],
+            'stats': [
+                {
+                    'base_stat': 45,
+                    'effort': 0,
+                    'stat': {
+                        'name': 'hp',
+                        'url': 'https://pokeapi.co/api/v2/stat/1/',
+                    },
+                },
+                {
+                    'base_stat': 49,
+                    'effort': 0,
+                    'stat': {
+                        'name': 'attack',
+                        'url': 'https://pokeapi.co/api/v2/stat/2/',
+                    },
+                },
+                {
+                    'base_stat': 49,
+                    'effort': 0,
+                    'stat': {
+                        'name': 'defense',
+                        'url': 'https://pokeapi.co/api/v2/stat/3/',
+                    },
+                },
+                {
+                    'base_stat': 65,
+                    'effort': 1,
+                    'stat': {
+                        'name': 'special-attack',
+                        'url': 'https://pokeapi.co/api/v2/stat/4/',
+                    },
+                },
+                {
+                    'base_stat': 65,
+                    'effort': 0,
+                    'stat': {
+                        'name': 'special-defense',
+                        'url': 'https://pokeapi.co/api/v2/stat/5/',
+                    },
+                },
+                {
+                    'base_stat': 45,
+                    'effort': 0,
+                    'stat': {
+                        'name': 'speed',
+                        'url': 'https://pokeapi.co/api/v2/stat/6/',
+                    },
+                },
+            ],
+            'abilities': [
+                {
+                    'ability': {
+                        'name': 'overgrow',
+                        'url': 'https://pokeapi.co/api/v2/ability/65/',
+                    },
+                    'is_hidden': False,
+                    'slot': 1,
+                }
+            ],
             'sprites': {'front_default': image},
         }
-
         mock_response = MagicMock()
         mock_response.json.return_value = mock_response_data
         mock_response.raise_for_status.return_value = None
@@ -185,7 +280,7 @@ class TestPokemonExternalServiceByName:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__.return_value = mock_client
-            mock_client.__aexit__.return_value = False
+            mock_client.__aexit__.return_value = None
             mock_client.get.return_value = mock_response
             mock_client_class.return_value = mock_client
 
@@ -194,11 +289,18 @@ class TestPokemonExternalServiceByName:
             )
 
             assert isinstance(result, PokemonExternalByNameSchemaResponse)
-            assert result.name == name
-            assert result.order == order
-            assert result.height == height
-            assert result.weight == weight
-            assert result.base_experience == base_experience
+            assert result.name == mock_response_data['name']
+            assert result.order == mock_response_data['order']
+            assert result.height == mock_response_data['height']
+            assert result.weight == mock_response_data['weight']
+            assert (
+                result.base_experience == mock_response_data['base_experience']
+            )
+            assert len(result.types) == 1
+            assert len(result.moves) == 1
+            assert len(result.abilities) == 1
+            assert len(result.stats) == total_stats
+            assert result.sprites.front_default == image
 
     @staticmethod
     @pytest.mark.asyncio
@@ -234,7 +336,7 @@ class TestPokemonExternalServiceByName:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__.return_value = mock_client
-            mock_client.__aexit__.return_value = False
+            mock_client.__aexit__.return_value = None
             mock_client.get.side_effect = httpx.HTTPError('Connection error')
             mock_client_class.return_value = mock_client
 

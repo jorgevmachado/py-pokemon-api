@@ -1,5 +1,4 @@
 from http import HTTPStatus
-from typing import TYPE_CHECKING
 
 import httpx
 from fastapi import HTTPException
@@ -10,19 +9,17 @@ from app.domain.pokemon.external.schemas import (
 from app.domain.pokemon.external.schemas.name import (
     PokemonExternalByNameSchemaResponse,
 )
+from app.shared.image import ensure_external_image
 from app.shared.number import ensure_order_number
-
-if TYPE_CHECKING:
-    from app.domain.pokemon.external.schemas.name import (
-        PokemonExternalByNameSchemaResponse,
-    )
 
 
 class PokemonExternalService:
     BASE_URL = 'https://pokeapi.co/api/v2'
 
     @staticmethod
-    async def pokemon_external_list(offset: int, limit: int):
+    async def pokemon_external_list(
+        offset: int, limit: int
+    ) -> list[PokemonExternalBaseSchemaResponse]:
         try:
             async with httpx.AsyncClient(verify=False) as client:
                 response = await client.get(
@@ -41,7 +38,13 @@ class PokemonExternalService:
 
                 results = response_data['results']
                 new_results = [
-                    {**item, 'order': ensure_order_number(item.get('url'))}
+                    {
+                        **item,
+                        'order': ensure_order_number(item.get('url')),
+                        'external_image': ensure_external_image(
+                            ensure_order_number(item.get('url'))
+                        ),
+                    }
                     for item in results
                 ]
                 return [
@@ -60,7 +63,7 @@ class PokemonExternalService:
     @staticmethod
     async def pokemon_external_by_name(
         name: str,
-    ) -> 'PokemonExternalByNameSchemaResponse | None':
+    ) -> PokemonExternalByNameSchemaResponse | None:
         try:
             async with httpx.AsyncClient(verify=False) as client:
                 response = await client.get(

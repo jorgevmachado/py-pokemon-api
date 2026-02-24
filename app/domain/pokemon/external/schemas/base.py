@@ -21,3 +21,4 @@ class PokemonExternalBaseSchemaResponse(BaseModel):
     url: str
     order: int
     name: str
+    external_image: str

@@ -4,6 +4,7 @@ from app.domain.pokemon.external.schemas.base import (
     PokemonExternalLanguage,
 )
 from app.domain.pokemon.external.schemas.name import (
+    PokemonExternalByNameSpritesSchemaResponse,
     PokemonExternalByNameTypeSchemaResponse,
 )
 
@@ -12,4 +13,5 @@ __all__ = [
     'PokemonExternalLanguage',
     'PokemonExternalBaseSchemaResponse',
     'PokemonExternalByNameTypeSchemaResponse',
+    'PokemonExternalByNameSpritesSchemaResponse',
 ]
