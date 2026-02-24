@@ -6,6 +6,9 @@ from fastapi import HTTPException
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseSchemaResponse,
 )
+from app.domain.pokemon.external.schemas.move import (
+    PokemonExternalMoveSchemaResponse,
+)
 from app.domain.pokemon.external.schemas.name import (
     PokemonExternalByNameSchemaResponse,
 )
@@ -109,4 +112,28 @@ class PokemonExternalService:
             raise HTTPException(
                 status_code=HTTPStatus.SERVICE_UNAVAILABLE,
                 detail='Failed to execute external request:(specie).',
+            )
+
+    @staticmethod
+    async def pokemon_external_move_by_name(
+        name: str,
+    ) -> PokemonExternalMoveSchemaResponse | None:
+        try:
+            async with httpx.AsyncClient(verify=False) as client:
+                response = await client.get(
+                    f'{PokemonExternalService.BASE_URL}/move/{name}',
+                    timeout=10.0,
+                )
+                response.raise_for_status()
+                response_data = response.json()
+
+                if not response_data or 'name' not in response_data:
+                    return None
+
+                return PokemonExternalMoveSchemaResponse(**response_data)
+        except httpx.HTTPError as e:
+            print(f'# => pokemon_external_move_by_name => error => {e}')
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                detail='Failed to execute external request:(move).',
             )
