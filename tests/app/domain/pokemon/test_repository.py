@@ -6,6 +6,7 @@ import pytest
 from factory import Faker
 
 from app.domain.pokemon.repository import PokemonRepository
+from app.domain.pokemon.schema import CreatePokemonSchema
 from app.models import Pokemon
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
@@ -304,3 +305,46 @@ class TestPokemonRepositoryFindOne:
 
         assert result is not None
         assert result.name == 'Nidoran♂'
+
+
+class TestPokemonRepositoryCreate:
+    """Test scope for create method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_create_success(session):
+        """Should persist pokemon with default status when data is valid"""
+        pokemon_data_order = 133
+        pokemon_data = CreatePokemonSchema(
+            name='Eevee',
+            order=pokemon_data_order,
+            url='https://pokeapi.co/api/v2/pokemon/eevee',
+            external_image='https://pokeapi.co/api/v2/pokemon/eevee',
+        )
+
+        repository = PokemonRepository(session=session)
+        result = await repository.create(pokemon_data=pokemon_data)
+
+        assert isinstance(result, Pokemon)
+        assert result.name == 'Eevee'
+        assert result.order == pokemon_data_order
+        assert result.url == 'https://pokeapi.co/api/v2/pokemon/eevee'
+        assert result.external_image == 'https://pokeapi.co/api/v2/pokemon/eevee'
+        assert result.status == StatusEnum.INCOMPLETE
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_create_commit_error(session):
+        """Should raise exception when commit fails"""
+        pokemon_data = CreatePokemonSchema(
+            name='Mew',
+            order=151,
+            url='https://pokeapi.co/api/v2/pokemon/mew',
+            external_image='https://pokeapi.co/api/v2/pokemon/mew',
+        )
+        session.commit = AsyncMock(side_effect=Exception('Database error'))
+
+        repository = PokemonRepository(session=session)
+
+        with pytest.raises(Exception, match='Database error'):
+            await repository.create(pokemon_data=pokemon_data)

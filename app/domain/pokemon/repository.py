@@ -6,8 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_session
+from app.domain.pokemon.schema import CreatePokemonSchema
 from app.models import Pokemon
 from app.shared.schemas import FilterPage
+from app.shared.status_enum import StatusEnum
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
@@ -44,3 +46,16 @@ class PokemonRepository:
             )
             .where(Pokemon.name == name)
         )
+
+    async def create(self, pokemon_data: CreatePokemonSchema) -> Pokemon:
+        pokemon = Pokemon(
+            name=pokemon_data.name,
+            order=pokemon_data.order,
+            url=pokemon_data.url,
+            status=StatusEnum.INCOMPLETE,
+            external_image=pokemon_data.external_image,
+        )
+        self.session.add(pokemon)
+        await self.session.commit()
+        await self.session.refresh(pokemon)
+        return pokemon
