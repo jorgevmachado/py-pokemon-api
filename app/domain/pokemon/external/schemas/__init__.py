@@ -14,6 +14,7 @@ from app.domain.pokemon.external.schemas.growth_rate import (
     PokemonExternalGrowthRateSchemaResponse,
 )
 from app.domain.pokemon.external.schemas.move import (
+    PokemonExternalMoveEffectEntriesSchemaResponse,
     PokemonExternalMoveSchemaResponse,
 )
 from app.domain.pokemon.external.schemas.name import (
@@ -42,6 +43,7 @@ __all__ = [
     'PokemonExternalByNameSpritesDreamWorldSchema',
     'PokemonSpecieEvolutionChainResponse',
     'PokemonExternalMoveSchemaResponse',
+    'PokemonExternalMoveEffectEntriesSchemaResponse',
     'PokemonExternalGrowthRateSchemaResponse',
     'PokemonExternalEvolutionsDetailsSchemaResponse',
     'PokemonExternalSpecieSchemaResponse',

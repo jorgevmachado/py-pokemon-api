@@ -6,8 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
 from app.domain.pokemon.external.service import PokemonExternalService
+from app.domain.pokemon.move.service import PokemonMoveService
 from app.domain.pokemon.repository import PokemonRepository
 from app.domain.pokemon.schema import CreatePokemonSchema, PokemonSchema
+from app.domain.pokemon.type.service import PokemonTypeService
 from app.models import Pokemon
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
@@ -19,6 +21,8 @@ Session = Annotated[AsyncSession, Depends(get_session)]
 class PokemonService:
     def __init__(self, session: Session):
         self.repository = PokemonRepository(session)
+        self.pokemonMoveService = PokemonMoveService(session)
+        self.pokemonTypeService = PokemonTypeService(session)
         self.external_service = PokemonExternalService()
 
     async def fetch_all(self, pokemon_filter: Annotated[FilterPage, Query()]) -> list[Pokemon]:
@@ -97,6 +101,8 @@ class PokemonService:
         external_data = await self.external_service.fetch_by_name(
             pokemon=PokemonSchema.model_validate(pokemon)
         )
-        types = external_data.types
+        moves = await self.pokemonMoveService.verify_pokemon_move(external_data.moves)
+        print(f'# => service => complete_pokemon_data => moves => {moves}')
+        types = await self.pokemonTypeService.verify_pokemon_type(external_data.types)
         print(f'# => service => complete_pokemon_data => types => {types}')
         return pokemon
