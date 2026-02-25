@@ -206,6 +206,7 @@ class PokemonExternalService:
             attributes = PokemonExternalBusiness.ensure_attributes(pokemon_name_response)
 
             pokemon_with_pokemon_name = PokemonSchema(
+                id=pokemon.id,
                 url=pokemon.url,
                 name=pokemon.name,
                 order=pokemon.order,
@@ -254,6 +255,7 @@ class PokemonExternalService:
 
             return PokemonFetchOneSchemaResponse(
                 pokemon=PokemonSchema(
+                    id=pokemon_with_pokemon_name.id,
                     url=pokemon_with_pokemon_name.url,
                     name=pokemon_with_pokemon_name.name,
                     order=pokemon_with_pokemon_name.order,

@@ -8,6 +8,7 @@ from app.shared.status_enum import StatusEnum
 class PokemonSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id: str
     url: str
     name: str
     order: int
@@ -36,6 +37,12 @@ class PokemonSchema(BaseModel):
     evolution_chain_url: Optional[str] = None
     evolves_from_species: Optional[str] = None
     has_gender_differences: Optional[bool] = None
+
+
+class PokemonListSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    results: list[PokemonSchema]
 
 
 class CreatePokemonSchema(BaseModel):

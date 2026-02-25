@@ -28,6 +28,7 @@ MOCK_POKEMON_HEIGHT = 7
 MOCK_POKEMON_WEIGHT = 69
 MOCK_POKEMON_BASE_EXPERIENCE = 64
 MOCK_INITIAL_POKEMON = PokemonSchema(
+    id='mock-pokemon-id',
     url='https://pokeapi.co/api/v2/pokemon/1/',
     name=MOCK_POKEMON_NAME,
     order=1,

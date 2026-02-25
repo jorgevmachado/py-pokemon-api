@@ -19,7 +19,7 @@ class PokemonService:
         self.repository = PokemonRepository(session)
         self.external_service = PokemonExternalService()
 
-    async def fetch_all(self, pokemon_filter: Annotated[FilterPage, Query()]):
+    async def fetch_all(self, pokemon_filter: Annotated[FilterPage, Query()]) -> list[Pokemon]:
         try:
             total = await self.repository.total()
             if total != POKEMON_TOTAL_LIMIT:
