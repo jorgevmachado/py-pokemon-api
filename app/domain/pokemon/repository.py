@@ -59,3 +59,9 @@ class PokemonRepository:
         await self.session.commit()
         await self.session.refresh(pokemon)
         return pokemon
+
+    async def update(self, pokemon: Pokemon) -> Pokemon:
+        await self.session.merge(pokemon)
+        await self.session.commit()
+        await self.session.refresh(pokemon)
+        return pokemon

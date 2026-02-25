@@ -7,11 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_session
 from app.domain.pokemon.ability.service import PokemonAbilityService
 from app.domain.pokemon.external.service import PokemonExternalService
+from app.domain.pokemon.growth_rate.service import PokemonGrowthRateService
 from app.domain.pokemon.move.service import PokemonMoveService
 from app.domain.pokemon.repository import PokemonRepository
 from app.domain.pokemon.schema import CreatePokemonSchema, PokemonSchema
 from app.domain.pokemon.type.service import PokemonTypeService
 from app.models import Pokemon
+from app.shared.number import ensure_order_number
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
 
@@ -25,6 +27,7 @@ class PokemonService:
         self.pokemon_move_service = PokemonMoveService(session)
         self.pokemon_type_service = PokemonTypeService(session)
         self.pokemon_ability_service = PokemonAbilityService(session)
+        self.pokemon_growth_rate_service = PokemonGrowthRateService(session)
         self.external_service = PokemonExternalService()
 
     async def fetch_all(self, pokemon_filter: Annotated[FilterPage, Query()]) -> list[Pokemon]:
@@ -111,4 +114,27 @@ class PokemonService:
             external_data.abilities
         )
         print(f'# => service => complete_pokemon_data => abilities => {abilities}')
-        return pokemon
+        growth_rate = await self.pokemon_growth_rate_service.verify_pokemon_growth_rate(
+            external_data.growth_rate
+        )
+        print(f'# => service => complete_pokemon_data => growth_rate => {growth_rate}')
+        await self.repository.update(pokemon)
+        evolutions = await self.complete_evolution(
+            external_data.pokemon.evolution_chain_url
+        )
+        print(f'# => service => complete_pokemon_data => evolutions => {evolutions}')
+        return await self.repository.find_one(name=pokemon.name)
+
+    async def complete_evolution(
+            self,
+            evolution_chain_url: str | None,
+    ) -> list[Pokemon]:
+        if not evolution_chain_url:
+            return []
+
+        order = ensure_order_number(evolution_chain_url)
+
+        if order == 0:
+            return []
+
+        return []

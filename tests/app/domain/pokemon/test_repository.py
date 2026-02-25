@@ -12,6 +12,18 @@ from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
 from tests.app.domain.pokemon.mock import MOCK_ENTITY_POKEMON
 
+MOCK_PIKACHU_HP = 35
+MOCK_PIKACHU_ATTACK = 55
+MOCK_CHARIZARD_HP = 78
+MOCK_CHARIZARD_ATTACK = 84
+MOCK_CHARIZARD_DEFENSE = 78
+MOCK_CHARIZARD_SPECIAL_ATTACK = 109
+MOCK_CHARIZARD_SPECIAL_DEFENSE = 85
+MOCK_CHARIZARD_SPEED = 100
+MOCK_CHARIZARD_HEIGHT = 17
+MOCK_CHARIZARD_WEIGHT = 905
+MOCK_SQUIRTLE_HP = 44
+
 
 class PokemonFactory(factory.Factory):
     class Meta:
@@ -348,3 +360,128 @@ class TestPokemonRepositoryCreate:
 
         with pytest.raises(Exception, match='Database error'):
             await repository.create(pokemon_data=pokemon_data)
+
+
+class TestPokemonRepositoryUpdate:
+    """Test scope for update method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_update_success(session):
+        """Should update pokemon successfully when data is valid"""
+        pokemon = Pokemon(
+            name='Pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://pokeapi.co/api/v2/pokemon/25/image.png',
+        )
+        session.add(pokemon)
+        await session.commit()
+        await session.refresh(pokemon)
+
+        pokemon.status = StatusEnum.COMPLETE
+        pokemon.hp = MOCK_PIKACHU_HP
+        pokemon.attack = MOCK_PIKACHU_ATTACK
+
+        repository = PokemonRepository(session=session)
+        result = await repository.update(pokemon=pokemon)
+
+        assert result.status == StatusEnum.COMPLETE
+        assert result.hp == MOCK_PIKACHU_HP
+        assert result.attack == MOCK_PIKACHU_ATTACK
+        assert result.name == 'Pikachu'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_update_all_attributes(session):
+        """Should update all pokemon attributes correctly"""
+        pokemon = Pokemon(
+            name='Charizard',
+            order=6,
+            url='https://pokeapi.co/api/v2/pokemon/6/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://pokeapi.co/api/v2/pokemon/6/image.png',
+        )
+        session.add(pokemon)
+        await session.commit()
+        await session.refresh(pokemon)
+
+        pokemon.status = StatusEnum.COMPLETE
+        pokemon.hp = MOCK_CHARIZARD_HP
+        pokemon.attack = MOCK_CHARIZARD_ATTACK
+        pokemon.defense = MOCK_CHARIZARD_DEFENSE
+        pokemon.special_attack = MOCK_CHARIZARD_SPECIAL_ATTACK
+        pokemon.special_defense = MOCK_CHARIZARD_SPECIAL_DEFENSE
+        pokemon.speed = MOCK_CHARIZARD_SPEED
+        pokemon.height = MOCK_CHARIZARD_HEIGHT
+        pokemon.weight = MOCK_CHARIZARD_WEIGHT
+        pokemon.habitat = 'mountain'
+
+        repository = PokemonRepository(session=session)
+        result = await repository.update(pokemon=pokemon)
+
+        assert result.status == StatusEnum.COMPLETE
+        assert result.hp == MOCK_CHARIZARD_HP
+        assert result.attack == MOCK_CHARIZARD_ATTACK
+        assert result.defense == MOCK_CHARIZARD_DEFENSE
+        assert result.special_attack == MOCK_CHARIZARD_SPECIAL_ATTACK
+        assert result.special_defense == MOCK_CHARIZARD_SPECIAL_DEFENSE
+        assert result.speed == MOCK_CHARIZARD_SPEED
+        assert result.height == MOCK_CHARIZARD_HEIGHT
+        assert result.weight == MOCK_CHARIZARD_WEIGHT
+        assert result.habitat == 'mountain'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_update_commit_error(session):
+        """Should raise exception when commit fails during update"""
+        pokemon = Pokemon(
+            name='Bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://pokeapi.co/api/v2/pokemon/1/image.png',
+        )
+        session.add(pokemon)
+        await session.commit()
+        await session.refresh(pokemon)
+
+        pokemon.status = StatusEnum.COMPLETE
+        session.commit = AsyncMock(side_effect=Exception('Database error'))
+
+        repository = PokemonRepository(session=session)
+
+        with pytest.raises(Exception, match='Database error'):
+            await repository.update(pokemon=pokemon)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_update_preserves_unchanged_fields(session):
+        """Should preserve fields that were not changed"""
+        pokemon = Pokemon(
+            name='Squirtle',
+            order=7,
+            url='https://pokeapi.co/api/v2/pokemon/7/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://pokeapi.co/api/v2/pokemon/7/image.png',
+        )
+        session.add(pokemon)
+        await session.commit()
+        await session.refresh(pokemon)
+
+        original_name = pokemon.name
+        original_order = pokemon.order
+        original_url = pokemon.url
+
+        pokemon.status = StatusEnum.COMPLETE
+        pokemon.hp = MOCK_SQUIRTLE_HP
+
+        repository = PokemonRepository(session=session)
+        result = await repository.update(pokemon=pokemon)
+
+        assert result.name == original_name
+        assert result.order == original_order
+        assert result.url == original_url
+        assert result.status == StatusEnum.COMPLETE
+        assert result.hp == MOCK_SQUIRTLE_HP
