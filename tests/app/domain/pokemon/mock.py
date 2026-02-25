@@ -1,10 +1,12 @@
 from app.models import Pokemon
 from app.shared.status_enum import StatusEnum
 
+MOCK_ENTITY_ORDER = 1
+
 MOCK_ENTITY_POKEMON = Pokemon(
     url='https://pokeapi.co/api/v2/pokemon/1/',
     name='bulbasaur',
-    order=1,
+    order=MOCK_ENTITY_ORDER,
     status=StatusEnum.INCOMPLETE,
     external_image='https://example.com/bulbasaur.png',
     hp=None,
