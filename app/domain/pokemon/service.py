@@ -5,6 +5,7 @@ from fastapi import Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
+from app.domain.pokemon.ability.service import PokemonAbilityService
 from app.domain.pokemon.external.service import PokemonExternalService
 from app.domain.pokemon.move.service import PokemonMoveService
 from app.domain.pokemon.repository import PokemonRepository
@@ -21,8 +22,9 @@ Session = Annotated[AsyncSession, Depends(get_session)]
 class PokemonService:
     def __init__(self, session: Session):
         self.repository = PokemonRepository(session)
-        self.pokemonMoveService = PokemonMoveService(session)
-        self.pokemonTypeService = PokemonTypeService(session)
+        self.pokemon_move_service = PokemonMoveService(session)
+        self.pokemon_type_service = PokemonTypeService(session)
+        self.pokemon_ability_service = PokemonAbilityService(session)
         self.external_service = PokemonExternalService()
 
     async def fetch_all(self, pokemon_filter: Annotated[FilterPage, Query()]) -> list[Pokemon]:
@@ -101,8 +103,12 @@ class PokemonService:
         external_data = await self.external_service.fetch_by_name(
             pokemon=PokemonSchema.model_validate(pokemon)
         )
-        moves = await self.pokemonMoveService.verify_pokemon_move(external_data.moves)
+        moves = await self.pokemon_move_service.verify_pokemon_move(external_data.moves)
         print(f'# => service => complete_pokemon_data => moves => {moves}')
-        types = await self.pokemonTypeService.verify_pokemon_type(external_data.types)
+        types = await self.pokemon_type_service.verify_pokemon_type(external_data.types)
         print(f'# => service => complete_pokemon_data => types => {types}')
+        abilities = await self.pokemon_ability_service.verify_pokemon_abilities(
+            external_data.abilities
+        )
+        print(f'# => service => complete_pokemon_data => abilities => {abilities}')
         return pokemon

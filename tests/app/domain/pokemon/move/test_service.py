@@ -43,9 +43,7 @@ class TestPokemonMoveServiceVerifyPokemonMove:
             effect_chance=None,
         )
         response_pokemon_move = PokemonExternalBaseMoveSchemaResponse(
-            move=PokemonExternalBase(
-                name='pound', url='https://pokeapi.co/api/v2/move/1/'
-            )
+            move=PokemonExternalBase(name='pound', url='https://pokeapi.co/api/v2/move/1/')
         )
 
         service = PokemonMoveService(session=session)
@@ -83,7 +81,9 @@ class TestPokemonMoveServiceVerifyPokemonMove:
         external_move_data.power = MOCK_POKEMON_MOVE_POWER
         external_move_data.accuracy = MOCK_POKEMON_MOVE_ACCURACY
         external_move_data.priority = MOCK_POKEMON_MOVE_PRIORITY
-        external_move_data.type = PokemonExternalBase(name='normal', url='https://pokeapi.co/api/v2/type/1/')
+        external_move_data.type = PokemonExternalBase(
+            name='normal', url='https://pokeapi.co/api/v2/type/1/'
+        )
         external_move_data.target = PokemonExternalBase(
             name='single-target', url='https://pokeapi.co/api/v2/move-target/1/'
         )
@@ -207,9 +207,7 @@ class TestPokemonMoveServiceVerifyPokemonMove:
 
         response_moves = [
             PokemonExternalBaseMoveSchemaResponse(
-                move=PokemonExternalBase(
-                    name='pound', url='https://pokeapi.co/api/v2/move/1/'
-                )
+                move=PokemonExternalBase(name='pound', url='https://pokeapi.co/api/v2/move/1/')
             ),
             PokemonExternalBaseMoveSchemaResponse(
                 move=PokemonExternalBase(
