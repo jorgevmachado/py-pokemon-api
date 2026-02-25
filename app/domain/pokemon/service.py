@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import Annotated
 
-from fastapi import Depends, Query, HTTPException
+from fastapi import Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
@@ -80,15 +80,13 @@ class PokemonService:
         return await self.validate_entity(name)
 
     async def validate_entity(
-            self,
-            pokemon_name: str,
+        self,
+        pokemon_name: str,
     ) -> Pokemon:
         pokemon = await self.repository.find_one(name=pokemon_name)
 
         if not pokemon:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, detail='Pokemon not found'
-            )
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='Pokemon not found')
 
         if pokemon.status == StatusEnum.INCOMPLETE:
             return await self.complete_pokemon_data(pokemon=pokemon)
@@ -96,9 +94,9 @@ class PokemonService:
         return pokemon
 
     async def complete_pokemon_data(self, pokemon: Pokemon) -> Pokemon:
-        external_data = await self.external_service.fetch_by_name(pokemon=PokemonSchema.model_validate(pokemon))
+        external_data = await self.external_service.fetch_by_name(
+            pokemon=PokemonSchema.model_validate(pokemon)
+        )
         types = external_data.types
         print(f'# => service => complete_pokemon_data => types => {types}')
         return pokemon
-
-

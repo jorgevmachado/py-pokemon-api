@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import UUID, ForeignKey, func
-from sqlalchemy.orm import Mapped, Relationship, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import default_lazy, table_registry
 
@@ -37,8 +37,9 @@ class PokemonType:
     background_color: Mapped[str]
 
     # FK
-    weaknesses: Mapped[list['PokemonType']] = Relationship(
+    weaknesses: Mapped[list['PokemonType']] = relationship(
         lazy=default_lazy,
+        init=False,
         secondary='type_weaknesses',
         primaryjoin='PokemonType.id == type_weaknesses.c.type_id',
         secondaryjoin='PokemonType.id == type_weaknesses.c.weakness_id',

@@ -421,6 +421,7 @@ class TestPokemonRouterList:
             assert response.status_code == HTTPStatus.OK
             assert len(results) == total_results
 
+
 class TestPokemonRouterDetail:
     """Test scope for detail_pokemon route"""
 
@@ -436,12 +437,10 @@ class TestPokemonRouterDetail:
 
     @staticmethod
     def test_detail_pokemon_success(client, user, token, session, pokemon):
-         """Should return pokemon detail pokemon"""
-
-         response = client.get(
-             f'/pokemon/{pokemon.name}',
-             headers={'Authorization': f'Bearer {token}'},
-         )
-         assert response.status_code == HTTPStatus.OK
-         response_data = response.json()
-         assert response_data['name'] == pokemon.name
+        """Should return pokemon detail found"""
+        response = client.get(
+            f'/pokemon/{pokemon.name}',
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        assert response.status_code == HTTPStatus.OK
+        assert response.json()['name'] == pokemon.name

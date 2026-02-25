@@ -11,7 +11,7 @@ from testcontainers.postgres import PostgresContainer
 
 from app.database import get_session
 from app.main import app
-from app.models import User, Pokemon
+from app.models import Pokemon, User
 from app.models.base import table_registry
 from app.security import get_password_hash
 from app.shared.gender_enum import GenderEnum
@@ -84,6 +84,7 @@ async def user(session: AsyncSession):
 
     return user
 
+
 @pytest_asyncio.fixture
 async def pokemon(session: AsyncSession):
     pokemon = PokemonFactory()
@@ -93,6 +94,7 @@ async def pokemon(session: AsyncSession):
 
     return pokemon
 
+
 @pytest_asyncio.fixture
 async def pokemon_incomplete(session: AsyncSession):
     pokemon = PokemonFactory(status=StatusEnum.INCOMPLETE)
@@ -101,6 +103,7 @@ async def pokemon_incomplete(session: AsyncSession):
     await session.refresh(pokemon)
 
     return pokemon
+
 
 @pytest_asyncio.fixture
 async def other_user(session: AsyncSession):
@@ -143,6 +146,7 @@ class UserFactory(factory.Factory):
     authentication_success = 0
     authentication_failures = 0
 
+
 class PokemonFactory(factory.Factory):
     class Meta:
         model = Pokemon
@@ -150,5 +154,7 @@ class PokemonFactory(factory.Factory):
     name = factory.Sequence(lambda n: f'pokemon_{n}')
     order = factory.Sequence(lambda n: n)
     url = factory.Sequence(lambda n: f'https://pokeapi.co/api/v2/pokemon/{n}')
-    external_image = factory.Sequence(lambda n: f'https://raw.githubusercontent.com/PokeAPI/sprites/{n}.png')
+    external_image = factory.Sequence(
+        lambda n: f'https://raw.githubusercontent.com/PokeAPI/sprites/{n}.png'
+    )
     status = StatusEnum.COMPLETE

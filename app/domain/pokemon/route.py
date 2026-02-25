@@ -25,6 +25,7 @@ async def list_pokemons(
     pokemons = await service.fetch_all(pokemon_filter=pokemon_filter)
     return {'results': pokemons}
 
+
 @router.get('/{pokemon_name}', response_model=PokemonSchema)
 async def find_one_pokemon(
     pokemon_name: str,
