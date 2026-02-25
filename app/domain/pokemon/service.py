@@ -1,14 +1,16 @@
+from http import HTTPStatus
 from typing import Annotated
 
-from fastapi import Depends, Query
+from fastapi import Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
 from app.domain.pokemon.external.service import PokemonExternalService
 from app.domain.pokemon.repository import PokemonRepository
-from app.domain.pokemon.schema import CreatePokemonSchema
+from app.domain.pokemon.schema import CreatePokemonSchema, PokemonSchema
 from app.models import Pokemon
 from app.shared.schemas import FilterPage
+from app.shared.status_enum import StatusEnum
 
 POKEMON_TOTAL_LIMIT = 1302
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -73,3 +75,30 @@ class PokemonService:
         except Exception as e:
             print(f'# => service => initialize_database => error => {e}')
             return []
+
+    async def fetch_one(self, name: str) -> Pokemon | None:
+        return await self.validate_entity(name)
+
+    async def validate_entity(
+            self,
+            pokemon_name: str,
+    ) -> Pokemon:
+        pokemon = await self.repository.find_one(name=pokemon_name)
+
+        if not pokemon:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail='Pokemon not found'
+            )
+
+        if pokemon.status == StatusEnum.INCOMPLETE:
+            return await self.complete_pokemon_data(pokemon=pokemon)
+
+        return pokemon
+
+    async def complete_pokemon_data(self, pokemon: Pokemon) -> Pokemon:
+        external_data = await self.external_service.fetch_by_name(pokemon=PokemonSchema.model_validate(pokemon))
+        types = external_data.types
+        print(f'# => service => complete_pokemon_data => types => {types}')
+        return pokemon
+
+

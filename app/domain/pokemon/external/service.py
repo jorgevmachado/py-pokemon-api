@@ -265,9 +265,7 @@ class PokemonExternalService:
                     status=StatusEnum.INCOMPLETE,
                     external_image=pokemon_with_pokemon_name.external_image,
                     hp=attributes.hp,
-                    image=PokemonExternalBusiness.ensure_image(
-                        pokemon_with_pokemon_name.image
-                    ),
+                    image=pokemon_with_pokemon_name.image,
                     speed=pokemon_with_pokemon_name.speed,
                     height=pokemon_with_pokemon_name.height,
                     weight=pokemon_with_pokemon_name.weight,

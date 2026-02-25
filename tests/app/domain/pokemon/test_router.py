@@ -420,3 +420,28 @@ class TestPokemonRouterList:
             results = response_data.get('results')
             assert response.status_code == HTTPStatus.OK
             assert len(results) == total_results
+
+class TestPokemonRouterDetail:
+    """Test scope for detail_pokemon route"""
+
+    @staticmethod
+    def test_detail_pokemon_not_found(client, user, token):
+        """Should return 404 when pokemon is not found"""
+        response = client.get(
+            '/pokemon/non-existent-pokemon',
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        assert response.status_code == HTTPStatus.NOT_FOUND
+        assert response.json() == {'detail': 'Pokemon not found'}
+
+    @staticmethod
+    def test_detail_pokemon_success(client, user, token, session, pokemon):
+         """Should return pokemon detail pokemon"""
+
+         response = client.get(
+             f'/pokemon/{pokemon.name}',
+             headers={'Authorization': f'Bearer {token}'},
+         )
+         assert response.status_code == HTTPStatus.OK
+         response_data = response.json()
+         assert response_data['name'] == pokemon.name
