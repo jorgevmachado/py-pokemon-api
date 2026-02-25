@@ -235,6 +235,9 @@ class PokemonExternalService:
                 evolution_chain_url=None,
                 evolves_from_species=None,
                 has_gender_differences=False,
+                created_at=pokemon.created_at,
+                updated_at=pokemon.updated_at,
+                deleted_at=pokemon.deleted_at,
             )
 
             pokemon_specie_response = await (
@@ -286,6 +289,9 @@ class PokemonExternalService:
                     evolution_chain_url=specie_attributes.evolution_chain_url,
                     evolves_from_species=specie_attributes.evolves_from_species,
                     has_gender_differences=specie_attributes.has_gender_differences,
+                    created_at=pokemon.created_at,
+                    updated_at=pokemon.updated_at,
+                    deleted_at=pokemon.deleted_at,
                 ),
                 types=types,
                 moves=moves,

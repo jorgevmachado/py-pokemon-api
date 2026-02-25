@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
     PokemonExternalBaseAbilitySchemaResponse,
@@ -57,6 +59,9 @@ MOCK_INITIAL_POKEMON = PokemonSchema(
     evolution_chain_url=None,
     evolves_from_species=None,
     has_gender_differences=None,
+    created_at=datetime.now(),
+    updated_at=datetime.now(),
+    deleted_at=None,
 )
 MOCK_RESPONSE_TYPE = PokemonExternalBaseTypeSchemaResponse(
     slot=1,

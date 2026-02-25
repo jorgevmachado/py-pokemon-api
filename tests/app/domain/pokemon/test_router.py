@@ -1,3 +1,4 @@
+from datetime import datetime
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -30,6 +31,9 @@ class TestPokemonRouterList:
                 url='https://pokeapi.co/api/v2/pokemon/1',
                 external_image='https://raw.githubusercontent.com/PokeAPI/sprites/1.png',
                 status=StatusEnum.COMPLETE,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                deleted_at=None,
             ),
             SimpleNamespace(
                 id='mock-pokemon-id-2',
@@ -38,6 +42,9 @@ class TestPokemonRouterList:
                 url='https://pokeapi.co/api/v2/pokemon/2',
                 external_image='https://raw.githubusercontent.com/PokeAPI/sprites/2.png',
                 status=StatusEnum.COMPLETE,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                deleted_at=None,
             ),
         ]
 
@@ -88,6 +95,9 @@ class TestPokemonRouterList:
                 status=StatusEnum.COMPLETE,
                 url='https://pokeapi.co/api/v2/pokemon/11',
                 external_image='https://raw.githubusercontent.com/PokeAPI/sprites/11.png',
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                deleted_at=None,
             ),
         ]
 
@@ -118,6 +128,9 @@ class TestPokemonRouterList:
                 url='https://pokeapi.co/api/v2/pokemon/1',
                 external_image='https://raw.githubusercontent.com/PokeAPI/sprites/1.png',
                 order=1,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                deleted_at=None,
             ),
             SimpleNamespace(
                 id='mock-pokemon-id-2',
@@ -126,6 +139,9 @@ class TestPokemonRouterList:
                 url='https://pokeapi.co/api/v2/pokemon/2',
                 external_image='https://raw.githubusercontent.com/PokeAPI/sprites/2.png',
                 order=2,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                deleted_at=None,
             ),
         ]
         total_results = 2
@@ -155,6 +171,9 @@ class TestPokemonRouterList:
                 url='https://pokeapi.co/api/v2/pokemon/6',
                 external_image='https://raw.githubusercontent.com/PokeAPI/sprites/6.png',
                 order=6,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                deleted_at=None,
             ),
             SimpleNamespace(
                 id='mock-pokemon-id-2',
@@ -163,6 +182,9 @@ class TestPokemonRouterList:
                 url='https://pokeapi.co/api/v2/pokemon/9',
                 external_image='https://raw.githubusercontent.com/PokeAPI/sprites/9.png',
                 order=9,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                deleted_at=None,
             ),
             SimpleNamespace(
                 id='mock-pokemon-id-3',
@@ -171,6 +193,9 @@ class TestPokemonRouterList:
                 url='https://pokeapi.co/api/v2/pokemon/3',
                 external_image='https://raw.githubusercontent.com/PokeAPI/sprites/3.png',
                 order=3,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                deleted_at=None,
             ),
         ]
 
@@ -220,6 +245,9 @@ class TestPokemonRouterList:
                 url='https://pokeapi.co/api/v2/pokemon/25',
                 external_image='https://raw.githubusercontent.com/PokeAPI/sprites/25.png',
                 order=25,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                deleted_at=None,
             ),
         ]
         filter_limit = 100
@@ -280,6 +308,9 @@ class TestPokemonRouterList:
                 speed=90,
                 url='https://pokeapi.co/api/v2/pokemon/25',
                 external_image='https://raw.githubusercontent.com/PokeAPI/sprites/25.png',
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                deleted_at=None,
             ),
         ]
 
@@ -313,6 +344,9 @@ class TestPokemonRouterList:
                 speed=MOCK_ATTRIBUTES_SPEED,
                 external_image='https://raw.githubusercontent.com/PokeAPI/sprites/149.png',
                 url='https://pokeapi.co/api/v2/pokemon/149',
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                deleted_at=None,
             ),
         ]
 
@@ -366,6 +400,9 @@ class TestPokemonRouterList:
                 url=f'https://pokeapi.co/api/v2/pokemon/{i}',
                 external_image=f'https://raw.githubusercontent.com/PokeAPI/sprites/{i}.png',
                 order=i,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                deleted_at=None,
             )
             for i in range(5)
         ]

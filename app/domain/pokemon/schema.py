@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -37,6 +38,9 @@ class PokemonSchema(BaseModel):
     evolution_chain_url: Optional[str] = None
     evolves_from_species: Optional[str] = None
     has_gender_differences: Optional[bool] = None
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: Optional[datetime] = None
 
 
 class PokemonListSchema(BaseModel):
