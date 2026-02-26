@@ -177,6 +177,7 @@ class PokemonExternalService:
                 response_data = response.json()
                 if not response_data or 'id' not in response_data:
                     return None
+
                 return PokemonExternalEvolutionSchemaResponse(**response_data)
         except httpx.HTTPError as e:
             print(f'# => pokemon_external_evolution_by_order => error => {e}')
@@ -294,6 +295,7 @@ class PokemonExternalService:
                 types=types,
                 moves=moves,
                 abilities=abilities,
+                growth_rate=pokemon_specie_response.growth_rate,
             )
 
         except httpx.HTTPError as e:

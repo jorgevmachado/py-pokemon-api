@@ -779,6 +779,8 @@ class TestPokemonExternalServiceFetchByName:
         assert len(result.types) == len(MOCK_RESPONSE_BY_NAME.types)
         assert len(result.moves) == len(MOCK_RESPONSE_BY_NAME.moves)
         assert len(result.abilities) == len(MOCK_RESPONSE_BY_NAME.abilities)
+        assert result.growth_rate.url == MOCK_RESPONSE_BY_SPECIE.growth_rate.url
+        assert result.growth_rate.name == MOCK_RESPONSE_BY_SPECIE.growth_rate.name
 
     @staticmethod
     @pytest.mark.asyncio

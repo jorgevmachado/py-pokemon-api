@@ -161,3 +161,30 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
         assert result is not None
         mock_ensure_description.assert_called_once_with(external_growth_rate_data.descriptions)
         service.repository.create.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_verify_pokemon_growth_rate_in_error(session):
+        """Should return pokemon growth rate error"""
+        response_growth_rate = PokemonExternalBase(
+            name='slow', url='https://pokeapi.co/api/v2/growth-rate/1/'
+        )
+        service = PokemonGrowthRateService(session=session)
+
+        service.repository.find_one_by_order = AsyncMock(
+            side_effect=Exception('Database error')
+        )
+        result = await service.verify_pokemon_growth_rate(growth_rate=response_growth_rate)
+
+        assert not result
+        service.repository.find_one_by_order.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_verify_pokemon_growth_rate_none(session):
+        """Should return pokemon growth rate error"""
+        service = PokemonGrowthRateService(session=session)
+
+        result = await service.verify_pokemon_growth_rate(growth_rate=None)
+
+        assert not result

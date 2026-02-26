@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,32 +23,40 @@ class PokemonGrowthRateService:
         self.external_service = PokemonExternalService()
 
     async def verify_pokemon_growth_rate(
-        self, growth_rate: PokemonExternalBase
+        self, growth_rate: Optional[PokemonExternalBase] = None
     ) -> PokemonGrowthRate | None:
-        url = growth_rate.url
-        order = ensure_order_number(url)
-
-        db_pokemon_growth_rate = await self.repository.find_one_by_order(order=order)
-        if db_pokemon_growth_rate:
-            return db_pokemon_growth_rate
-
-        external_growth_rate_data = await (
-            self.external_service.pokemon_external_growth_rate_by_order(order)
-        )
-
-        if not external_growth_rate_data:
+        if not growth_rate:
             return None
+        try:
+            url = growth_rate.url
+            order = ensure_order_number(url)
 
-        description = PokemonGrowthRateBusiness().ensure_description_message(
-            external_growth_rate_data.descriptions
-        )
+            db_pokemon_growth_rate = await self.repository.find_one_by_order(order=order)
+            if db_pokemon_growth_rate:
+                return db_pokemon_growth_rate
 
-        pokemon_growth_rate_data = CreatePokemonGrowthRateSchema(
-            url=url,
-            name=external_growth_rate_data.name,
-            order=order,
-            formula=external_growth_rate_data.formula,
-            description=description,
-        )
+            external_growth_rate_data = await (
+                self.external_service.pokemon_external_growth_rate_by_order(order)
+            )
 
-        return await self.repository.create(pokemon_growth_rate_data)
+            if not external_growth_rate_data:
+                return None
+
+            description = PokemonGrowthRateBusiness().ensure_description_message(
+                external_growth_rate_data.descriptions
+            )
+
+            pokemon_growth_rate_data = CreatePokemonGrowthRateSchema(
+                url=url,
+                name=external_growth_rate_data.name,
+                order=order,
+                formula=external_growth_rate_data.formula,
+                description=description,
+            )
+
+            return await self.repository.create(pokemon_growth_rate_data)
+        except Exception as e:
+            print(
+                f'# => PokemonGrowthRateService => verify_pokemon_growth_rate => error => {e}'
+            )
+            return None

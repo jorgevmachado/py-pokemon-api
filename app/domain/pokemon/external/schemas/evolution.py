@@ -39,6 +39,7 @@ class PokemonExternalEvolutionChainEvolvesToSchema(BaseModel):
     evolution_details: Optional[list[PokemonExternalEvolutionsDetailsSchemaResponse]] = []
     is_baby: Optional[bool] = False
     species: PokemonExternalBase
+    evolves_to: Optional[list['PokemonExternalEvolutionChainEvolvesToSchema']] = []
 
 
 class PokemonExternalEvolutionChainEvolvesToSchemaResponse(BaseModel):

@@ -23,7 +23,9 @@ async def list_pokemons(
 ):
     service = PokemonService(session)
     pokemons = await service.fetch_all(pokemon_filter=pokemon_filter)
-    return {'results': pokemons}
+    # Convert ORM objects to Pydantic schemas to avoid lazy-loading issues
+    results = [PokemonSchema.model_validate(pokemon) for pokemon in pokemons]
+    return {'results': results}
 
 
 @router.get('/{pokemon_name}', response_model=PokemonSchema)
@@ -34,4 +36,5 @@ async def find_one_pokemon(
 ):
     service = PokemonService(session)
     pokemon = await service.fetch_one(name=pokemon_name)
-    return pokemon
+    # Convert ORM to Pydantic schema to avoid lazy-loading issues
+    return PokemonSchema.model_validate(pokemon)

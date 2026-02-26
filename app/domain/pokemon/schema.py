@@ -3,6 +3,13 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from app.domain.pokemon.external.schemas import (
+    PokemonExternalBase,
+    PokemonExternalBaseAbilitySchemaResponse,
+    PokemonExternalBaseMoveSchemaResponse,
+    PokemonExternalBaseTypeSchemaResponse,
+)
+from app.models import PokemonAbility, PokemonGrowthRate, PokemonMove, PokemonType
 from app.shared.status_enum import StatusEnum
 
 
@@ -41,6 +48,10 @@ class PokemonSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None
+    # types: list[PokemonType] = []
+    moves: list[PokemonMove] = []
+    abilities: list[PokemonAbility] = []
+    growth_rate: Optional[PokemonGrowthRate] = None
 
 
 class PokemonListSchema(BaseModel):
@@ -55,3 +66,22 @@ class CreatePokemonSchema(BaseModel):
     name: str
     order: int
     external_image: str
+
+
+class GeneratePokemonRelationshipSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    types: list[PokemonExternalBaseTypeSchemaResponse]
+    moves: list[PokemonExternalBaseMoveSchemaResponse]
+    abilities: list[PokemonExternalBaseAbilitySchemaResponse]
+    growth_rate: Optional[PokemonExternalBase] = None
+
+
+class GeneratePokemonRelationshipSchemaResult(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    status: StatusEnum
+    types: list[PokemonType]
+    moves: list[PokemonMove]
+    abilities: list[PokemonAbility]
+    growth_rate: Optional[PokemonGrowthRate] = None

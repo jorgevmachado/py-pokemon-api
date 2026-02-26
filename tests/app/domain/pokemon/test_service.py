@@ -1,9 +1,16 @@
+from http import HTTPStatus
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from fastapi import HTTPException
 
+from app.domain.pokemon.external.schemas import PokemonExternalBase
+from app.domain.pokemon.schema import (
+    GeneratePokemonRelationshipSchema,
+)
 from app.domain.pokemon.service import PokemonService
+from app.models import Pokemon, PokemonAbility, PokemonGrowthRate, PokemonMove, PokemonType
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
 from tests.app.domain.pokemon.external.mocks.business_mock import (
@@ -13,6 +20,59 @@ from tests.app.domain.pokemon.external.mocks.business_mock import (
     MOCK_ATTRIBUTES_SPEED,
 )
 from tests.app.domain.pokemon.mock import MOCK_ENTITY_ORDER
+
+MOCK_POKEMON_MOVE_LIST = [
+    PokemonMove(
+        name='tackle',
+        order=1,
+        pp=35,
+        url='https://pokeapi.co/api/v2/move/1/',
+        type='normal',
+        power=40,
+        target='selected-pokemon',
+        effect='Inflicts regular damage with no additional effect.',
+        priority=0,
+        accuracy=100,
+        short_effect='Inflicts regular damage.',
+        damage_class='physical',
+        effect_chance=0,
+    )
+]
+MOCK_POKEMON_TYPES_LIST = [
+    PokemonType(
+        name='grass',
+        order=1,
+        url='https://pokeapi.co/api/v2/type/12/',
+        text_color='#ffffff',
+        background_color='#78c850',
+    )
+]
+
+MOCK_POKEMON_ABILITIES_LIST = [
+    PokemonAbility(
+        name='overgrow',
+        order=1,
+        url='https://pokeapi.co/api/v2/ability/65/',
+        slot=1,
+        is_hidden=False,
+    )
+]
+
+MOCK_POKEMON_GROWTH_RATE = PokemonGrowthRate(
+    name='medium-slow',
+    order=1,
+    url='https://pokeapi.co/api/v2/growth-rate/4/',
+    formula='x^3',
+)
+
+MOCK_RELATIONSHIPS = GeneratePokemonRelationshipSchema(
+    moves=[],
+    types=[],
+    abilities=[],
+    growth_rate=PokemonExternalBase(
+        url='https://pokeapi.co/api/v2/growth-rate/medium-slow/', name='medium-slow'
+    ),
+)
 
 
 class TestPokemonServiceInitializeDatabase:
@@ -580,3 +640,365 @@ class TestPokemonServiceFetchAll:
             assert len(result) == 1
 
         assert service.repository.list.call_count == total_call_count
+
+
+class TestPokemonServiceFetchOne:
+    """Test scope for fetch_one method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_fetch_one_success_with_complete_pokemon(session):
+        """Should return complete pokemon when found"""
+        pokemon = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/25.png',
+        )
+
+        service = PokemonService(session=session)
+        service.repository.find_one = AsyncMock(return_value=pokemon)
+
+        result = await service.fetch_one(name='pikachu')
+
+        assert result is not None
+        assert result.name == 'pikachu'
+        assert result.status == StatusEnum.COMPLETE
+        service.repository.find_one.assert_called_once_with(name='pikachu')
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_fetch_one_not_found_raises_exception(session):
+        """Should raise HTTPException when pokemon not found"""
+        service = PokemonService(session=session)
+        service.repository.find_one = AsyncMock(return_value=None)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await service.fetch_one(name='nonexistent')
+
+        assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
+        assert exc_info.value.detail == 'Pokemon not found'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_fetch_one_incomplete_pokemon_completes_data(session):
+        """Should complete pokemon data when status is incomplete"""
+        incomplete_pokemon = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/1.png',
+        )
+
+        completed_pokemon = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+            hp=45,
+        )
+
+        service = PokemonService(session=session)
+        service.repository.find_one = AsyncMock(return_value=incomplete_pokemon)
+        service.complete_pokemon_data = AsyncMock(return_value=completed_pokemon)
+
+        result = await service.fetch_one(name='bulbasaur')
+
+        assert result is not None
+        assert result.status == StatusEnum.COMPLETE
+        service.complete_pokemon_data.assert_called_once()
+
+
+class TestPokemonServiceValidateEntity:
+    """Test scope for validate_entity method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_validate_entity_returns_complete_pokemon(session):
+        """Should return pokemon when already complete"""
+        pokemon = Pokemon(
+            name='charizard',
+            order=6,
+            url='https://pokeapi.co/api/v2/pokemon/6/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/6.png',
+        )
+
+        service = PokemonService(session=session)
+        service.repository.find_one = AsyncMock(return_value=pokemon)
+
+        result = await service.validate_entity(pokemon_name='charizard')
+
+        assert result.name == 'charizard'
+        assert result.status == StatusEnum.COMPLETE
+        service.repository.find_one.assert_called_once_with(name='charizard')
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_validate_entity_not_found_raises_exception(session):
+        """Should raise HTTPException when pokemon not found"""
+        service = PokemonService(session=session)
+        service.repository.find_one = AsyncMock(return_value=None)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await service.validate_entity(pokemon_name='missing')
+
+        assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
+        assert exc_info.value.detail == 'Pokemon not found'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_validate_entity_completes_incomplete_pokemon(session):
+        """Should complete data when pokemon is incomplete"""
+        incomplete_pokemon = Pokemon(
+            name='squirtle',
+            order=7,
+            url='https://pokeapi.co/api/v2/pokemon/7/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/7.png',
+        )
+
+        service = PokemonService(session=session)
+        service.repository.find_one = AsyncMock(return_value=incomplete_pokemon)
+        service.complete_pokemon_data = AsyncMock(return_value=incomplete_pokemon)
+
+        result = await service.validate_entity(pokemon_name='squirtle')
+
+        assert result is not None
+        service.complete_pokemon_data.assert_called_once_with(
+            pokemon=incomplete_pokemon,
+            with_evolutions=True,
+        )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_validate_entity_with_evolutions_false(session):
+        """Should pass with_evolutions=False to complete_pokemon_data"""
+        incomplete_pokemon = Pokemon(
+            name='eevee',
+            order=133,
+            url='https://pokeapi.co/api/v2/pokemon/133/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/133.png',
+        )
+
+        service = PokemonService(session=session)
+        service.repository.find_one = AsyncMock(return_value=incomplete_pokemon)
+        service.complete_pokemon_data = AsyncMock(return_value=incomplete_pokemon)
+
+        result = await service.validate_entity(
+            pokemon_name='eevee',
+            with_evolutions=False,
+        )
+
+        assert result is not None
+        service.complete_pokemon_data.assert_called_once_with(
+            pokemon=incomplete_pokemon,
+            with_evolutions=False,
+        )
+
+
+class TestPokemonServiceAddEvolutions:
+    """Test scope for add_evolutions method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_add_evolutions_returns_empty_when_url_is_none(session):
+        """Should return empty list when evolution_chain_url is None"""
+        service = PokemonService(session=session)
+
+        result = await service.add_evolutions(evolution_chain_url=None)
+
+        assert result == []
+        assert isinstance(result, list)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_add_evolutions_returns_empty_when_chain_is_none(session):
+        """Should return empty list when external service returns None"""
+        service = PokemonService(session=session)
+        service.external_service.pokemon_external_evolution_by_url = AsyncMock(
+            return_value=None
+        )
+
+        result = await service.add_evolutions(
+            evolution_chain_url='https://pokeapi.co/api/v2/evolution-chain/1/'
+        )
+
+        assert result == []
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_add_evolutions_success_with_single_evolution(session):
+        """Should return evolution list when chain exists"""
+        evolution_chain = SimpleNamespace(
+            chain=SimpleNamespace(
+                species=SimpleNamespace(name='bulbasaur'),
+                evolves_to=[],
+            )
+        )
+
+        pokemon = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+
+        service = PokemonService(session=session)
+        service.external_service.pokemon_external_evolution_by_url = AsyncMock(
+            return_value=evolution_chain
+        )
+        service.business.ensure_evolution = lambda x: ['bulbasaur']
+        service.validate_entity = AsyncMock(return_value=pokemon)
+
+        result = await service.add_evolutions(
+            evolution_chain_url='https://pokeapi.co/api/v2/evolution-chain/1/'
+        )
+
+        assert len(result) == 1
+        assert result[0].name == 'bulbasaur'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_add_evolutions_handles_exception(session):
+        """Should return empty list when exception occurs"""
+        service = PokemonService(session=session)
+        service.external_service.pokemon_external_evolution_by_url = AsyncMock(
+            side_effect=Exception('API error')
+        )
+
+        result = await service.add_evolutions(
+            evolution_chain_url='https://pokeapi.co/api/v2/evolution-chain/1/'
+        )
+
+        assert result == []
+
+
+class TestPokemonServiceGenerateRelationships:
+    """Test scope for generate_relationships method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_generate_relationships_success_with_all_data(session):
+        """Should return complete relationships when all data is valid"""
+
+        relationships = GeneratePokemonRelationshipSchema(
+            moves=[],
+            types=[],
+            abilities=[],
+            growth_rate=PokemonExternalBase(
+                url='https://pokeapi.co/api/v2/growth-rate/medium-slow/', name='medium-slow'
+            ),
+        )
+
+        service = PokemonService(session=session)
+        service.pokemon_move_service.verify_pokemon_move = AsyncMock(
+            return_value=MOCK_POKEMON_MOVE_LIST
+        )
+        service.pokemon_type_service.verify_pokemon_type = AsyncMock(
+            return_value=MOCK_POKEMON_TYPES_LIST
+        )
+        service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
+            return_value=MOCK_POKEMON_ABILITIES_LIST
+        )
+        service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
+            return_value=MOCK_POKEMON_GROWTH_RATE
+        )
+
+        result = await service.generate_relationships(relationships=relationships)
+
+        assert result.status == StatusEnum.COMPLETE
+        assert len(result.moves) == 1
+        assert len(result.types) == 1
+        assert len(result.abilities) == 1
+        assert result.growth_rate is not None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_generate_relationships_incomplete_when_moves_empty(session):
+        """Should return incomplete status when moves is empty"""
+
+        service = PokemonService(session=session)
+        service.pokemon_move_service.verify_pokemon_move = AsyncMock(return_value=[])
+        service.pokemon_type_service.verify_pokemon_type = AsyncMock(
+            return_value=MOCK_POKEMON_TYPES_LIST
+        )
+        service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
+            return_value=MOCK_POKEMON_ABILITIES_LIST
+        )
+        service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
+            return_value=MOCK_POKEMON_GROWTH_RATE
+        )
+
+        result = await service.generate_relationships(relationships=MOCK_RELATIONSHIPS)
+
+        assert result.status == StatusEnum.INCOMPLETE
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_generate_relationships_incomplete_when_types_empty(session):
+        """Should return incomplete status when types is empty"""
+
+        service = PokemonService(session=session)
+        service.pokemon_move_service.verify_pokemon_move = AsyncMock(
+            return_value=MOCK_POKEMON_MOVE_LIST
+        )
+        service.pokemon_type_service.verify_pokemon_type = AsyncMock(return_value=[])
+        service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
+            return_value=MOCK_POKEMON_ABILITIES_LIST
+        )
+        service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
+            return_value=MOCK_POKEMON_GROWTH_RATE
+        )
+
+        result = await service.generate_relationships(relationships=MOCK_RELATIONSHIPS)
+
+        assert result.status == StatusEnum.INCOMPLETE
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_generate_relationships_incomplete_when_abilities_empty(session):
+        """Should return incomplete status when abilities is empty"""
+        service = PokemonService(session=session)
+        service.pokemon_move_service.verify_pokemon_move = AsyncMock(
+            return_value=MOCK_POKEMON_MOVE_LIST
+        )
+        service.pokemon_type_service.verify_pokemon_type = AsyncMock(
+            return_value=MOCK_POKEMON_TYPES_LIST
+        )
+        service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(return_value=[])
+        service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
+            return_value=MOCK_POKEMON_GROWTH_RATE
+        )
+
+        result = await service.generate_relationships(relationships=MOCK_RELATIONSHIPS)
+
+        assert result.status == StatusEnum.INCOMPLETE
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_generate_relationships_incomplete_when_growth_rate_none(session):
+        """Should return incomplete status when growth_rate is None"""
+        service = PokemonService(session=session)
+        service.pokemon_move_service.verify_pokemon_move = AsyncMock(
+            return_value=MOCK_POKEMON_MOVE_LIST
+        )
+        service.pokemon_type_service.verify_pokemon_type = AsyncMock(
+            return_value=MOCK_POKEMON_TYPES_LIST
+        )
+        service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
+            return_value=MOCK_POKEMON_ABILITIES_LIST
+        )
+        service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
+            return_value=None
+        )
+
+        result = await service.generate_relationships(relationships=MOCK_RELATIONSHIPS)
+
+        assert result.status == StatusEnum.INCOMPLETE
+        assert result.growth_rate is None
