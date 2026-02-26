@@ -1,7 +1,7 @@
 from datetime import datetime
 from http import HTTPStatus
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import HTTPException
@@ -984,7 +984,7 @@ class TestPokemonServiceGenerateRelationships:
     @staticmethod
     @pytest.mark.asyncio
     async def test_generate_relationships_incomplete_when_growth_rate_none(session):
-        """Should return incomplete status when growth_rate is None"""
+        """Should return complete status when growth_rate is None but other data is valid"""
         service = PokemonService(session=session)
         service.pokemon_move_service.verify_pokemon_move = AsyncMock(
             return_value=MOCK_POKEMON_MOVE_LIST
@@ -1001,7 +1001,7 @@ class TestPokemonServiceGenerateRelationships:
 
         result = await service.generate_relationships(relationships=MOCK_RELATIONSHIPS)
 
-        assert result.status == StatusEnum.INCOMPLETE
+        assert result.status == StatusEnum.COMPLETE
         assert result.growth_rate is None
 
 
@@ -1095,7 +1095,7 @@ class TestPokemonServiceCompletePokemonData:
         service.external_service.fetch_by_name = AsyncMock(return_value=external_data)
         service.generate_relationships = AsyncMock(return_value=relationships)
         service.add_evolutions = AsyncMock(return_value=evolutions)
-        service.business.merge_if_changed = AsyncMock(return_value=updated_pokemon)
+        service.business.merge_if_changed = MagicMock(return_value=updated_pokemon)
         service.repository.update = AsyncMock()
         service.repository.find_one = AsyncMock(return_value=updated_pokemon)
 
@@ -1176,7 +1176,7 @@ class TestPokemonServiceCompletePokemonData:
         service.external_service.fetch_by_name = AsyncMock(return_value=external_data)
         service.generate_relationships = AsyncMock(return_value=relationships)
         service.add_evolutions = AsyncMock()
-        service.business.merge_if_changed = AsyncMock(return_value=updated_pokemon)
+        service.business.merge_if_changed = MagicMock(return_value=updated_pokemon)
         service.repository.update = AsyncMock()
         service.repository.find_one = AsyncMock(return_value=updated_pokemon)
 

@@ -129,7 +129,6 @@ class PokemonService:
                     growth_rate=external_data.growth_rate,
                 )
             )
-
             pokemon.moves = relationships.moves
             pokemon.types = relationships.types
             pokemon.abilities = relationships.abilities
@@ -149,6 +148,8 @@ class PokemonService:
                 pokemon_source=external_data.pokemon,
                 pokemon_target=pokemon,
             )
+            pokemon_updated.status = relationships.status
+
             await self.repository.update(pokemon_updated)
             return await self.repository.find_one(name=pokemon.name)
         except HTTPException:
@@ -199,7 +200,9 @@ class PokemonService:
         growth_rate = await self.pokemon_growth_rate_service.verify_pokemon_growth_rate(
             relationships.growth_rate
         )
-        has_invalid_inputs = not moves or not types or not abilities or not growth_rate
+
+        has_invalid_inputs = not moves or not types or not abilities
+
         status = StatusEnum.COMPLETE
         if has_invalid_inputs:
             status = StatusEnum.INCOMPLETE
