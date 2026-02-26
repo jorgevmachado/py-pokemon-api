@@ -23,25 +23,29 @@ class PokemonTypeService:
     ) -> list[PokemonType]:
         result_pokemon_type = []
 
-        for type_response in types:
-            url = type_response.type.url
-            name = type_response.type.name
-            order = ensure_order_number(url)
+        try:
+            for type_response in types:
+                url = type_response.type.url
+                name = type_response.type.name
+                order = ensure_order_number(url)
 
-            db_pokemon_type = await self.repository.find_one_by_order(order=order)
-            if db_pokemon_type:
-                result_pokemon_type.append(db_pokemon_type)
-                continue
+                db_pokemon_type = await self.repository.find_one_by_order(order=order)
+                if db_pokemon_type:
+                    result_pokemon_type.append(db_pokemon_type)
+                    continue
 
-            type_colors = PokemonTypeBusiness().ensure_colors(type_response)
-            pokemon_type_data = CreatePokemonTypeSchema(
-                url=url,
-                name=name,
-                order=order,
-                text_color=type_colors.text_color,
-                background_color=type_colors.background_color,
-            )
-            pokemon_type = await self.repository.create(pokemon_type_data)
-            result_pokemon_type.append(pokemon_type)
+                type_colors = PokemonTypeBusiness().ensure_colors(type_response)
+                pokemon_type_data = CreatePokemonTypeSchema(
+                    url=url,
+                    name=name,
+                    order=order,
+                    text_color=type_colors.text_color,
+                    background_color=type_colors.background_color,
+                )
+                pokemon_type = await self.repository.create(pokemon_type_data)
+                result_pokemon_type.append(pokemon_type)
 
-        return result_pokemon_type
+            return result_pokemon_type
+        except Exception as e:
+            print(f'# => PokemonTypeService => verify_pokemon_type => error => {e}')
+            return result_pokemon_type

@@ -72,3 +72,20 @@ class TestPokemonTypeServiceVerifyPokemonType:
         assert result[0].text_color == '#fff'
         assert result[0].background_color == '#fd7d24'
         service.repository.find_one_by_order.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_verify_pokemon_type_error(session):
+        service = PokemonTypeService(session=session)
+
+        response_pokemon_type = PokemonExternalBaseTypeSchemaResponse(
+            slot=1,
+            type=PokemonExternalBase(name='fire', url='https://pokeapi.co/api/v2/type/12/'),
+        )
+        service.repository.find_one_by_order = AsyncMock(
+            side_effect=Exception('Database error')
+        )
+
+        result = await service.verify_pokemon_type(types=[response_pokemon_type])
+        assert len(result) == 0
+        service.repository.find_one_by_order.assert_called_once()
