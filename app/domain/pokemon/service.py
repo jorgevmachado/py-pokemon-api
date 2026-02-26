@@ -113,12 +113,15 @@ class PokemonService:
                 pokemon=PokemonSchema.model_validate(pokemon)
             )
             moves = await self.pokemon_move_service.verify_pokemon_move(external_data.moves)
+            pokemon.moves = moves
             print(f'# => service => complete_pokemon_data => moves => {len(moves)}')
             types = await self.pokemon_type_service.verify_pokemon_type(external_data.types)
+            pokemon.types = types
             print(f'# => service => complete_pokemon_data => types => {len(types)}')
             abilities = await self.pokemon_ability_service.verify_pokemon_abilities(
                 external_data.abilities
             )
+            pokemon.abilities = abilities
             print(f'# => service => complete_pokemon_data => abilities => {len(abilities)}')
             # growth_rate = await self.pokemon_growth_rate_service.verify_pokemon_growth_rate(
             #     external_data.growth_rate

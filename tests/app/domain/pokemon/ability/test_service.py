@@ -235,3 +235,25 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
         assert result[1].name == 'static'
         assert service.repository.find_one_by_order.call_count == TOTAL_ABILITIES_MULTIPLE
         service.repository.create.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_verify_pokemon_abilities_error(session):
+        """Should return pokemon ability error when repository error occurs"""
+        service = PokemonAbilityService(session=session)
+
+        response_pokemon_ability = PokemonExternalBaseAbilitySchemaResponse(
+            ability=PokemonExternalBase(
+                name='stench', url='https://pokeapi.co/api/v2/ability/1/'
+            ),
+            slot=MOCK_POKEMON_ABILITY_SLOT,
+            is_hidden=MOCK_POKEMON_ABILITY_IS_HIDDEN,
+        )
+
+        service.repository.find_one_by_order = AsyncMock(
+            side_effect=Exception('Database error')
+        )
+        result = await service.verify_pokemon_abilities(abilities=[response_pokemon_ability])
+
+        assert len(result) == 0
+        service.repository.find_one_by_order.assert_called_once()
