@@ -2,7 +2,6 @@ from pydantic import BaseModel
 
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
-    PokemonExternalBaseTypeSchemaResponse,
     PokemonExternalTypeDamageRelationsSchemaResponse,
 )
 
@@ -47,11 +46,7 @@ class PokemonTypeBusiness:
             id=0, name='default', text_color='#fff', background_color='#000'
         )
         type_color = next(
-            (
-                color
-                for color in PokemonTypeBusiness.TYPE_COLORS
-                if color.name == pokemon_type
-            ),
+            (color for color in PokemonTypeBusiness.TYPE_COLORS if color.name == pokemon_type),
             default_type_color,
         )
 

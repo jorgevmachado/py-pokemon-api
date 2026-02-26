@@ -33,5 +33,6 @@ class PokemonTypeRepository:
         return await self.session.scalar(
             select(PokemonType)
             .options(selectinload(PokemonType.weaknesses))
+            .options(selectinload(PokemonType.strengths))
             .where(PokemonType.order == order)
         )

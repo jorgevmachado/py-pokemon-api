@@ -135,6 +135,7 @@ class PokemonService:
             pokemon.abilities = relationships.abilities
             pokemon.growth_rate = relationships.growth_rate
             pokemon.status = relationships.status
+
             if relationships.growth_rate is not None:
                 pokemon.growth_rate_id = relationships.growth_rate.id
 

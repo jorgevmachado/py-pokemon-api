@@ -1,3 +1,4 @@
+from datetime import datetime
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -1002,3 +1003,234 @@ class TestPokemonServiceGenerateRelationships:
 
         assert result.status == StatusEnum.INCOMPLETE
         assert result.growth_rate is None
+
+
+class TestPokemonServiceCompletePokemonData:
+    """Test scope for complete_pokemon_data method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_complete_pokemon_data_success_with_evolutions(session):
+        """Should complete pokemon data and attach evolutions when enabled"""
+        now = datetime.utcnow()
+        pokemon = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        pokemon.id = 'pokemon-id-1'
+        pokemon.created_at = now
+        pokemon.updated_at = now
+        growth_rate = PokemonGrowthRate(
+            name='medium-slow',
+            order=1,
+            url='https://pokeapi.co/api/v2/growth-rate/4/',
+            formula='x^3',
+        )
+        growth_rate.id = 'growth-rate-id'
+        external_pokemon = SimpleNamespace(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            external_image='https://example.com/1.png',
+            evolution_chain_url='https://pokeapi.co/api/v2/evolution-chain/1/',
+        )
+        external_data = SimpleNamespace(
+            pokemon=external_pokemon,
+            moves=[{'move': {'url': 'https://pokeapi.co/api/v2/move/1/', 'name': 'tackle'}}],
+            types=[
+                {
+                    'slot': 1,
+                    'type': {'url': 'https://pokeapi.co/api/v2/type/12/', 'name': 'grass'},
+                }
+            ],
+            abilities=[
+                {
+                    'slot': 1,
+                    'is_hidden': False,
+                    'ability': {
+                        'url': 'https://pokeapi.co/api/v2/ability/65/',
+                        'name': 'overgrow',
+                    },
+                }
+            ],
+            growth_rate={
+                'url': 'https://pokeapi.co/api/v2/growth-rate/4/',
+                'name': 'medium-slow',
+            },
+        )
+        relationships = SimpleNamespace(
+            moves=MOCK_POKEMON_MOVE_LIST,
+            types=MOCK_POKEMON_TYPES_LIST,
+            abilities=MOCK_POKEMON_ABILITIES_LIST,
+            growth_rate=growth_rate,
+            status=StatusEnum.COMPLETE,
+        )
+        evolutions = [
+            Pokemon(
+                name='ivysaur',
+                order=2,
+                url='https://pokeapi.co/api/v2/pokemon/2/',
+                status=StatusEnum.COMPLETE,
+                external_image='https://example.com/2.png',
+            )
+        ]
+        evolutions[0].id = 'pokemon-id-2'
+        evolutions[0].created_at = now
+        evolutions[0].updated_at = now
+        updated_pokemon = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        updated_pokemon.id = 'pokemon-id-1'
+        updated_pokemon.created_at = now
+        updated_pokemon.updated_at = now
+
+        service = PokemonService(session=session)
+        service.external_service.fetch_by_name = AsyncMock(return_value=external_data)
+        service.generate_relationships = AsyncMock(return_value=relationships)
+        service.add_evolutions = AsyncMock(return_value=evolutions)
+        service.business.merge_if_changed = AsyncMock(return_value=updated_pokemon)
+        service.repository.update = AsyncMock()
+        service.repository.find_one = AsyncMock(return_value=updated_pokemon)
+
+        result = await service.complete_pokemon_data(pokemon=pokemon, with_evolutions=True)
+
+        assert result.status == StatusEnum.COMPLETE
+        assert result.name == 'bulbasaur'
+        service.external_service.fetch_by_name.assert_called_once()
+        service.generate_relationships.assert_called_once()
+        service.add_evolutions.assert_called_once_with(
+            'https://pokeapi.co/api/v2/evolution-chain/1/'
+        )
+        service.repository.update.assert_called_once()
+        service.repository.find_one.assert_called_once_with(name='bulbasaur')
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_complete_pokemon_data_success_without_evolutions(session):
+        """Should complete pokemon data without evolutions when disabled"""
+        now = datetime.utcnow()
+        pokemon = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        pokemon.id = 'pokemon-id-25'
+        pokemon.created_at = now
+        pokemon.updated_at = now
+        external_pokemon = SimpleNamespace(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            external_image='https://example.com/25.png',
+            evolution_chain_url='https://pokeapi.co/api/v2/evolution-chain/10/',
+        )
+        external_data = SimpleNamespace(
+            pokemon=external_pokemon,
+            moves=[{'move': {'url': 'https://pokeapi.co/api/v2/move/1/', 'name': 'tackle'}}],
+            types=[
+                {
+                    'slot': 1,
+                    'type': {'url': 'https://pokeapi.co/api/v2/type/13/', 'name': 'electric'},
+                }
+            ],
+            abilities=[
+                {
+                    'slot': 1,
+                    'is_hidden': False,
+                    'ability': {
+                        'url': 'https://pokeapi.co/api/v2/ability/9/',
+                        'name': 'static',
+                    },
+                }
+            ],
+            growth_rate=None,
+        )
+        relationships = SimpleNamespace(
+            moves=MOCK_POKEMON_MOVE_LIST,
+            types=MOCK_POKEMON_TYPES_LIST,
+            abilities=MOCK_POKEMON_ABILITIES_LIST,
+            growth_rate=None,
+            status=StatusEnum.INCOMPLETE,
+        )
+        updated_pokemon = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        updated_pokemon.id = 'pokemon-id-25'
+        updated_pokemon.created_at = now
+        updated_pokemon.updated_at = now
+
+        service = PokemonService(session=session)
+        service.external_service.fetch_by_name = AsyncMock(return_value=external_data)
+        service.generate_relationships = AsyncMock(return_value=relationships)
+        service.add_evolutions = AsyncMock()
+        service.business.merge_if_changed = AsyncMock(return_value=updated_pokemon)
+        service.repository.update = AsyncMock()
+        service.repository.find_one = AsyncMock(return_value=updated_pokemon)
+
+        result = await service.complete_pokemon_data(pokemon=pokemon, with_evolutions=False)
+
+        assert result.name == 'pikachu'
+        service.add_evolutions.assert_not_called()
+        service.repository.update.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_complete_pokemon_data_raises_http_exception(session):
+        """Should re-raise HTTPException when external service fails"""
+        now = datetime.utcnow()
+        pokemon = Pokemon(
+            name='eevee',
+            order=133,
+            url='https://pokeapi.co/api/v2/pokemon/133/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/133.png',
+        )
+        pokemon.id = 'pokemon-id-133'
+        pokemon.created_at = now
+        pokemon.updated_at = now
+        service = PokemonService(session=session)
+        service.external_service.fetch_by_name = AsyncMock(
+            side_effect=HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail='error')
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await service.complete_pokemon_data(pokemon=pokemon, with_evolutions=True)
+
+        assert exc_info.value.status_code == HTTPStatus.BAD_REQUEST
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_complete_pokemon_data_unexpected_error(session):
+        """Should raise HTTPException when unexpected error occurs"""
+        now = datetime.utcnow()
+        pokemon = Pokemon(
+            name='mew',
+            order=151,
+            url='https://pokeapi.co/api/v2/pokemon/151/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/151.png',
+        )
+        pokemon.id = 'pokemon-id-151'
+        pokemon.created_at = now
+        pokemon.updated_at = now
+        service = PokemonService(session=session)
+        service.external_service.fetch_by_name = AsyncMock(side_effect=Exception('boom'))
+
+        with pytest.raises(HTTPException) as exc_info:
+            await service.complete_pokemon_data(pokemon=pokemon, with_evolutions=True)
+
+        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert exc_info.value.detail == 'Error completing pokemon data'

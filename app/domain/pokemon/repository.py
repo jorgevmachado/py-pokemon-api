@@ -27,10 +27,12 @@ class PokemonRepository:
             selectinload(Pokemon.growth_rate),
             selectinload(Pokemon.moves),
             selectinload(Pokemon.types).selectinload(PokemonType.weaknesses),
+            selectinload(Pokemon.types).selectinload(PokemonType.strengths),
             selectinload(Pokemon.abilities),
             selectinload(Pokemon.evolutions)
             .selectinload(Pokemon.types)
-            .selectinload(PokemonType.weaknesses),
+            .selectinload(PokemonType.weaknesses)
+            .selectinload(PokemonType.strengths),
             selectinload(Pokemon.evolutions).selectinload(Pokemon.growth_rate),
         )
         pokemons = await self.session.scalars(
@@ -45,10 +47,14 @@ class PokemonRepository:
                 selectinload(Pokemon.growth_rate),
                 selectinload(Pokemon.moves),
                 selectinload(Pokemon.types).selectinload(PokemonType.weaknesses),
+                selectinload(Pokemon.types).selectinload(PokemonType.strengths),
                 selectinload(Pokemon.abilities),
                 selectinload(Pokemon.evolutions)
                 .selectinload(Pokemon.types)
                 .selectinload(PokemonType.weaknesses),
+                selectinload(Pokemon.evolutions)
+                .selectinload(Pokemon.types)
+                .selectinload(PokemonType.strengths),
                 selectinload(Pokemon.evolutions).selectinload(Pokemon.growth_rate),
             )
             .where(Pokemon.name == name)

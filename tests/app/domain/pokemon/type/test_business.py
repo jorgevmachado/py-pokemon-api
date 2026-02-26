@@ -1,6 +1,5 @@
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
-    PokemonExternalBaseTypeSchemaResponse,
     PokemonExternalTypeDamageRelationsSchemaResponse,
 )
 from app.domain.pokemon.type.business import PokemonTypeBusiness
@@ -9,9 +8,7 @@ from app.domain.pokemon.type.business import PokemonTypeBusiness
 class TestPokemonTypeBusinessEnsureColors:
     @staticmethod
     def test_pokemon_type_business_ensure_colors_default():
-        result = PokemonTypeBusiness.ensure_colors(
-            pokemon_type='default'
-        )
+        result = PokemonTypeBusiness.ensure_colors(pokemon_type='default')
 
         assert result.id == 0
         assert result.name == 'default'
@@ -20,9 +17,7 @@ class TestPokemonTypeBusinessEnsureColors:
 
     @staticmethod
     def test_pokemon_type_business_ensure_colors_success():
-        result = PokemonTypeBusiness.ensure_colors(
-            pokemon_type='ice'
-        )
+        result = PokemonTypeBusiness.ensure_colors(pokemon_type='ice')
         assert result.id == 1
         assert result.name == 'ice'
         assert result.text_color == '#fff'

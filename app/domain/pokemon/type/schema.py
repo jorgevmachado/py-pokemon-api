@@ -52,6 +52,7 @@ class CreatePokemonTypeSchema(BaseModel):
     text_color: str
     background_color: str
 
+
 class ValidatePokemonTypeDamageRelationSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
