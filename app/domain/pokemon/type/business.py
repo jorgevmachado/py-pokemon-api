@@ -1,6 +1,10 @@
 from pydantic import BaseModel
 
-from app.domain.pokemon.external.schemas import PokemonExternalBaseTypeSchemaResponse
+from app.domain.pokemon.external.schemas import (
+    PokemonExternalBase,
+    PokemonExternalBaseTypeSchemaResponse,
+    PokemonExternalTypeDamageRelationsSchemaResponse,
+)
 
 
 class TypeColor(BaseModel):
@@ -8,6 +12,11 @@ class TypeColor(BaseModel):
     name: str
     text_color: str
     background_color: str
+
+
+class TypeRelation(BaseModel):
+    weakness: list[PokemonExternalBase] = []
+    strengths: list[PokemonExternalBase] = []
 
 
 class PokemonTypeBusiness:
@@ -47,3 +56,43 @@ class PokemonTypeBusiness:
         )
 
         return type_color
+
+    @staticmethod
+    def ensure_damage_relations(
+        damage_relations: PokemonExternalTypeDamageRelationsSchemaResponse,
+    ) -> TypeRelation:
+        weakness: set[str] = set()
+        if damage_relations.double_damage_from:
+            weakness.update(item.name for item in damage_relations.double_damage_from)
+
+        if damage_relations.half_damage_from:
+            weakness.update(item.name for item in damage_relations.half_damage_from)
+
+        strengths: set[str] = set()
+        if damage_relations.double_damage_to:
+            strengths.update(item.name for item in damage_relations.double_damage_to)
+
+        if damage_relations.half_damage_to:
+            strengths.update(item.name for item in damage_relations.half_damage_to)
+
+        weakness_items = (damage_relations.double_damage_from or []) + (
+            damage_relations.half_damage_from or []
+        )
+        seen_weakness: set[str] = set()
+        weakness_list = [
+            item
+            for item in weakness_items
+            if item.name not in seen_weakness and not seen_weakness.add(item.name)
+        ]
+
+        strengths_items = (damage_relations.double_damage_to or []) + (
+            damage_relations.half_damage_to or []
+        )
+        seen_strengths: set[str] = set()
+        strengths_list = [
+            item
+            for item in strengths_items
+            if item.name not in seen_strengths and not seen_strengths.add(item.name)
+        ]
+
+        return TypeRelation(weakness=weakness_list, strengths=strengths_list)

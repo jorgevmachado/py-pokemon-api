@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.database import get_session
 from app.domain.pokemon.type.schema import CreatePokemonTypeSchema
@@ -29,4 +30,8 @@ class PokemonTypeRepository:
         return pokemon_type
 
     async def find_one_by_order(self, order: int) -> PokemonType:
-        return await self.session.scalar(select(PokemonType).where(PokemonType.order == order))
+        return await self.session.scalar(
+            select(PokemonType)
+            .options(selectinload(PokemonType.weaknesses))
+            .where(PokemonType.order == order)
+        )

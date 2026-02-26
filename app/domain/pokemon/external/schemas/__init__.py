@@ -30,6 +30,10 @@ from app.domain.pokemon.external.schemas.specie import (
     PokemonExternalSpecieSchemaResponse,
     PokemonSpecieEvolutionChainResponse,
 )
+from app.domain.pokemon.external.schemas.type import (
+    PokemonExternalTypeDamageRelationsSchemaResponse,
+    PokemonExternalTypeSchemaResponse,
+)
 
 __all__ = [
     'PokemonExternalBase',
@@ -52,4 +56,6 @@ __all__ = [
     'PokemonExternalEvolutionChainSchemaResponse',
     'PokemonExternalSpecieSchemaResponse',
     'PokemonExternalEvolutionSchemaResponse',
+    'PokemonExternalTypeSchemaResponse',
+    'PokemonExternalTypeDamageRelationsSchemaResponse',
 ]

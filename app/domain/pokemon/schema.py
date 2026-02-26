@@ -9,8 +9,22 @@ from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseMoveSchemaResponse,
     PokemonExternalBaseTypeSchemaResponse,
 )
+from app.domain.pokemon.type.schema import PokemonTypeSchema
 from app.models import PokemonAbility, PokemonGrowthRate, PokemonMove, PokemonType
 from app.shared.status_enum import StatusEnum
+
+
+class PokemonEvolutionSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    url: str
+    name: str
+    order: int
+    status: StatusEnum
+    external_image: str
+    image: Optional[str] = None
+    types: list[PokemonTypeSchema] = []
 
 
 class PokemonSchema(BaseModel):
@@ -48,9 +62,10 @@ class PokemonSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None
-    # types: list[PokemonType] = []
+    types: list[PokemonTypeSchema] = []
     moves: list[PokemonMove] = []
     abilities: list[PokemonAbility] = []
+    evolutions: list[PokemonEvolutionSchema] = []
     growth_rate: Optional[PokemonGrowthRate] = None
 
 

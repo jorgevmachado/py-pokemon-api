@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.database import get_session
 from app.domain.pokemon.schema import CreatePokemonSchema
 from app.models import Pokemon
+from app.models.type import PokemonType
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
 
@@ -25,9 +26,12 @@ class PokemonRepository:
         query = select(Pokemon).options(
             selectinload(Pokemon.growth_rate),
             selectinload(Pokemon.moves),
-            selectinload(Pokemon.types),
+            selectinload(Pokemon.types).selectinload(PokemonType.weaknesses),
             selectinload(Pokemon.abilities),
-            selectinload(Pokemon.evolutions),
+            selectinload(Pokemon.evolutions)
+            .selectinload(Pokemon.types)
+            .selectinload(PokemonType.weaknesses),
+            selectinload(Pokemon.evolutions).selectinload(Pokemon.growth_rate),
         )
         pokemons = await self.session.scalars(
             query.offset(pokemon_filter.offset).limit(pokemon_filter.limit)
@@ -40,9 +44,12 @@ class PokemonRepository:
             .options(
                 selectinload(Pokemon.growth_rate),
                 selectinload(Pokemon.moves),
-                selectinload(Pokemon.types),
+                selectinload(Pokemon.types).selectinload(PokemonType.weaknesses),
                 selectinload(Pokemon.abilities),
-                selectinload(Pokemon.evolutions),
+                selectinload(Pokemon.evolutions)
+                .selectinload(Pokemon.types)
+                .selectinload(PokemonType.weaknesses),
+                selectinload(Pokemon.evolutions).selectinload(Pokemon.growth_rate),
             )
             .where(Pokemon.name == name)
         )

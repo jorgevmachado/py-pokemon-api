@@ -19,6 +19,17 @@ class TypeWeaknessFK:
 
 
 @table_registry.mapped_as_dataclass
+class TypeStrengthsFK:
+    __tablename__ = 'type_strengths'
+    type_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True
+    )
+    strengths_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True
+    )
+
+
+@table_registry.mapped_as_dataclass
 class PokemonType:
     __tablename__ = 'types'
 
@@ -36,11 +47,18 @@ class PokemonType:
     deleted_at: Mapped[datetime] = mapped_column(init=False, nullable=True)
     background_color: Mapped[str]
 
-    # FK
     weaknesses: Mapped[list['PokemonType']] = relationship(
         lazy=default_lazy,
         init=False,
         secondary='type_weaknesses',
         primaryjoin='PokemonType.id == type_weaknesses.c.type_id',
         secondaryjoin='PokemonType.id == type_weaknesses.c.weakness_id',
+    )
+
+    strengths: Mapped[list['PokemonType']] = relationship(
+        lazy=default_lazy,
+        init=False,
+        secondary='type_strengths',
+        primaryjoin='PokemonType.id == type_strengths.c.type_id',
+        secondaryjoin='PokemonType.id == type_strengths.c.strengths_id',
     )

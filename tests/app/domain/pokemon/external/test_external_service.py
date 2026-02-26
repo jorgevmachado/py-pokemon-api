@@ -10,6 +10,7 @@ from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseSchemaResponse,
     PokemonExternalGrowthRateSchemaResponse,
     PokemonExternalMoveSchemaResponse,
+    PokemonExternalTypeSchemaResponse,
 )
 from app.domain.pokemon.external.schemas.evolution import (
     PokemonExternalEvolutionSchemaResponse,
@@ -48,6 +49,7 @@ from tests.app.domain.pokemon.external.mocks.external_mock import (
     MOCK_RESPONSE_BY_NAME_DATA,
     MOCK_RESPONSE_BY_SPECIE,
     MOCK_RESPONSE_BY_SPECIE_DATA,
+    MOCK_RESPONSE_BY_TYPE_DATA,
 )
 
 
@@ -565,6 +567,94 @@ class TestPokemonExternalServiceByEvolutionUrl:
             with pytest.raises(HTTPException) as exc_info:
                 await PokemonExternalService.pokemon_external_evolution_by_url(
                     'https://pokeapi.co/api/v2/evolution-chain/1/'
+                )
+
+        assert exc_info.value.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+        assert text_detail in exc_info.value.detail
+
+
+class TestPokemonExternalServiceByTypeUrl:
+    """Test scope for pokemon_external_evolution_by_url method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_external_by_type_url_success():
+        """Should return pokemon type data when API request is successful"""
+
+        mock_response_data = MOCK_RESPONSE_BY_TYPE_DATA
+        mock_response = MagicMock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status.return_value = None
+        mock_response.__bool__.return_value = True
+
+        with patch('httpx.AsyncClient') as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value = mock_client
+
+            result = await PokemonExternalService.pokemon_external_type_by_url(
+                'https://pokeapi.co/api/v2/type/10/'
+            )
+
+            assert isinstance(result, PokemonExternalTypeSchemaResponse)
+            assert result.id == mock_response_data['id']
+            damage_relations = result.damage_relations
+            assert len(damage_relations.double_damage_from) == len(
+                mock_response_data['damage_relations']['double_damage_from']
+            )
+            assert len(damage_relations.double_damage_to) == len(
+                mock_response_data['damage_relations']['double_damage_to']
+            )
+            assert len(damage_relations.half_damage_from) == len(
+                mock_response_data['damage_relations']['half_damage_from']
+            )
+            assert len(damage_relations.half_damage_to) == len(
+                mock_response_data['damage_relations']['half_damage_to']
+            )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_external_by_type_url_no_name_key():
+        """Should return None when name key is missing in response"""
+
+        mock_response_data = {}
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status.return_value = None
+        mock_response.__bool__.return_value = True
+
+        with patch('httpx.AsyncClient') as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value = mock_client
+
+            result = await PokemonExternalService.pokemon_external_type_by_url(
+                'https://pokeapi.co/api/v2/type/10/'
+            )
+
+            assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_external_by_type_url_http_error():
+        """Should raise HTTPException when HTTP request fails"""
+        text_detail = 'Failed to execute external request:(type)'
+
+        with patch('httpx.AsyncClient') as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.get.side_effect = httpx.HTTPError('Connection error')
+            mock_client_class.return_value = mock_client
+
+            with pytest.raises(HTTPException) as exc_info:
+                await PokemonExternalService.pokemon_external_type_by_url(
+                    'https://pokeapi.co/api/v2/type/10/'
                 )
 
         assert exc_info.value.status_code == HTTPStatus.SERVICE_UNAVAILABLE

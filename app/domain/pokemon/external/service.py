@@ -8,6 +8,7 @@ from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseSchemaResponse,
     PokemonExternalEvolutionSchemaResponse,
     PokemonExternalGrowthRateSchemaResponse,
+    PokemonExternalTypeSchemaResponse,
 )
 from app.domain.pokemon.external.schemas.fetch_one import PokemonFetchOneSchemaResponse
 from app.domain.pokemon.external.schemas.move import (
@@ -184,6 +185,29 @@ class PokemonExternalService:
             raise HTTPException(
                 status_code=HTTPStatus.SERVICE_UNAVAILABLE,
                 detail='Failed to execute external request:(evolution_chain).',
+            )
+
+    @staticmethod
+    async def pokemon_external_type_by_url(
+        url: str,
+    ) -> PokemonExternalTypeSchemaResponse | None:
+        try:
+            async with httpx.AsyncClient(verify=False) as client:
+                response = await client.get(
+                    url,
+                    timeout=10.0,
+                )
+                response.raise_for_status()
+                response_data = response.json()
+                if not response_data or 'id' not in response_data:
+                    return None
+
+                return PokemonExternalTypeSchemaResponse(**response_data)
+        except httpx.HTTPError as e:
+            print(f'# => pokemon_external_type_by_url => error => {e}')
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                detail='Failed to execute external request:(type).',
             )
 
     @staticmethod
