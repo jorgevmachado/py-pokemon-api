@@ -65,8 +65,8 @@ class PokemonExternalMoveSchemaResponse(BaseModel):
     model_config = ConfigDict(extra='ignore')
     accuracy: int | None = Field(default=None)
     contest_combos: Optional[PokemonExternalMoveContestCombosSchemaResponse] = None
-    contest_effect: PokemonExternalMoveContestEffectSchemaResponse
-    contest_type: PokemonExternalBase
+    contest_effect: PokemonExternalMoveContestEffectSchemaResponse | None = Field(default=None)
+    contest_type: PokemonExternalBase | None = Field(default=None)
     damage_class: PokemonExternalBase
     effect_chance: int | None = Field(default=None)
     effect_changes: list[dict]
@@ -76,7 +76,7 @@ class PokemonExternalMoveSchemaResponse(BaseModel):
     id: int
     learned_by_pokemon: list[PokemonExternalBase]
     machines: list[PokemonExternalMoveMachineSchemaResponse]
-    meta: PokemonExternalMoveMetaSchemaResponse
+    meta: PokemonExternalMoveMetaSchemaResponse | None = Field(default=None)
     name: str
     names: list[PokemonExternalMoveNamesSchemaResponse]
     past_values: list[dict]
@@ -84,6 +84,8 @@ class PokemonExternalMoveSchemaResponse(BaseModel):
     pp: int
     priority: int
     stat_changes: list[dict]
-    super_contest_effect: PokemonExternalMoveContestEffectSchemaResponse
+    super_contest_effect: PokemonExternalMoveContestEffectSchemaResponse | None = Field(
+        default=None
+    )
     target: PokemonExternalBase
     type: PokemonExternalBase
