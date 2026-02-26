@@ -3,8 +3,10 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from app.models import PokemonType
 
-class PokemonTypeWeaknessSchema(BaseModel):
+
+class PokemonTypeDamageSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -27,7 +29,8 @@ class PokemonTypeSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None
-    weaknesses: list[PokemonTypeWeaknessSchema] = []
+    weaknesses: list[PokemonTypeDamageSchema] = []
+    strengths: list[PokemonTypeDamageSchema] = []
 
 
 class InitialPokemonTypeSchema(BaseModel):
@@ -48,3 +51,9 @@ class CreatePokemonTypeSchema(BaseModel):
     order: int
     text_color: str
     background_color: str
+
+class ValidatePokemonTypeDamageRelationSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    weaknesses: list[PokemonType] = []
+    strengths: list[PokemonType] = []

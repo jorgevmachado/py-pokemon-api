@@ -42,7 +42,7 @@ class PokemonTypeBusiness:
     ]
 
     @staticmethod
-    def ensure_colors(pokemon_type: PokemonExternalBaseTypeSchemaResponse) -> TypeColor:
+    def ensure_colors(pokemon_type: str) -> TypeColor:
         default_type_color = TypeColor(
             id=0, name='default', text_color='#fff', background_color='#000'
         )
@@ -50,7 +50,7 @@ class PokemonTypeBusiness:
             (
                 color
                 for color in PokemonTypeBusiness.TYPE_COLORS
-                if color.name == pokemon_type.type.name
+                if color.name == pokemon_type
             ),
             default_type_color,
         )
