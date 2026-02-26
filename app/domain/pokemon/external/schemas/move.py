@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
@@ -63,12 +63,12 @@ class PokemonExternalMoveNamesSchemaResponse(BaseModel):
 
 class PokemonExternalMoveSchemaResponse(BaseModel):
     model_config = ConfigDict(extra='ignore')
-    accuracy: int
-    contest_combos: PokemonExternalMoveContestCombosSchemaResponse
+    accuracy: int | None = Field(default=None)
+    contest_combos: Optional[PokemonExternalMoveContestCombosSchemaResponse] = None
     contest_effect: PokemonExternalMoveContestEffectSchemaResponse
     contest_type: PokemonExternalBase
     damage_class: PokemonExternalBase
-    effect_chance: Optional[PokemonExternalBase] = None
+    effect_chance: int | None = Field(default=None)
     effect_changes: list[dict]
     effect_entries: list[PokemonExternalMoveEffectEntriesSchemaResponse]
     flavor_text_entries: list[PokemonExternalMoveFlavorTextEntriesSchemaResponse]
@@ -79,11 +79,11 @@ class PokemonExternalMoveSchemaResponse(BaseModel):
     meta: PokemonExternalMoveMetaSchemaResponse
     name: str
     names: list[PokemonExternalMoveNamesSchemaResponse]
-    past_values: list[str]
-    power: int
+    past_values: list[dict]
+    power: int | None = Field(default=None)
     pp: int
     priority: int
-    stat_changes: list[str]
+    stat_changes: list[dict]
     super_contest_effect: PokemonExternalMoveContestEffectSchemaResponse
     target: PokemonExternalBase
     type: PokemonExternalBase

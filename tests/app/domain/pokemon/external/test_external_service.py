@@ -487,12 +487,12 @@ class TestPokemonExternalServiceByGrowthRateOrder:
         assert text_detail in exc_info.value.detail
 
 
-class TestPokemonExternalServiceByEvolutionOrder:
-    """Test scope for pokemon_external_evolution_by_order method"""
+class TestPokemonExternalServiceByEvolutionUrl:
+    """Test scope for pokemon_external_evolution_by_url method"""
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokemon_external_by_evolution_order_success():
+    async def test_pokemon_external_by_evolution_url_success():
         """Should return pokemon data when API request is successful"""
 
         mock_response_data = MOCK_RESPONSE_BY_EVOLUTION_ORDER_DATA
@@ -508,7 +508,9 @@ class TestPokemonExternalServiceByEvolutionOrder:
             mock_client.get.return_value = mock_response
             mock_client_class.return_value = mock_client
 
-            result = await PokemonExternalService.pokemon_external_evolution_by_order(1)
+            result = await PokemonExternalService.pokemon_external_evolution_by_url(
+                'https://pokeapi.co/api/v2/evolution-chain/1/'
+            )
 
             assert isinstance(result, PokemonExternalEvolutionSchemaResponse)
             assert result.id == mock_response_data['id']
@@ -524,7 +526,7 @@ class TestPokemonExternalServiceByEvolutionOrder:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokemon_external_by_evolution_order_no_name_key():
+    async def test_pokemon_external_by_evolution_url_no_name_key():
         """Should return None when name key is missing in response"""
 
         mock_response_data = {}
@@ -541,13 +543,15 @@ class TestPokemonExternalServiceByEvolutionOrder:
             mock_client.get.return_value = mock_response
             mock_client_class.return_value = mock_client
 
-            result = await PokemonExternalService.pokemon_external_evolution_by_order(0)
+            result = await PokemonExternalService.pokemon_external_evolution_by_url(
+                'https://pokeapi.co/api/v2/evolution-chain/1/'
+            )
 
             assert result is None
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokemon_external_by_evolution_order_http_error():
+    async def test_pokemon_external_by_evolution_url_http_error():
         """Should raise HTTPException when HTTP request fails"""
         text_detail = 'Failed to execute external request:(evolution_chain)'
 
@@ -559,7 +563,9 @@ class TestPokemonExternalServiceByEvolutionOrder:
             mock_client_class.return_value = mock_client
 
             with pytest.raises(HTTPException) as exc_info:
-                await PokemonExternalService.pokemon_external_evolution_by_order(0)
+                await PokemonExternalService.pokemon_external_evolution_by_url(
+                    'https://pokeapi.co/api/v2/evolution-chain/1/'
+                )
 
         assert exc_info.value.status_code == HTTPStatus.SERVICE_UNAVAILABLE
         assert text_detail in exc_info.value.detail

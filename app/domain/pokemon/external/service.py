@@ -164,13 +164,13 @@ class PokemonExternalService:
             )
 
     @staticmethod
-    async def pokemon_external_evolution_by_order(
-        order: int,
+    async def pokemon_external_evolution_by_url(
+        url: str,
     ) -> PokemonExternalEvolutionSchemaResponse | None:
         try:
             async with httpx.AsyncClient(verify=False) as client:
                 response = await client.get(
-                    f'{PokemonExternalService.BASE_URL}/evolution-chain/{order}',
+                    url,
                     timeout=10.0,
                 )
                 response.raise_for_status()

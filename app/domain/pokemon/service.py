@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
 from app.domain.pokemon.ability.service import PokemonAbilityService
+from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.external.service import PokemonExternalService
 from app.domain.pokemon.growth_rate.service import PokemonGrowthRateService
 from app.domain.pokemon.move.service import PokemonMoveService
@@ -13,7 +14,6 @@ from app.domain.pokemon.repository import PokemonRepository
 from app.domain.pokemon.schema import CreatePokemonSchema, PokemonSchema
 from app.domain.pokemon.type.service import PokemonTypeService
 from app.models import Pokemon
-from app.shared.number import ensure_order_number
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
 
@@ -29,6 +29,7 @@ class PokemonService:
         self.pokemon_ability_service = PokemonAbilityService(session)
         self.pokemon_growth_rate_service = PokemonGrowthRateService(session)
         self.external_service = PokemonExternalService()
+        self.business = PokemonBusiness()
 
     async def fetch_all(self, pokemon_filter: Annotated[FilterPage, Query()]) -> list[Pokemon]:
         try:
@@ -91,50 +92,67 @@ class PokemonService:
     async def validate_entity(
         self,
         pokemon_name: str,
+        complete_data: bool = True,
     ) -> Pokemon:
         pokemon = await self.repository.find_one(name=pokemon_name)
 
         if not pokemon:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='Pokemon not found')
 
+        if not complete_data:
+            return pokemon
+
         if pokemon.status == StatusEnum.INCOMPLETE:
             return await self.complete_pokemon_data(pokemon=pokemon)
 
         return pokemon
 
-    async def complete_pokemon_data(self, pokemon: Pokemon) -> Pokemon:
-        external_data = await self.external_service.fetch_by_name(
-            pokemon=PokemonSchema.model_validate(pokemon)
-        )
-        moves = await self.pokemon_move_service.verify_pokemon_move(external_data.moves)
-        print(f'# => service => complete_pokemon_data => moves => {moves}')
-        types = await self.pokemon_type_service.verify_pokemon_type(external_data.types)
-        print(f'# => service => complete_pokemon_data => types => {types}')
-        abilities = await self.pokemon_ability_service.verify_pokemon_abilities(
-            external_data.abilities
-        )
-        print(f'# => service => complete_pokemon_data => abilities => {abilities}')
-        growth_rate = await self.pokemon_growth_rate_service.verify_pokemon_growth_rate(
-            external_data.growth_rate
-        )
-        print(f'# => service => complete_pokemon_data => growth_rate => {growth_rate}')
-        await self.repository.update(pokemon)
-        evolutions = await self.complete_evolution(
-            external_data.pokemon.evolution_chain_url
-        )
-        print(f'# => service => complete_pokemon_data => evolutions => {evolutions}')
-        return await self.repository.find_one(name=pokemon.name)
+    async def complete_pokemon_data(self, pokemon: Pokemon) -> Pokemon | None:
+        try:
+            external_data = await self.external_service.fetch_by_name(
+                pokemon=PokemonSchema.model_validate(pokemon)
+            )
+            moves = await self.pokemon_move_service.verify_pokemon_move(external_data.moves)
+            print(f'# => service => complete_pokemon_data => moves => {len(moves)}')
+            # types = await self.pokemon_type_service.verify_pokemon_type(external_data.types)
+            # print(f'# => service => complete_pokemon_data => types => {types}')
+            # abilities = await self.pokemon_ability_service.verify_pokemon_abilities(
+            #     external_data.abilities
+            # )
+            # print(f'# => service => complete_pokemon_data => abilities => {abilities}')
+            # growth_rate = await self.pokemon_growth_rate_service.verify_pokemon_growth_rate(
+            #     external_data.growth_rate
+            # )
+            # pokemon.growth_rate = growth_rate
+            # pokemon.growth_rate_id = growth_rate.id
+            # print(f'# => service => complete_pokemon_data => growth_rate => {growth_rate}')
+            # await self.repository.update(pokemon)
+            # evolutions = await self.add_evolutions(external_data.pokemon.evolution_chain_url)
+            # print(f'# => service => complete_pokemon_data => evolutions => {evolutions}')
+            return await self.repository.find_one(name=pokemon.name)
+        except Exception as e:
+            print(f'# => service => complete_pokemon_data => error => {e}')
+            return None
 
-    async def complete_evolution(
-            self,
-            evolution_chain_url: str | None,
-    ) -> list[Pokemon]:
-        if not evolution_chain_url:
+    async def add_evolutions(
+        self,
+        evolution_chain_url: str | None,
+    ) -> list[str]:
+        evolution_chain = await self.external_service.pokemon_external_evolution_by_url(
+            evolution_chain_url
+        )
+
+        if not evolution_chain:
             return []
 
-        order = ensure_order_number(evolution_chain_url)
+        evolutions_to_add = self.business.ensure_evolution(evolution_chain.chain)
 
-        if order == 0:
-            return []
+        evolutions = []
+        for evolution in evolutions_to_add:
+            pokemon_evolution = await self.validate_entity(
+                evolution,
+                complete_data=False,
+            )
+            evolutions.append(pokemon_evolution)
 
-        return []
+        return evolutions

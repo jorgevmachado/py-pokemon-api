@@ -53,7 +53,7 @@ class PokemonExternalEvolutionChainSchemaResponse(BaseModel):
     model_config = ConfigDict(extra='ignore')
 
     evolution_details: Optional[list[PokemonExternalEvolutionsDetailsSchemaResponse]] = []
-    evolves_to: Optional[list[PokemonExternalEvolutionChainEvolvesToSchema]] = []
+    evolves_to: Optional[list[PokemonExternalEvolutionChainEvolvesToSchemaResponse]] = []
     is_baby: Optional[bool] = False
     species: PokemonExternalBase
 

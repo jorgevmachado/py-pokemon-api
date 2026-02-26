@@ -226,3 +226,137 @@ class TestPokemonMoveServiceVerifyPokemonMove:
         assert result[0].name == 'pound'
         assert result[1].name == 'karate-chop'
         assert service.repository.find_one_by_order.call_count == TOTAL_MOVES_MULTIPLE
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_verify_pokemon_move_repository_error(session):
+        """Should return empty list when repository raises exception"""
+        service = PokemonMoveService(session=session)
+        response_pokemon_move = PokemonExternalBaseMoveSchemaResponse(
+            move=PokemonExternalBase(name='pound', url='https://pokeapi.co/api/v2/move/1/')
+        )
+
+        service.repository.find_one_by_order = AsyncMock(
+            side_effect=Exception('Database error')
+        )
+
+        result = await service.verify_pokemon_move(moves=[response_pokemon_move])
+
+        assert len(result) == 0
+        service.repository.find_one_by_order.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_verify_pokemon_move_external_service_error(session):
+        """Should return empty list when external service raises exception"""
+        service = PokemonMoveService(session=session)
+        response_pokemon_move = PokemonExternalBaseMoveSchemaResponse(
+            move=PokemonExternalBase(name='pound', url='https://pokeapi.co/api/v2/move/1/')
+        )
+
+        service.repository.find_one_by_order = AsyncMock(return_value=None)
+
+        with patch.object(
+            service.external_service,
+            'pokemon_external_move_by_name',
+            side_effect=Exception('External API error'),
+        ):
+            result = await service.verify_pokemon_move(moves=[response_pokemon_move])
+
+        assert len(result) == 0
+        service.repository.find_one_by_order.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_verify_pokemon_move_create_error(session):
+        """Should return empty list when repository create raises exception"""
+        service = PokemonMoveService(session=session)
+        response_pokemon_move = PokemonExternalBaseMoveSchemaResponse(
+            move=PokemonExternalBase(name='pound', url='https://pokeapi.co/api/v2/move/1/')
+        )
+
+        effect_entry = EffectEntry(
+            effect='Inflicts regular damage.',
+            short_effect='Deals regular damage.',
+        )
+
+        external_move_data = AsyncMock()
+        external_move_data.pp = MOCK_POKEMON_MOVE_PP
+        external_move_data.power = MOCK_POKEMON_MOVE_POWER
+        external_move_data.accuracy = MOCK_POKEMON_MOVE_ACCURACY
+        external_move_data.priority = MOCK_POKEMON_MOVE_PRIORITY
+        external_move_data.type = PokemonExternalBase(
+            name='normal', url='https://pokeapi.co/api/v2/type/1/'
+        )
+        external_move_data.target = PokemonExternalBase(
+            name='single-target', url='https://pokeapi.co/api/v2/move-target/1/'
+        )
+        external_move_data.damage_class = PokemonExternalBase(
+            name='physical', url='https://pokeapi.co/api/v2/move-damage-class/1/'
+        )
+        external_move_data.name = 'pound'
+        external_move_data.effect_entries = []
+        external_move_data.effect_chance = None
+
+        service.repository.find_one_by_order = AsyncMock(return_value=None)
+        service.repository.create = AsyncMock(side_effect=Exception('Database create error'))
+
+        with patch.object(
+            PokemonMoveBusiness,
+            'ensure_effect_message',
+            return_value=effect_entry,
+        ):
+            with patch.object(
+                service.external_service,
+                'pokemon_external_move_by_name',
+                return_value=external_move_data,
+            ):
+                result = await service.verify_pokemon_move(moves=[response_pokemon_move])
+
+        assert len(result) == 0
+        service.repository.find_one_by_order.assert_called_once()
+        service.repository.create.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_verify_pokemon_move_business_error(session):
+        """Should return empty list when business logic raises exception"""
+        service = PokemonMoveService(session=session)
+        response_pokemon_move = PokemonExternalBaseMoveSchemaResponse(
+            move=PokemonExternalBase(name='pound', url='https://pokeapi.co/api/v2/move/1/')
+        )
+
+        external_move_data = AsyncMock()
+        external_move_data.pp = MOCK_POKEMON_MOVE_PP
+        external_move_data.power = MOCK_POKEMON_MOVE_POWER
+        external_move_data.accuracy = MOCK_POKEMON_MOVE_ACCURACY
+        external_move_data.priority = MOCK_POKEMON_MOVE_PRIORITY
+        external_move_data.type = PokemonExternalBase(
+            name='normal', url='https://pokeapi.co/api/v2/type/1/'
+        )
+        external_move_data.target = PokemonExternalBase(
+            name='single-target', url='https://pokeapi.co/api/v2/move-target/1/'
+        )
+        external_move_data.damage_class = PokemonExternalBase(
+            name='physical', url='https://pokeapi.co/api/v2/move-damage-class/1/'
+        )
+        external_move_data.name = 'pound'
+        external_move_data.effect_entries = []
+        external_move_data.effect_chance = None
+
+        service.repository.find_one_by_order = AsyncMock(return_value=None)
+
+        with patch.object(
+            PokemonMoveBusiness,
+            'ensure_effect_message',
+            side_effect=Exception('Business logic error'),
+        ):
+            with patch.object(
+                service.external_service,
+                'pokemon_external_move_by_name',
+                return_value=external_move_data,
+            ):
+                result = await service.verify_pokemon_move(moves=[response_pokemon_move])
+
+        assert len(result) == 0
+        service.repository.find_one_by_order.assert_called_once()
