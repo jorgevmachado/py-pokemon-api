@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import UUID, ForeignKey, func
-from sqlalchemy.orm import Mapped, Relationship, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import default_lazy, table_registry
 from app.models.pokemon import Pokemon
@@ -44,11 +44,12 @@ class CapturedPokemon:
     deleted_at: Mapped[datetime] = mapped_column(init=False, nullable=True)
     pokemon_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('pokemon.id'))
     trainer_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('users.id'))
-    # FK
-    pokemon: Mapped['Pokemon'] = Relationship(
+
+    pokemon: Mapped['Pokemon'] = relationship(
         lazy=default_lazy,
+        init=False,
     )
-    # FK
-    trainer: Mapped['User'] = Relationship(
-        lazy=default_lazy, back_populates='captured_pokemons'
+
+    trainer: Mapped['User'] = relationship(
+        lazy=default_lazy, init=False, back_populates='captured_pokemons'
     )

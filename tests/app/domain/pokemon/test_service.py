@@ -2,6 +2,7 @@ from datetime import datetime
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
@@ -1234,3 +1235,245 @@ class TestPokemonServiceCompletePokemonData:
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         assert exc_info.value.detail == 'Error completing pokemon data'
+
+
+class TestPokemonServiceFirstPokemon:
+    """Test scope for first_pokemon method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_first_pokemon_with_name_found(session):
+        """Should return pokemon when name is found"""
+        bulbasaur = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        bulbasaur.id = str(uuid4())
+
+        service = PokemonService(session=session)
+        service.fetch_all = AsyncMock(return_value=[bulbasaur])
+        service.fetch_one = AsyncMock(return_value=bulbasaur)
+
+        result = await service.first_pokemon(name='bulbasaur')
+
+        assert result is not None
+        assert result.pokemon is not None
+        assert result.pokemon.name == 'bulbasaur'
+        service.fetch_all.assert_called_once()
+        service.fetch_one.assert_called_once_with(name='bulbasaur')
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_first_pokemon_with_name_not_found(session):
+        """Should return random complete pokemon when name is not found"""
+        bulbasaur = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        pikachu = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        bulbasaur.id = str(uuid4())
+        pikachu.id = str(uuid4())
+        pokemons = [bulbasaur, pikachu]
+
+        service = PokemonService(session=session)
+        service.fetch_all = AsyncMock(return_value=pokemons)
+        service.fetch_one = AsyncMock(return_value=bulbasaur)
+        service.business.find_first_pokemon = MagicMock(return_value=bulbasaur)
+
+        result = await service.first_pokemon(name='nonexistent')
+
+        assert result is not None
+        assert result.pokemon is not None
+        assert result.pokemon.name == 'bulbasaur'
+        service.fetch_all.assert_called_once()
+        service.fetch_one.assert_called_once_with(name='bulbasaur')
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_first_pokemon_without_name(session):
+        """Should return random complete pokemon when name is None"""
+        bulbasaur = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        pikachu = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        bulbasaur.id = str(uuid4())
+        pikachu.id = str(uuid4())
+        pokemons = [bulbasaur, pikachu]
+
+        service = PokemonService(session=session)
+        service.fetch_all = AsyncMock(return_value=pokemons)
+        service.fetch_one = AsyncMock(return_value=bulbasaur)
+        service.business.find_first_pokemon = MagicMock(return_value=bulbasaur)
+
+        result = await service.first_pokemon(name=None)
+
+        assert result is not None
+        assert result.pokemon is not None
+        assert result.pokemon.name == 'bulbasaur'
+        service.fetch_all.assert_called_once()
+        service.fetch_one.assert_called_once_with(name='bulbasaur')
+
+    # ...existing code...
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_first_pokemon_with_no_complete_pokemon(session):
+        """Should return FirstPokemonSchemaResult with pokemon=None when no complete exists"""
+        pikachu = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        charmander = Pokemon(
+            name='charmander',
+            order=4,
+            url='https://pokeapi.co/api/v2/pokemon/4/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/4.png',
+        )
+        pikachu.id = str(uuid4())
+        charmander.id = str(uuid4())
+        pokemons = [pikachu, charmander]
+
+        service = PokemonService(session=session)
+        service.fetch_all = AsyncMock(return_value=pokemons)
+        service.business.find_first_pokemon = MagicMock(return_value=None)
+
+        result = await service.first_pokemon(name=None)
+
+        assert result is not None
+        assert result.pokemon is None
+        assert result.pokemons == pokemons
+        service.fetch_all.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_first_pokemon_with_empty_list(session):
+        """Should return FirstPokemonSchemaResult with pokemon=None when list is empty"""
+        service = PokemonService(session=session)
+        service.fetch_all = AsyncMock(return_value=[])
+
+        result = await service.first_pokemon(name='bulbasaur')
+
+        assert result is not None
+        assert result.pokemon is None
+        assert result.pokemons == []
+        service.fetch_all.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_first_pokemon_with_multiple_complete(session):
+        """Should return the named pokemon if it exists in multiple complete pokemons"""
+        bulbasaur = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        ivysaur = Pokemon(
+            name='ivysaur',
+            order=2,
+            url='https://pokeapi.co/api/v2/pokemon/2/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/2.png',
+        )
+        venusaur = Pokemon(
+            name='venusaur',
+            order=3,
+            url='https://pokeapi.co/api/v2/pokemon/3/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/3.png',
+        )
+        bulbasaur.id = str(uuid4())
+        ivysaur.id = str(uuid4())
+        venusaur.id = str(uuid4())
+        pokemons = [bulbasaur, ivysaur, venusaur]
+
+        service = PokemonService(session=session)
+        service.fetch_all = AsyncMock(return_value=pokemons)
+        service.fetch_one = AsyncMock(return_value=ivysaur)
+
+        result = await service.first_pokemon(name='ivysaur')
+
+        assert result is not None
+        assert result.pokemon is not None
+        assert result.pokemon.name == 'ivysaur'
+        service.fetch_one.assert_called_once_with(name='ivysaur')
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_first_pokemon_raises_http_exception(session):
+        """Should raise HTTPException when fetch_all fails"""
+        service = PokemonService(session=session)
+        service.fetch_all = AsyncMock(side_effect=Exception('Database error'))
+
+        with pytest.raises(HTTPException) as exc_info:
+            await service.first_pokemon(name='bulbasaur')
+
+        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert exc_info.value.detail == 'Error completing pokemon data'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_first_pokemon_fetch_one_called_with_correct_name(session):
+        """Should call fetch_one with the pokemon name from find_first_pokemon"""
+        bulbasaur = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        pikachu = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        bulbasaur.id = str(uuid4())
+        pikachu.id = str(uuid4())
+        pokemons = [pikachu, bulbasaur]
+        returned_bulbasaur = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        returned_bulbasaur.id = bulbasaur.id
+
+        service = PokemonService(session=session)
+        service.fetch_all = AsyncMock(return_value=pokemons)
+        service.fetch_one = AsyncMock(return_value=returned_bulbasaur)
+
+        result = await service.first_pokemon(name=None)
+
+        assert result is not None
+        assert result.pokemon is not None
+        service.fetch_one.assert_called_once_with(name='bulbasaur')

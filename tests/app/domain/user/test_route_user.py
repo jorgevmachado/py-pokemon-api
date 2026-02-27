@@ -87,3 +87,26 @@ def test_get_user_should_return_not_found(client, token):
     )
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {'detail': 'User not found'}
+
+
+def test_initialize_user_returns_user(client, user, token):
+    response = client.post(
+        '/users/initialize',
+        headers={'Authorization': f'Bearer {token}'},
+        json={},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert data['id'] == user.id
+    assert data['email'] == user.email
+    assert data['status'] == user.status
+
+
+def test_initialize_user_unauthorized(client):
+    response = client.post(
+        '/users/initialize',
+        json={},
+    )
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
