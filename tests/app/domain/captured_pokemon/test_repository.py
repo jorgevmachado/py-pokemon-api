@@ -7,10 +7,6 @@ from app.domain.captured_pokemon.repository import CapturedPokemonRepository
 from app.domain.captured_pokemon.schema import CreateCapturedPokemonSchema
 from app.models import CapturedPokemon
 
-MOCK_POKEMON_ABILITY_SLOT = 1
-MOCK_POKEMON_ABILITY_SLOT_2 = 2
-MOCK_POKEMON_ABILITY_IS_HIDDEN = False
-
 MOCK_CAPTURED_POKEMON = CapturedPokemon(
     hp=7,
     wins=0,
