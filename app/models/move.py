@@ -8,7 +8,7 @@ from app.models.base import table_registry
 
 
 @table_registry.mapped_as_dataclass
-class Move:
+class PokemonMove:
     __tablename__ = 'moves'
 
     id: Mapped[str] = mapped_column(
@@ -24,9 +24,7 @@ class Move:
     effect: Mapped[str]
     priority: Mapped[int]
     accuracy: Mapped[int]
-    created_at: Mapped[datetime] = mapped_column(
-        init=False, server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now(), onupdate=func.now()
     )

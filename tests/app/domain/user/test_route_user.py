@@ -71,9 +71,7 @@ def test_get_user(client, user, token):
     assert data['status'] == user.status
 
 
-def test_get_user_should_return_not_permission_error(
-    client, other_user, token
-):
+def test_get_user_should_return_not_permission_error(client, other_user, token):
     response = client.get(
         f'/users/{other_user.id}',
         headers={'Authorization': f'Bearer {token}'},

@@ -30,9 +30,7 @@ async def test_create_user_db(session, mock_db_time):
         session.add(new_user)
         await session.commit()
 
-    user = await session.scalar(
-        select(User).where(User.email == 'john@doe.com')
-    )
+    user = await session.scalar(select(User).where(User.email == 'john@doe.com'))
     assert user.name == 'john Doe'
     assert user.email == 'john@doe.com'
     assert user.gender == GenderEnum.MALE

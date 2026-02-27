@@ -38,23 +38,15 @@ class Pokedex:
     ev_special_defense: Mapped[int]
     discovered: Mapped[bool]
     discovered_at: Mapped[datetime] = mapped_column(init=False, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        init=False, server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now(), onupdate=func.now()
     )
     deleted_at: Mapped[datetime] = mapped_column(init=False, nullable=True)
 
-    pokemon_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey('pokemon.id')
-    )
-    trainer_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey('users.id')
-    )
+    pokemon_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('pokemon.id'))
+    trainer_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey('users.id'))
     # FK
     pokemon: Mapped['Pokemon'] = Relationship(lazy=default_lazy)
     # FK
-    trainer: Mapped['User'] = Relationship(
-        lazy=default_lazy, back_populates='pokedex'
-    )
+    trainer: Mapped['User'] = Relationship(lazy=default_lazy, back_populates='pokedex')

@@ -11,7 +11,7 @@ from testcontainers.postgres import PostgresContainer
 
 from app.database import get_session
 from app.main import app
-from app.models import User
+from app.models import Pokemon, User
 from app.models.base import table_registry
 from app.security import get_password_hash
 from app.shared.gender_enum import GenderEnum
@@ -86,6 +86,26 @@ async def user(session: AsyncSession):
 
 
 @pytest_asyncio.fixture
+async def pokemon(session: AsyncSession):
+    pokemon = PokemonFactory()
+    session.add(pokemon)
+    await session.commit()
+    await session.refresh(pokemon)
+
+    return pokemon
+
+
+@pytest_asyncio.fixture
+async def pokemon_incomplete(session: AsyncSession):
+    pokemon = PokemonFactory(status=StatusEnum.INCOMPLETE)
+    session.add(pokemon)
+    await session.commit()
+    await session.refresh(pokemon)
+
+    return pokemon
+
+
+@pytest_asyncio.fixture
 async def other_user(session: AsyncSession):
     password = 'testtest'
     user = UserFactory(password=get_password_hash(password))
@@ -100,12 +120,10 @@ async def other_user(session: AsyncSession):
 
 @pytest.fixture
 def token(client, user):
-    print('# => token => user => ', user)
     response = client.post(
         '/auth/token',
         json={'email': user.email, 'password': user.clean_password},
     )
-    print('# => response => json => ', response.json())
     return response.json()['access_token']
 
 
@@ -125,3 +143,16 @@ class UserFactory(factory.Factory):
     total_authentications = 0
     authentication_success = 0
     authentication_failures = 0
+
+
+class PokemonFactory(factory.Factory):
+    class Meta:
+        model = Pokemon
+
+    name = factory.Sequence(lambda n: f'pokemon_{n}')
+    order = factory.Sequence(lambda n: n)
+    url = factory.Sequence(lambda n: f'https://pokeapi.co/api/v2/pokemon/{n}')
+    external_image = factory.Sequence(
+        lambda n: f'https://raw.githubusercontent.com/PokeAPI/sprites/{n}.png'
+    )
+    status = StatusEnum.COMPLETE

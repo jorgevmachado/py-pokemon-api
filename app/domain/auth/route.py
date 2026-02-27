@@ -22,9 +22,7 @@ async def login_for_access_token(
     form_data: Login,
     session: Session,
 ):
-    user = await session.scalar(
-        select(User).where(User.email == form_data.email)
-    )
+    user = await session.scalar(select(User).where(User.email == form_data.email))
 
     if not user:
         raise HTTPException(

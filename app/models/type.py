@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import UUID, ForeignKey, func
-from sqlalchemy.orm import Mapped, Relationship, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import default_lazy, table_registry
 
@@ -19,7 +19,18 @@ class TypeWeaknessFK:
 
 
 @table_registry.mapped_as_dataclass
-class Type:
+class TypeStrengthsFK:
+    __tablename__ = 'type_strengths'
+    type_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True
+    )
+    strengths_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True
+    )
+
+
+@table_registry.mapped_as_dataclass
+class PokemonType:
     __tablename__ = 'types'
 
     id: Mapped[str] = mapped_column(
@@ -29,19 +40,25 @@ class Type:
     name: Mapped[str] = mapped_column(unique=True)
     order: Mapped[int]
     text_color: Mapped[str]
-    created_at: Mapped[datetime] = mapped_column(
-        init=False, server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now(), onupdate=func.now()
     )
     deleted_at: Mapped[datetime] = mapped_column(init=False, nullable=True)
     background_color: Mapped[str]
 
-    # FK
-    weaknesses: Mapped[list['Type']] = Relationship(
+    weaknesses: Mapped[list['PokemonType']] = relationship(
         lazy=default_lazy,
+        init=False,
         secondary='type_weaknesses',
-        primaryjoin='Type.id == type_weaknesses.c.type_id',
-        secondaryjoin='Type.id == type_weaknesses.c.weakness_id',
+        primaryjoin='PokemonType.id == type_weaknesses.c.type_id',
+        secondaryjoin='PokemonType.id == type_weaknesses.c.weakness_id',
+    )
+
+    strengths: Mapped[list['PokemonType']] = relationship(
+        lazy=default_lazy,
+        init=False,
+        secondary='type_strengths',
+        primaryjoin='PokemonType.id == type_strengths.c.type_id',
+        secondaryjoin='PokemonType.id == type_strengths.c.strengths_id',
     )
