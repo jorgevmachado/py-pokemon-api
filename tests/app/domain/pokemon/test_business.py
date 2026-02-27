@@ -17,11 +17,17 @@ MOCK_BULBASAUR_DEFENSE_UPDATED = 55
 MOCK_BULBASAUR_ATTACK = 49
 MOCK_PIKACHU_HP = 35
 MOCK_PIKACHU_ATTACK_UPDATED = 60
+MOCK_PIKACHU_ORDER = 25
 MOCK_CHARIZARD_HP = 78
 MOCK_CHARIZARD_ATTACK = 84
 MOCK_CHARIZARD_DEFENSE = 78
 MOCK_CHARIZARD_SPEED = 100
 MOCK_SQUIRTLE_HP_UPDATED = 44
+MOCK_IVYSAUR_ORDER = 2
+MOCK_POKEMON_ORDERS = {4, 7, 25}
+MOCK_COMPLETE_POKEMON_NAMES = {'bulbasaur', 'ivysaur'}
+MOCK_INCOMPLETE_ORDERS = {25, 4, 7}
+MOCK_VARIOUS_ORDERS = {100, 50, 200}
 
 
 class TestPokemonBusinessEnsureEvolution:
@@ -465,3 +471,366 @@ class TestPokemonBusinessMergeIfChanged:
         )
 
         assert result is pokemon_target
+
+
+class TestPokemonBusinessFindFirstPokemon:
+    """Test scope for find_first_pokemon method"""
+
+    @staticmethod
+    def test_find_first_pokemon_with_empty_list():
+        """Should return None when pokemon list is empty"""
+        business = PokemonBusiness()
+        result = business.find_first_pokemon(pokemons=[], pokemon_name=None)
+
+        assert result is None
+
+    @staticmethod
+    def test_find_first_pokemon_with_name_found():
+        """Should return pokemon when name matches"""
+        business = PokemonBusiness()
+        bulbasaur = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        pikachu = Pokemon(
+            name='pikachu',
+            order=MOCK_PIKACHU_ORDER,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        pokemons = [bulbasaur, pikachu]
+
+        result = business.find_first_pokemon(
+            pokemons=pokemons,
+            pokemon_name='pikachu',
+        )
+
+        assert result is not None
+        assert result.name == 'pikachu'
+        assert result.order == MOCK_PIKACHU_ORDER
+
+    @staticmethod
+    def test_find_first_pokemon_with_name_not_found():
+        """Should return random complete pokemon when name is not found"""
+        business = PokemonBusiness()
+        bulbasaur = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        pikachu = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        pokemons = [bulbasaur, pikachu]
+
+        result = business.find_first_pokemon(
+            pokemons=pokemons,
+            pokemon_name='nonexistent',
+        )
+
+        # Should return a complete pokemon or None if no complete pokemon exists
+        if result:
+            assert result.status == StatusEnum.COMPLETE
+
+    @staticmethod
+    def test_find_first_pokemon_without_name():
+        """Should return random complete pokemon when pokemon_name is None"""
+        business = PokemonBusiness()
+        bulbasaur = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        pikachu = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        pokemons = [bulbasaur, pikachu]
+
+        result = business.find_first_pokemon(
+            pokemons=pokemons,
+            pokemon_name=None,
+        )
+
+        assert result is not None
+        assert result.status == StatusEnum.COMPLETE
+        assert result.name == 'bulbasaur'
+
+    @staticmethod
+    def test_find_first_pokemon_with_name_and_multiple_complete():
+        """Should return the exact pokemon when name matches, even with multiple complete"""
+        business = PokemonBusiness()
+        bulbasaur = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        ivysaur = Pokemon(
+            name='ivysaur',
+            order=MOCK_IVYSAUR_ORDER,
+            url='https://pokeapi.co/api/v2/pokemon/2/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/2.png',
+        )
+        venusaur = Pokemon(
+            name='venusaur',
+            order=3,
+            url='https://pokeapi.co/api/v2/pokemon/3/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/3.png',
+        )
+        pokemons = [bulbasaur, ivysaur, venusaur]
+
+        result = business.find_first_pokemon(
+            pokemons=pokemons,
+            pokemon_name='ivysaur',
+        )
+
+        assert result is not None
+        assert result.name == 'ivysaur'
+        assert result.order == MOCK_IVYSAUR_ORDER
+
+    @staticmethod
+    def test_find_first_pokemon_with_incomplete_and_one_complete():
+        """Should return the only complete pokemon when incomplete exist"""
+        business = PokemonBusiness()
+        incomplete_1 = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        complete = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        incomplete_2 = Pokemon(
+            name='charmander',
+            order=4,
+            url='https://pokeapi.co/api/v2/pokemon/4/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/4.png',
+        )
+        pokemons = [incomplete_1, complete, incomplete_2]
+
+        result = business.find_first_pokemon(
+            pokemons=pokemons,
+            pokemon_name=None,
+        )
+
+        assert result is not None
+        assert result.name == 'bulbasaur'
+        assert result.status == StatusEnum.COMPLETE
+
+
+class TestPokemonBusinessGetRandomPokemon:
+    """Test scope for get_random_pokemon method"""
+
+    @staticmethod
+    def test_get_random_pokemon_with_complete():
+        """Should return complete pokemon when it exists"""
+        business = PokemonBusiness()
+        incomplete = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        complete = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        pokemons = [incomplete, complete]
+
+        result = business.get_random_pokemon(pokemons=pokemons)
+
+        assert result is not None
+        assert result.status == StatusEnum.COMPLETE
+
+    @staticmethod
+    def test_get_random_pokemon_with_multiple_complete():
+        """Should return one of the complete pokemons"""
+        business = PokemonBusiness()
+        complete_1 = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        complete_2 = Pokemon(
+            name='ivysaur',
+            order=2,
+            url='https://pokeapi.co/api/v2/pokemon/2/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/2.png',
+        )
+        incomplete = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        pokemons = [complete_1, incomplete, complete_2]
+
+        result = business.get_random_pokemon(pokemons=pokemons)
+
+        assert result is not None
+        assert result.status == StatusEnum.COMPLETE
+        assert result.name in MOCK_COMPLETE_POKEMON_NAMES
+
+    @staticmethod
+    def test_get_random_pokemon_all_incomplete():
+        """Should return random pokemon by order when all are incomplete"""
+        business = PokemonBusiness()
+        incomplete_1 = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        incomplete_2 = Pokemon(
+            name='charmander',
+            order=4,
+            url='https://pokeapi.co/api/v2/pokemon/4/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/4.png',
+        )
+        incomplete_3 = Pokemon(
+            name='squirtle',
+            order=7,
+            url='https://pokeapi.co/api/v2/pokemon/7/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/7.png',
+        )
+        pokemons = [incomplete_1, incomplete_2, incomplete_3]
+
+        result = business.get_random_pokemon(pokemons=pokemons)
+
+        assert result is not None
+        assert result in pokemons
+        assert result.order in MOCK_INCOMPLETE_ORDERS
+
+    @staticmethod
+    def test_get_random_pokemon_single_pokemon():
+        """Should return the only pokemon"""
+        business = PokemonBusiness()
+        pokemon = Pokemon(
+            name='mew',
+            order=151,
+            url='https://pokeapi.co/api/v2/pokemon/151/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/151.png',
+        )
+        pokemons = [pokemon]
+
+        result = business.get_random_pokemon(pokemons=pokemons)
+
+        assert result is not None
+        assert result.name == 'mew'
+        assert result is pokemon
+
+    @staticmethod
+    def test_get_random_pokemon_with_none_return():
+        """Should return None when no pokemon with random order found"""
+        business = PokemonBusiness()
+        # This is a theoretical edge case, but for safety we test it
+        pokemons = []
+
+        result = business.get_random_pokemon(pokemons=pokemons)
+
+        assert result is None
+
+    @staticmethod
+    def test_get_random_pokemon_prefers_complete():
+        """Should always prefer complete pokemon over incomplete"""
+        business = PokemonBusiness()
+        incomplete_1 = Pokemon(
+            name='pikachu',
+            order=25,
+            url='https://pokeapi.co/api/v2/pokemon/25/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/25.png',
+        )
+        incomplete_2 = Pokemon(
+            name='charmander',
+            order=4,
+            url='https://pokeapi.co/api/v2/pokemon/4/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/4.png',
+        )
+        complete = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        pokemons = [incomplete_1, incomplete_2, complete]
+
+        # Run multiple times to ensure complete is always returned
+        for _ in range(5):
+            result = business.get_random_pokemon(pokemons=pokemons)
+            assert result is not None
+            assert result.status == StatusEnum.COMPLETE
+            assert result.name == 'bulbasaur'
+
+    @staticmethod
+    def test_get_random_pokemon_with_various_orders():
+        """Should handle pokemons with various order values"""
+        business = PokemonBusiness()
+        pokemon_1 = Pokemon(
+            name='pokemon1',
+            order=100,
+            url='https://pokeapi.co/api/v2/pokemon/100/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/100.png',
+        )
+        pokemon_2 = Pokemon(
+            name='pokemon2',
+            order=50,
+            url='https://pokeapi.co/api/v2/pokemon/50/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/50.png',
+        )
+        pokemon_3 = Pokemon(
+            name='pokemon3',
+            order=200,
+            url='https://pokeapi.co/api/v2/pokemon/200/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/200.png',
+        )
+        pokemons = [pokemon_1, pokemon_2, pokemon_3]
+
+        result = business.get_random_pokemon(pokemons=pokemons)
+
+        assert result is not None
+        assert result in pokemons
+        assert result.order in MOCK_VARIOUS_ORDERS

@@ -13,6 +13,7 @@ from app.domain.pokemon.move.service import PokemonMoveService
 from app.domain.pokemon.repository import PokemonRepository
 from app.domain.pokemon.schema import (
     CreatePokemonSchema,
+    FirstPokemonSchemaResult,
     GeneratePokemonRelationshipSchema,
     GeneratePokemonRelationshipSchemaResult,
     PokemonSchema,
@@ -214,3 +215,30 @@ class PokemonService:
             abilities=abilities,
             growth_rate=growth_rate,
         )
+
+    async def first_pokemon(self, name: str | None = None) -> FirstPokemonSchemaResult:
+        try:
+            pokemons = await self.fetch_all(
+                pokemon_filter=FilterPage(limit=POKEMON_TOTAL_LIMIT)
+            )
+
+            first_pokemon = self.business.find_first_pokemon(
+                pokemons=pokemons, pokemon_name=name
+            )
+
+            if not first_pokemon:
+                return FirstPokemonSchemaResult(
+                    pokemon=None,
+                    pokemons=pokemons,
+                )
+            pokemon = await self.fetch_one(name=first_pokemon.name)
+            return FirstPokemonSchemaResult(
+                pokemon=pokemon,
+                pokemons=pokemons,
+            )
+        except Exception as e:
+            print(f'# => service => first_pokemon => error => {e}')
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail='Error completing pokemon data',
+            )

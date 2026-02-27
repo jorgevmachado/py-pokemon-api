@@ -2,7 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.models import CapturedPokemon, Pokedex
+from app.domain.captured_pokemon.schema import CapturedPokemonPublicSchema
+from app.domain.pokedex.schema import PokedexPublicSchema
 from app.shared.gender_enum import GenderEnum
 from app.shared.role_enum import RoleEnum
 from app.shared.status_enum import StatusEnum
@@ -41,10 +42,18 @@ class UserPublicSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None
-    pokedex: list['Pokedex'] | None
-    captured_pokemons: list['CapturedPokemon'] | None
+    pokedex: list[PokedexPublicSchema] | None
+    captured_pokemons: list[CapturedPokemonPublicSchema] | None
 
 
 class FindOneUserSchemaParams(BaseModel):
     id: str | None = None
     email: str | None = None
+
+
+class UserInitializeTrainerSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    pokeballs: int = Field(default=5)
+    pokemon_name: str | None = None
+    capture_rate: int = Field(default=45)
