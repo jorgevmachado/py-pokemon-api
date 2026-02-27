@@ -89,3 +89,9 @@ class UserService:
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 detail='Error initializing trainer',
             )
+
+    async def find_one_by_email(self, email: str) -> User:
+        return await self.repository.find_one(params=FindOneUserSchemaParams(email=email))
+
+    async def update(self, user: User):
+        return await self.repository.update(user=user)
