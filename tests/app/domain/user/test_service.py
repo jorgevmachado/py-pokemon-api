@@ -1,12 +1,12 @@
 from datetime import datetime
 from http import HTTPStatus
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
 
-from app.domain.user.schema import CreateUserSchema, UserInitializeTrainerSchema
+from app.domain.user.schema import CreateUserSchema
 from app.domain.user.service import UserService
 from app.models import User
 from app.shared.gender_enum import GenderEnum
@@ -103,65 +103,43 @@ class TestUserServiceFindOne:
         assert exc_info.value.detail == 'Not enough permissions'
 
 
-class TestUserServiceInitialize:
-    """Test scope for initialize method"""
+class TestUserServiceFindOneByEmail:
+    """Test scope for find_one_by_email method"""
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_user_initialize_returns_user_when_active(session, user):
-        """Should return user when status is not incomplete"""
+    async def test_user_find_one_by_email_returns_user(session, user):
+        """Should return user when email exists"""
         service = UserService(session=session)
-        user.status = StatusEnum.ACTIVE
-        service.find_one = AsyncMock(return_value=user)
-        service.pokemon_service.first_pokemon = AsyncMock()
+        service.repository.find_one = AsyncMock(return_value=user)
 
-        params = UserInitializeTrainerSchema(pokemon_name='pikachu')
-        result = await service.initialize(params=params, current_user=user)
+        result = await service.find_one_by_email(email=user.email)
 
         assert result == user
-        service.pokemon_service.first_pokemon.assert_not_called()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_user_initialize_raises_internal_error_when_first_pokemon_missing(
-        session, user
-    ):
-        """Should raise HTTPException when first pokemon is not found"""
+    async def test_user_find_one_by_email_returns_none(session):
+        """Should return None when email does not exist"""
         service = UserService(session=session)
-        user.status = StatusEnum.INCOMPLETE
-        user.pokedex = []
-        user.captured_pokemons = []
-        service.find_one = AsyncMock(return_value=user)
-        service.pokemon_service.first_pokemon = AsyncMock(return_value=None)
+        service.repository.find_one = AsyncMock(return_value=None)
 
-        params = UserInitializeTrainerSchema(pokemon_name='missing')
+        result = await service.find_one_by_email(email='missing@example.com')
 
-        with pytest.raises(HTTPException) as exc_info:
-            await service.initialize(params=params, current_user=user)
+        assert result is None
 
-        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert exc_info.value.detail == 'Error initializing trainer'
+
+class TestUserServiceUpdate:
+    """Test scope for update method"""
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_user_initialize_sets_active_and_updates_user(session, user, pokemon):
-        """Should initialize pokedex, captured pokemon, and update status"""
+    async def test_user_update_returns_user(session, user):
+        """Should update and return user"""
         service = UserService(session=session)
-        user.status = StatusEnum.INCOMPLETE
-        user.pokedex = []
-        user.captured_pokemons = []
-        service.find_one = AsyncMock(return_value=user)
-        first_pokemon = MagicMock(pokemon=pokemon, pokemons=[pokemon])
-        service.pokemon_service.first_pokemon = AsyncMock(return_value=first_pokemon)
-        service.pokedex_service.initialize = AsyncMock()
-        service.captured_pokemon_service.create = AsyncMock()
         service.repository.update = AsyncMock(return_value=user)
 
-        params = UserInitializeTrainerSchema(pokemon_name='pikachu')
-        result = await service.initialize(params=params, current_user=user)
+        result = await service.update(user=user)
 
         assert result == user
-        assert user.status == StatusEnum.ACTIVE
-        service.pokedex_service.initialize.assert_called_once()
-        service.captured_pokemon_service.create.assert_called_once()
         service.repository.update.assert_called_once_with(user=user)
