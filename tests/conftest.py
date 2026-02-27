@@ -120,12 +120,10 @@ async def other_user(session: AsyncSession):
 
 @pytest.fixture
 def token(client, user):
-    print('# => token => user => ', user)
     response = client.post(
         '/auth/token',
         json={'email': user.email, 'password': user.clean_password},
     )
-    print('# => response => json => ', response.json())
     return response.json()['access_token']
 
 
