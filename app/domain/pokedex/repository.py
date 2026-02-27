@@ -1,14 +1,12 @@
 from typing import Annotated
 
-from fastapi import Depends, Query
+from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.database import get_session
 from app.domain.pokedex.schema import CreatePokedexSchema
-from app.models import Pokedex, User
-from app.shared.schemas import FilterPage
+from app.models import Pokedex
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
@@ -55,40 +53,9 @@ class PokedexRepository:
         self,
         trainer_id: str,
     ) -> set[str]:
-        """Find all pokemon_ids that exist in pokedex for a trainer."""
         query = select(Pokedex.pokemon_id).where(
             Pokedex.trainer_id == trainer_id,
-            Pokedex.trainer_id.isnot(None),  # Ignore bad legacy data with NULL
+            Pokedex.trainer_id.isnot(None),
         )
         result = await self.session.scalars(query)
-        # Return a set of string IDs (no objects, no tracking)
         return set(result.all())
-
-    async def find_by_trainer_and_pokemon(
-        self,
-        trainer_id: str,
-        pokemon_id: str,
-    ) -> Pokedex | None:
-        """Find pokedex entry by trainer and pokemon."""
-        query = select(Pokedex).where(
-            Pokedex.trainer_id == trainer_id,
-            Pokedex.pokemon_id == pokemon_id,
-        )
-        result = await self.session.scalar(query)
-        return result
-
-    async def list(
-        self, user: User, pokedex_filter: Annotated[FilterPage, Query()] = FilterPage()
-    ):
-        query = select(Pokedex).options(
-            selectinload(Pokedex.trainer),
-            selectinload(Pokedex.pokemon),
-        )
-
-        pokedex = await self.session.scalars(
-            query
-            .offset(pokedex_filter.offset)
-            .limit(pokedex_filter.limit)
-            .where(Pokedex.trainer_id == user.id)
-        )
-        return pokedex.all()
