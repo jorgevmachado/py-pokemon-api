@@ -5,10 +5,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.database import get_session
+from app.core.database import get_session
+from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.schema import CreatePokemonSchema
-from app.models import Pokemon
-from app.models.type import PokemonType
+from app.domain.type.model import PokemonType
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
 

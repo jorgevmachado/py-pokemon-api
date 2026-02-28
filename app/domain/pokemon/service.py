@@ -4,12 +4,13 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_session
-from app.domain.pokemon.ability.service import PokemonAbilityService
+from app.core.database import get_session
+from app.domain.ability.service import PokemonAbilityService
+from app.domain.growth_rate.service import PokemonGrowthRateService
+from app.domain.move.service import PokemonMoveService
 from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.external.service import PokemonExternalService
-from app.domain.pokemon.growth_rate.service import PokemonGrowthRateService
-from app.domain.pokemon.move.service import PokemonMoveService
+from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.repository import PokemonRepository
 from app.domain.pokemon.schema import (
     CreatePokemonSchema,
@@ -18,8 +19,7 @@ from app.domain.pokemon.schema import (
     GeneratePokemonRelationshipSchemaResult,
     PokemonSchema,
 )
-from app.domain.pokemon.type.service import PokemonTypeService
-from app.models import Pokemon
+from app.domain.type.service import PokemonTypeService
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
 

@@ -3,9 +3,9 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_session
+from app.core.database import get_session
+from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.captured_pokemon.schema import CreateCapturedPokemonSchema
-from app.models import CapturedPokemon
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 

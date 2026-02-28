@@ -7,12 +7,16 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
+from app.domain.ability.model import PokemonAbility
+from app.domain.growth_rate.model import PokemonGrowthRate
+from app.domain.move.model import PokemonMove
 from app.domain.pokemon.external.schemas import PokemonExternalBase
+from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.schema import (
     GeneratePokemonRelationshipSchema,
 )
 from app.domain.pokemon.service import PokemonService
-from app.models import Pokemon, PokemonAbility, PokemonGrowthRate, PokemonMove, PokemonType
+from app.domain.type.model import PokemonType
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
 from tests.app.domain.pokemon.external.mocks.business_mock import (
@@ -1013,7 +1017,7 @@ class TestPokemonServiceCompletePokemonData:
     @pytest.mark.asyncio
     async def test_complete_pokemon_data_success_with_evolutions(session):
         """Should complete pokemon data and attach evolutions when enabled"""
-        now = datetime.utcnow()
+        now = datetime.now()
         pokemon = Pokemon(
             name='bulbasaur',
             order=1,
@@ -1116,7 +1120,7 @@ class TestPokemonServiceCompletePokemonData:
     @pytest.mark.asyncio
     async def test_complete_pokemon_data_success_without_evolutions(session):
         """Should complete pokemon data without evolutions when disabled"""
-        now = datetime.utcnow()
+        now = datetime.now()
         pokemon = Pokemon(
             name='pikachu',
             order=25,
@@ -1191,7 +1195,7 @@ class TestPokemonServiceCompletePokemonData:
     @pytest.mark.asyncio
     async def test_complete_pokemon_data_raises_http_exception(session):
         """Should re-raise HTTPException when external service fails"""
-        now = datetime.utcnow()
+        now = datetime.now()
         pokemon = Pokemon(
             name='eevee',
             order=133,
@@ -1216,7 +1220,7 @@ class TestPokemonServiceCompletePokemonData:
     @pytest.mark.asyncio
     async def test_complete_pokemon_data_unexpected_error(session):
         """Should raise HTTPException when unexpected error occurs"""
-        now = datetime.utcnow()
+        now = datetime.now()
         pokemon = Pokemon(
             name='mew',
             order=151,

@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from app.domain.growth_rate.model import PokemonGrowthRate
 from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
@@ -8,9 +9,8 @@ from app.domain.pokemon.external.schemas.evolution import (
     PokemonExternalEvolutionChainEvolvesToSchemaResponse,
     PokemonExternalEvolutionChainSchemaResponse,
 )
+from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.schema import PokemonSchema
-from app.models import Pokemon
-from app.models.growth_rate import PokemonGrowthRate
 from app.shared.status_enum import StatusEnum
 
 MOCK_BULBASAUR_HP_UPDATED = 50

@@ -3,9 +3,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.captured_pokemon.repository import CapturedPokemonRepository
 from app.domain.captured_pokemon.schema import CreateCapturedPokemonSchema
-from app.models import CapturedPokemon
 
 MOCK_CAPTURED_POKEMON = CapturedPokemon(
     hp=7,
@@ -39,7 +39,7 @@ class TestCapturedPokemonRepositoryCreate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_captured_pokemon_repository_create_success(session, user, pokemon):
+    async def test_captured_pokemon_repository_create_success(session, trainer, pokemon):
         """Should persist captured pokemon when data is valid"""
         captured_pokemon_data = CreateCapturedPokemonSchema(
             hp=MOCK_CAPTURED_POKEMON.hp,
@@ -64,7 +64,7 @@ class TestCapturedPokemonRepositoryCreate:
             ev_special_defense=MOCK_CAPTURED_POKEMON.ev_special_defense,
             captured_at=MOCK_CAPTURED_POKEMON.captured_at,
             pokemon_id=pokemon.id,
-            trainer_id=user.id,
+            trainer_id=trainer.id,
         )
         repository = CapturedPokemonRepository(session=session)
         result = await repository.create(captured_pokemon_data)
@@ -92,7 +92,7 @@ class TestCapturedPokemonRepositoryCreate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_captured_pokemon_repository_create_commit_error(session, user, pokemon):
+    async def test_captured_pokemon_repository_create_commit_error(session, trainer, pokemon):
         """Should raise exception when database commit fails"""
         captured_pokemon_data = CreateCapturedPokemonSchema(
             hp=MOCK_CAPTURED_POKEMON.hp,
@@ -117,7 +117,7 @@ class TestCapturedPokemonRepositoryCreate:
             ev_special_defense=MOCK_CAPTURED_POKEMON.ev_special_defense,
             captured_at=MOCK_CAPTURED_POKEMON.captured_at,
             pokemon_id=pokemon.id,
-            trainer_id=user.id,
+            trainer_id=trainer.id,
         )
         session.commit = AsyncMock(side_effect=Exception('Database error'))
 

@@ -28,8 +28,8 @@ class TestAuthServiceAuthenticate:
         user.authentication_success = 1
         user.last_authentication_at = None
 
-        service.user_service.find_one_by_email = AsyncMock(return_value=user)
-        service.user_service.update = AsyncMock(return_value=user)
+        service.trainer_service.find_one_by_email = AsyncMock(return_value=user)
+        service.trainer_service.update = AsyncMock(return_value=user)
 
         with (
             patch('app.domain.auth.service.verify_password', return_value=True),
@@ -39,14 +39,14 @@ class TestAuthServiceAuthenticate:
 
         assert result == {'access_token': MOCK_TOKEN, 'token_type': 'bearer'}
         assert isinstance(user.last_authentication_at, datetime)
-        service.user_service.update.assert_called_once_with(user)
+        service.trainer_service.update.assert_called_once_with(user)
 
     @staticmethod
     @pytest.mark.asyncio
     async def test_authenticate_raises_when_user_not_found(session):
-        """Should raise HTTPException when user is not found"""
+        """Should raise HTTPException when trainer is not found"""
         service = AuthService(session=session)
-        service.user_service.find_one_by_email = AsyncMock(return_value=None)
+        service.trainer_service.find_one_by_email = AsyncMock(return_value=None)
 
         with pytest.raises(HTTPException) as exc_info:
             await service.authenticate(MOCK_EMAIL, MOCK_PASSWORD)
@@ -67,8 +67,8 @@ class TestAuthServiceAuthenticate:
         user.authentication_success = 1
         user.last_authentication_at = None
 
-        service.user_service.find_one_by_email = AsyncMock(return_value=user)
-        service.user_service.update = AsyncMock(return_value=user)
+        service.trainer_service.find_one_by_email = AsyncMock(return_value=user)
+        service.trainer_service.update = AsyncMock(return_value=user)
 
         with patch('app.domain.auth.service.verify_password', return_value=False):
             with pytest.raises(HTTPException) as exc_info:
@@ -76,14 +76,14 @@ class TestAuthServiceAuthenticate:
 
         assert exc_info.value.status_code == HTTPStatus.UNAUTHORIZED
         assert exc_info.value.detail == 'Incorrect email or password'
-        service.user_service.update.assert_called_once_with(user)
+        service.trainer_service.update.assert_called_once_with(user)
 
     @staticmethod
     @pytest.mark.asyncio
     async def test_authenticate_raises_when_unexpected_error(session):
         """Should raise HTTPException when unexpected error occurs"""
         service = AuthService(session=session)
-        service.user_service.find_one_by_email = AsyncMock(side_effect=Exception('boom'))
+        service.trainer_service.find_one_by_email = AsyncMock(side_effect=Exception('boom'))
 
         with pytest.raises(HTTPException) as exc_info:
             await service.authenticate(MOCK_EMAIL, MOCK_PASSWORD)

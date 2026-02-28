@@ -4,11 +4,14 @@ from typing import Annotated, Optional
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_session
+from app.core.database import get_session
+from app.domain.captured_pokemon.model import CapturedPokemon
+from app.domain.pokedex.model import Pokedex
 from app.domain.pokedex.repository import PokedexRepository
 from app.domain.pokedex.schema import CreatePokedexSchema
 from app.domain.pokemon.business import PokemonBusiness
-from app.models import CapturedPokemon, Pokedex, Pokemon, User
+from app.domain.pokemon.model import Pokemon
+from app.domain.trainer.model import Trainer
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
@@ -21,7 +24,7 @@ class PokedexService:
 
     async def initialize(
         self,
-        user: User,
+        trainer: Trainer,
         pokemon: Optional[Pokemon],
         pokemons: list[Pokemon],
     ) -> list[Pokedex]:
@@ -29,7 +32,7 @@ class PokedexService:
             new_entries: list[Pokedex] = []
             pokemon_name = pokemon.name if pokemon else None
 
-            existing_pokemon_ids = await self.repository.find_by_trainer(user.id)
+            existing_pokemon_ids = await self.repository.find_by_trainer(trainer.id)
 
             for item in pokemons:
                 if item.id in existing_pokemon_ids:
@@ -62,7 +65,7 @@ class PokedexService:
                     discovered=discovered,
                     discovered_at=datetime.now(),
                     pokemon_id=item.id,
-                    trainer_id=user.id,
+                    trainer_id=trainer.id,
                 )
 
                 new_entry = await self.repository.create(create_pokedex)
@@ -76,11 +79,11 @@ class PokedexService:
     async def initialize_pokedex_entry(
         self,
         pokemon: Pokemon,
-        user: User,
+        trainer: Trainer,
         level: int = 1,
     ) -> Pokedex:
         """
-        Initialize a new pokedex entry for a user.
+        Initialize a new pokedex entry for a trainer.
 
         This method creates a new pokedex record with calculated stats
         based on the pokemon's base stats and growth rate formula.
@@ -89,7 +92,7 @@ class PokedexService:
 
         Args:
             pokemon: Pokemon to add to pokedex
-            user: User that discovered the pokemon
+            trainer: Trainer that discovered the pokemon
             level: Initial level (default 1)
 
         Returns:
@@ -123,9 +126,9 @@ class PokedexService:
             iv_special_defense=stats['iv_special_defense'],
             ev_special_defense=stats['ev_special_defense'],
             discovered=True,
-            discovered_at=datetime.utcnow(),
+            discovered_at=datetime.now(),
             pokemon_id=pokemon.id,
-            trainer_id=user.id,
+            trainer_id=trainer.id,
         )
 
         self.session.add(pokedex_entry)
@@ -137,11 +140,11 @@ class PokedexService:
     async def capture_pokemon(
         self,
         pokemon: Pokemon,
-        user: User,
+        trainer: Trainer,
         level: int = 1,
     ) -> CapturedPokemon:
         """
-        Create a new captured pokemon entry for a user.
+        Create a new captured pokemon entry for a trainer.
 
         This method creates a captured pokemon record with calculated stats.
         Each captured pokemon has unique stats based on its IVs (genetics),
@@ -149,7 +152,7 @@ class PokedexService:
 
         Args:
             pokemon: Pokemon that was captured
-            user: User that caught the pokemon
+            trainer: Trainer that caught the pokemon
             level: Initial level (default 1)
 
         Returns:
@@ -163,7 +166,7 @@ class PokedexService:
 
         captured_pokemon = CapturedPokemon(
             pokemon_id=pokemon.id,
-            trainer_id=user.id,
+            trainer_id=trainer.id,
             hp=stats['hp'],
             max_hp=stats['max_hp'],
             attack=stats['attack'],
@@ -201,22 +204,22 @@ class PokedexService:
     async def add_pokemon_to_pokedex_and_capture(
         self,
         pokemon: Pokemon,
-        user: User,
+        trainer: Trainer,
         level: int = 1,
     ) -> tuple[Pokedex, CapturedPokemon]:
         """
         Add pokemon to both pokedex (discovered) and captured_pokemon list.
 
-        This is the main method to use when a user captures a pokemon.
+        This is the main method to use when a trainer captures a pokemon.
         It creates both:
         - Pokedex entry: Records the discovery
-        - CapturedPokemon entry: The actual pokemon in the user's collection
+        - CapturedPokemon entry: The actual pokemon in the trainer's collection
 
         Each pokemon receives unique IVs making them genetically different.
 
         Args:
             pokemon: Pokemon to add
-            user: User that caught the pokemon
+            trainer: Trainer that caught the pokemon
             level: Initial level (default 1)
 
         Returns:
@@ -225,13 +228,13 @@ class PokedexService:
         # Create pokedex entry (discovery record)
         pokedex_entry = await self.initialize_pokedex_entry(
             pokemon=pokemon,
-            user=user,
+            trainer=trainer,
             level=level,
         )
 
         captured_entry = await self.capture_pokemon(
             pokemon=pokemon,
-            user=user,
+            trainer=trainer,
             level=level,
         )
 

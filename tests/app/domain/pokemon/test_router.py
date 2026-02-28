@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
-from app.database import get_session
+from app.core.database import get_session
 from app.main import app
 from app.shared.status_enum import StatusEnum
 from tests.app.domain.pokemon.external.mocks.business_mock import (
@@ -21,7 +21,7 @@ class TestPokemonRouterList:
     """Test scope for list_pokemons route"""
 
     @staticmethod
-    def test_list_pokemons_success(client, user, token):
+    def test_list_pokemons_success(client, trainer, token):
         """Should return pokemon list when authorized"""
         pokemons_data = [
             SimpleNamespace(
@@ -67,7 +67,7 @@ class TestPokemonRouterList:
             assert results[1]['name'] == 'Ivysaur'
 
     @staticmethod
-    def test_list_pokemons_empty_result(client, user, token):
+    def test_list_pokemons_empty_result(client, trainer, token):
         """Should return empty results when no pokemon exists"""
         with patch(
             'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
@@ -85,7 +85,7 @@ class TestPokemonRouterList:
             assert results == []
 
     @staticmethod
-    def test_list_pokemons_with_offset(client, user, token):
+    def test_list_pokemons_with_offset(client, trainer, token):
         """Should apply offset filter correctly"""
         pokemons_data = [
             SimpleNamespace(
@@ -118,7 +118,7 @@ class TestPokemonRouterList:
             assert results[0]['name'] == 'Pidgeot'
 
     @staticmethod
-    def test_list_pokemons_with_limit(client, user, token):
+    def test_list_pokemons_with_limit(client, trainer, token):
         """Should apply limit filter correctly"""
         pokemons_data = [
             SimpleNamespace(
@@ -161,7 +161,7 @@ class TestPokemonRouterList:
             assert len(results) == total_results
 
     @staticmethod
-    def test_list_pokemons_with_offset_and_limit(client, user, token):
+    def test_list_pokemons_with_offset_and_limit(client, trainer, token):
         """Should apply both offset and limit filters"""
         pokemons_data = [
             SimpleNamespace(
@@ -219,7 +219,7 @@ class TestPokemonRouterList:
 
     @staticmethod
     def test_list_pokemons_without_authorization(client):
-        """Should return 403 when user is not authenticated"""
+        """Should return 403 when trainer is not authenticated"""
         response = client.get('/pokemon/?offset=0&limit=10')
 
         assert response.status_code == HTTPStatus.UNAUTHORIZED
@@ -235,7 +235,7 @@ class TestPokemonRouterList:
         assert response.status_code == HTTPStatus.UNAUTHORIZED
 
     @staticmethod
-    def test_list_pokemons_missing_filter_params(client, user, token):
+    def test_list_pokemons_missing_filter_params(client, trainer, token):
         """Should use default filters when query params are missing"""
         pokemons_data = [
             SimpleNamespace(
@@ -294,7 +294,7 @@ class TestPokemonRouterList:
             app.dependency_overrides.clear()
 
     @staticmethod
-    def test_list_pokemons_response_structure(client, user, token):
+    def test_list_pokemons_response_structure(client, trainer, token):
         """Should return response with correct structure"""
         pokemons_data = [
             SimpleNamespace(
@@ -330,7 +330,7 @@ class TestPokemonRouterList:
             assert 'results' in response_data
 
     @staticmethod
-    def test_list_pokemons_preserves_pokemon_attributes(client, user, token):
+    def test_list_pokemons_preserves_pokemon_attributes(client, trainer, token):
         """Should preserve all pokemon attributes in response"""
         pokemons_data = [
             SimpleNamespace(
@@ -372,7 +372,7 @@ class TestPokemonRouterList:
             assert pokemon['speed'] == MOCK_ATTRIBUTES_SPEED
 
     @staticmethod
-    def test_list_pokemons_large_offset(client, user, token):
+    def test_list_pokemons_large_offset(client, trainer, token):
         """Should handle large offset values"""
         with patch(
             'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
@@ -390,7 +390,7 @@ class TestPokemonRouterList:
             assert results == []
 
     @staticmethod
-    def test_list_pokemons_high_limit_value(client, user, token):
+    def test_list_pokemons_high_limit_value(client, trainer, token):
         """Should handle high limit values"""
         pokemons_data = [
             SimpleNamespace(
@@ -426,7 +426,7 @@ class TestPokemonRouterDetail:
     """Test scope for detail_pokemon route"""
 
     @staticmethod
-    def test_detail_pokemon_not_found(client, user, token):
+    def test_detail_pokemon_not_found(client, trainer, token):
         """Should return 404 when pokemon is not found"""
         response = client.get(
             '/pokemon/non-existent-pokemon',
@@ -436,7 +436,7 @@ class TestPokemonRouterDetail:
         assert response.json() == {'detail': 'Pokemon not found'}
 
     @staticmethod
-    def test_detail_pokemon_success(client, user, token, session, pokemon):
+    def test_detail_pokemon_success(client, trainer, token, session, pokemon):
         """Should return pokemon detail found"""
         response = client.get(
             f'/pokemon/{pokemon.name}',

@@ -2,8 +2,9 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.schema import PublicPokemonSchema
-from app.models import Pokemon, User
+from app.domain.trainer.model import Trainer
 
 
 class CreateCapturedPokemonSchema(BaseModel):
@@ -31,7 +32,7 @@ class CreateCapturedPokemonSchema(BaseModel):
     ev_special_defense: int
     captured_at: datetime
     pokemon: Pokemon | None = None
-    trainer: User | None = None
+    trainer: Trainer | None = None
     pokemon_id: str
     trainer_id: str
 

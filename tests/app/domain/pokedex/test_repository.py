@@ -3,9 +3,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from app.domain.pokedex.model import Pokedex
 from app.domain.pokedex.repository import PokedexRepository
 from app.domain.pokedex.schema import CreatePokedexSchema
-from app.models import Pokedex
 
 MOCK_POKEDEX = Pokedex(
     hp=7,
@@ -39,7 +39,7 @@ class TestPokedexRepositoryCreate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokedex_repository_create_success(session, user, pokemon):
+    async def test_pokedex_repository_create_success(session, trainer, pokemon):
         """Should persist pokedex when data is valid"""
         pokedex_data = CreatePokedexSchema(
             hp=MOCK_POKEDEX.hp,
@@ -64,7 +64,7 @@ class TestPokedexRepositoryCreate:
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
             discovered=MOCK_POKEDEX.discovered,
             pokemon_id=pokemon.id,
-            trainer_id=user.id,
+            trainer_id=trainer.id,
             discovered_at=datetime.now(),
         )
         repository = PokedexRepository(session=session)
@@ -93,7 +93,7 @@ class TestPokedexRepositoryCreate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokedex_repository_create_commit_error(session, user, pokemon):
+    async def test_pokedex_repository_create_commit_error(session, trainer, pokemon):
         """Should raise exception when database commit fails"""
         pokedex_data = CreatePokedexSchema(
             hp=MOCK_POKEDEX.hp,
@@ -118,7 +118,7 @@ class TestPokedexRepositoryCreate:
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
             discovered=MOCK_POKEDEX.discovered,
             pokemon_id=pokemon.id,
-            trainer_id=user.id,
+            trainer_id=trainer.id,
             discovered_at=datetime.now(),
         )
         session.commit = AsyncMock(side_effect=Exception('Database error'))
@@ -134,7 +134,7 @@ class TestPokedexRepositoryFindByTrainer:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_find_by_trainer_returns_set(session, user, pokemon):
+    async def test_find_by_trainer_returns_set(session, trainer, pokemon):
         """Should return a set of pokemon IDs"""
         pokedex_data = CreatePokedexSchema(
             hp=MOCK_POKEDEX.hp,
@@ -159,19 +159,19 @@ class TestPokedexRepositoryFindByTrainer:
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
             discovered=MOCK_POKEDEX.discovered,
             pokemon_id=pokemon.id,
-            trainer_id=user.id,
+            trainer_id=trainer.id,
             discovered_at=datetime.now(),
         )
         repository = PokedexRepository(session=session)
         await repository.create(pokedex_data)
 
-        result = await repository.find_by_trainer(user.id)
+        result = await repository.find_by_trainer(trainer.id)
 
         assert isinstance(result, set)
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_find_by_trainer_contains_pokemon_id(session, user, pokemon):
+    async def test_find_by_trainer_contains_pokemon_id(session, trainer, pokemon):
         """Should contain discovered pokemon ID"""
         pokedex_data = CreatePokedexSchema(
             hp=MOCK_POKEDEX.hp,
@@ -196,13 +196,13 @@ class TestPokedexRepositoryFindByTrainer:
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
             discovered=MOCK_POKEDEX.discovered,
             pokemon_id=pokemon.id,
-            trainer_id=user.id,
+            trainer_id=trainer.id,
             discovered_at=datetime.now(),
         )
         repository = PokedexRepository(session=session)
         await repository.create(pokedex_data)
 
-        result = await repository.find_by_trainer(user.id)
+        result = await repository.find_by_trainer(trainer.id)
 
         assert pokemon.id in result
 
@@ -219,7 +219,7 @@ class TestPokedexRepositoryFindByTrainer:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_find_by_trainer_only_discovered(session, user, pokemon):
+    async def test_find_by_trainer_only_discovered(session, trainer, pokemon):
         """Should only return discovered pokemon"""
         pokedex_data = CreatePokedexSchema(
             hp=MOCK_POKEDEX.hp,
@@ -244,20 +244,20 @@ class TestPokedexRepositoryFindByTrainer:
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
             discovered=True,
             pokemon_id=pokemon.id,
-            trainer_id=user.id,
+            trainer_id=trainer.id,
             discovered_at=datetime.now(),
         )
         repository = PokedexRepository(session=session)
         await repository.create(pokedex_data)
 
-        result = await repository.find_by_trainer(user.id)
+        result = await repository.find_by_trainer(trainer.id)
 
         assert len(result) >= 1
         assert pokemon.id in result
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_find_by_trainer_filters_by_trainer_id(session, user, pokemon):
+    async def test_find_by_trainer_filters_by_trainer_id(session, trainer, pokemon):
         """Should only return pokemon from specified trainer"""
         pokedex_data = CreatePokedexSchema(
             hp=MOCK_POKEDEX.hp,
@@ -282,13 +282,13 @@ class TestPokedexRepositoryFindByTrainer:
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
             discovered=True,
             pokemon_id=pokemon.id,
-            trainer_id=user.id,
+            trainer_id=trainer.id,
             discovered_at=datetime.now(),
         )
         repository = PokedexRepository(session=session)
         await repository.create(pokedex_data)
 
-        result = await repository.find_by_trainer(user.id)
+        result = await repository.find_by_trainer(trainer.id)
 
         assert isinstance(result, set)
         assert pokemon.id in result

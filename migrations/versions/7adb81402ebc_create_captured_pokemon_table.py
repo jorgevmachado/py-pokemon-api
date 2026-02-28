@@ -50,7 +50,7 @@ def upgrade() -> None:
     sa.Column('pokemon_id', sa.UUID(as_uuid=False), nullable=False),
     sa.Column('trainer_id', sa.UUID(as_uuid=False), nullable=False),
     sa.ForeignKeyConstraint(['pokemon_id'], ['pokemon.id'], ),
-    sa.ForeignKeyConstraint(['trainer_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['trainer_id'], ['trainers.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###

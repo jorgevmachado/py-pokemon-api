@@ -9,11 +9,12 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
-from app.database import get_session
+from app.core.base import table_registry
+from app.core.database import get_session
+from app.core.security import get_password_hash
+from app.domain.pokemon.model import Pokemon
+from app.domain.trainer.model import Trainer
 from app.main import app
-from app.models import Pokemon, User
-from app.models.base import table_registry
-from app.security import get_password_hash
 from app.shared.gender_enum import GenderEnum
 from app.shared.role_enum import RoleEnum
 from app.shared.status_enum import StatusEnum
@@ -71,18 +72,18 @@ def mock_db_time():
 
 
 @pytest_asyncio.fixture
-async def user(session: AsyncSession):
+async def trainer(session: AsyncSession):
     password = 'testtest'
-    user = UserFactory(password=get_password_hash(password))
-    user.id = 'a6770ba6-2b19-4b6e-af76-9c11ca5ad9fd'
-    user.email = 'john@doe.com'
-    session.add(user)
+    trainer = TrainerFactory(password=get_password_hash(password))
+    trainer.id = 'a6770ba6-2b19-4b6e-af76-9c11ca5ad9fd'
+    trainer.email = 'john@doe.com'
+    session.add(trainer)
     await session.commit()
-    await session.refresh(user)
+    await session.refresh(trainer)
 
-    user.clean_password = password
+    trainer.clean_password = password
 
-    return user
+    return trainer
 
 
 @pytest_asyncio.fixture
@@ -106,30 +107,30 @@ async def pokemon_incomplete(session: AsyncSession):
 
 
 @pytest_asyncio.fixture
-async def other_user(session: AsyncSession):
+async def other_trainer(session: AsyncSession):
     password = 'testtest'
-    user = UserFactory(password=get_password_hash(password))
-    session.add(user)
+    trainer = TrainerFactory(password=get_password_hash(password))
+    session.add(trainer)
     await session.commit()
-    await session.refresh(user)
+    await session.refresh(trainer)
 
-    user.clean_password = password
+    trainer.clean_password = password
 
-    return user
+    return trainer
 
 
 @pytest.fixture
-def token(client, user):
+def token(client, trainer):
     response = client.post(
         '/auth/token',
-        json={'email': user.email, 'password': user.clean_password},
+        json={'email': trainer.email, 'password': trainer.clean_password},
     )
     return response.json()['access_token']
 
 
-class UserFactory(factory.Factory):
+class TrainerFactory(factory.Factory):
     class Meta:
-        model = User
+        model = Trainer
 
     name = factory.Faker('name')
     email = factory.Sequence(lambda n: f'test{n}@test.com')

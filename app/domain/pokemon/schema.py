@@ -3,14 +3,18 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from app.domain.ability.model import PokemonAbility
+from app.domain.growth_rate.model import PokemonGrowthRate
+from app.domain.move.model import PokemonMove
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
     PokemonExternalBaseAbilitySchemaResponse,
     PokemonExternalBaseMoveSchemaResponse,
     PokemonExternalBaseTypeSchemaResponse,
 )
-from app.domain.pokemon.type.schema import PokemonTypeSchema
-from app.models import Pokemon, PokemonAbility, PokemonGrowthRate, PokemonMove, PokemonType
+from app.domain.pokemon.model import Pokemon
+from app.domain.type.model import PokemonType
+from app.domain.type.schema import PokemonTypeSchema
 from app.shared.status_enum import StatusEnum
 
 

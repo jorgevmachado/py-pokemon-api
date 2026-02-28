@@ -4,9 +4,9 @@ from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_session
+from app.core.database import get_session
+from app.domain.pokedex.model import Pokedex
 from app.domain.pokedex.schema import CreatePokedexSchema
-from app.models import Pokedex
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 

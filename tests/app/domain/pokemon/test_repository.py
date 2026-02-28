@@ -5,9 +5,9 @@ import factory
 import pytest
 from factory import Faker
 
+from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.repository import PokemonRepository
 from app.domain.pokemon.schema import CreatePokemonSchema
-from app.models import Pokemon
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
 from tests.app.domain.pokemon.mock import MOCK_ENTITY_POKEMON

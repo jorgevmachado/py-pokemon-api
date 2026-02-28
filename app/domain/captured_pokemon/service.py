@@ -1,4 +1,4 @@
-"""Captured Pokemon Service - Manages user's caught pokemon collection."""
+"""Captured Pokemon Service - Manages trainer's caught pokemon collection."""
 
 from datetime import datetime
 from typing import Annotated
@@ -6,11 +6,13 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_session
+from app.core.database import get_session
+from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.captured_pokemon.repository import CapturedPokemonRepository
 from app.domain.captured_pokemon.schema import CreateCapturedPokemonSchema
 from app.domain.pokemon.business import PokemonBusiness
-from app.models import CapturedPokemon, Pokemon, User
+from app.domain.pokemon.model import Pokemon
+from app.domain.trainer.model import Trainer
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
@@ -24,7 +26,7 @@ class CapturedPokemonService:
     async def create(
         self,
         pokemon: Pokemon,
-        user: User,
+        trainer: Trainer,
     ):
         stats = self.business.calculate_pokemon_stats(
             pokemon=pokemon,
@@ -53,7 +55,7 @@ class CapturedPokemonService:
             ev_special_defense=stats['ev_special_defense'],
             captured_at=datetime.now(),
             pokemon_id=pokemon.id,
-            trainer_id=user.id,
+            trainer_id=trainer.id,
         )
         return await self.repository.create(create_captured_pokemon)
 
