@@ -50,11 +50,3 @@ class TrainerPublicSchema(BaseModel):
 class FindOneUserSchemaParams(BaseModel):
     id: str | None = None
     email: str | None = None
-
-
-class TrainerInitializeTrainerSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    pokeballs: int = Field(default=5)
-    pokemon_name: str | None = None
-    capture_rate: int = Field(default=45)
