@@ -14,7 +14,6 @@ from app.domain.trainer.repository import TrainerRepository
 from app.domain.trainer.schema import (
     CreateTrainerSchema,
     FindOneUserSchemaParams,
-    TrainerInitializeTrainerSchema,
 )
 from app.shared.status_enum import StatusEnum
 
@@ -28,18 +27,44 @@ class TrainerService:
         self.pokedex_service = PokedexService(session)
         self.captured_pokemon_service = CapturedPokemonService(session)
 
-    async def create(self, trainer: CreateTrainerSchema) -> Trainer:
-        db_user = await self.repository.find_one(
-            params=FindOneUserSchemaParams(email=trainer.email)
-        )
-
-        if db_user and db_user.email == trainer.email:
-            raise HTTPException(
-                status_code=HTTPStatus.CONFLICT,
-                detail='Email already exists',
+    async def create(self, create_trainer: CreateTrainerSchema) -> Trainer:
+        try:
+            db_user = await self.repository.find_one(
+                params=FindOneUserSchemaParams(email=create_trainer.email)
             )
-        trainer.password = get_password_hash(trainer.password)
-        return await self.repository.create(trainer)
+
+            if db_user and db_user.email == create_trainer.email:
+                raise HTTPException(
+                    status_code=HTTPStatus.CONFLICT,
+                    detail='Email already exists',
+                )
+            create_trainer.password = get_password_hash(create_trainer.password)
+            trainer = await self.repository.create(create_trainer)
+
+            first_pokemon = await self.pokemon_service.first_pokemon(
+                create_trainer.pokemon_name
+            )
+
+            await self.pokedex_service.initialize(
+                trainer=trainer,
+                pokemon=first_pokemon.pokemon,
+                pokemons=first_pokemon.pokemons,
+            )
+
+            await self.captured_pokemon_service.create(
+                trainer=trainer,
+                pokemon=first_pokemon.pokemon,
+            )
+            trainer.status = StatusEnum.ACTIVE
+            return await self.repository.update(trainer=trainer)
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f'# => TrainerService => create => error => {e}')
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail='Error creating trainer',
+            )
 
     async def find_one(self, Trainer_id: str, trainer: Trainer) -> Trainer:
         db_user = await self.repository.find_one(params=FindOneUserSchemaParams(id=Trainer_id))
@@ -53,47 +78,6 @@ class TrainerService:
             )
 
         return db_user
-
-    async def initialize(
-        self, params: TrainerInitializeTrainerSchema, current_trainer: Trainer
-    ):
-        try:
-            db_user = await self.find_one(
-                Trainer_id=current_trainer.id, trainer=current_trainer
-            )
-
-            if db_user.status == StatusEnum.INCOMPLETE:
-                first_pokemon = await self.pokemon_service.first_pokemon(params.pokemon_name)
-
-                if not first_pokemon:
-                    raise HTTPException(
-                        status_code=HTTPStatus.BAD_REQUEST,
-                        detail='Not enough permissions to initialize',
-                    )
-
-                if not db_user.pokedex:
-                    await self.pokedex_service.initialize(
-                        trainer=current_trainer,
-                        pokemon=first_pokemon.pokemon,
-                        pokemons=first_pokemon.pokemons,
-                    )
-
-                if not db_user.captured_pokemons:
-                    await self.captured_pokemon_service.create(
-                        trainer=current_trainer,
-                        pokemon=first_pokemon.pokemon,
-                    )
-                if not db_user.pokedex and not db_user.captured_pokemons:
-                    db_user.status = StatusEnum.ACTIVE
-                return await self.repository.update(trainer=db_user)
-
-            return db_user
-        except Exception as e:
-            print(f'# => TrainerService => initialize => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail='Error initializing trainer',
-            )
 
     async def find_one_by_email(self, email: str) -> Trainer:
         return await self.repository.find_one(params=FindOneUserSchemaParams(email=email))

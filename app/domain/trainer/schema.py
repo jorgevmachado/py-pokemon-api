@@ -21,6 +21,7 @@ class CreateTrainerSchema(BaseModel):
     date_of_birth: datetime
     pokeballs: int = Field(default=5)
     capture_rate: int = Field(default=45)
+    pokemon_name: str | None = None
 
 
 class TrainerPublicSchema(BaseModel):

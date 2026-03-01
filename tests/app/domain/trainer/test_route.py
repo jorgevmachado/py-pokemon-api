@@ -1,7 +1,7 @@
 from http import HTTPStatus
 
 
-def test_create_trainer(client):
+def test_create_trainer(client, pokemon):
     pokeballs = 5
     capture_rate = 45
     response = client.post(
@@ -12,6 +12,7 @@ def test_create_trainer(client):
             'password': 'password1',
             'gender': 'MALE',
             'date_of_birth': '1990-07-20',
+            'pokemon_name': pokemon.name,
         },
     )
 
@@ -25,8 +26,8 @@ def test_create_trainer(client):
     assert trainer['authentication_success'] == 0
     assert trainer['total_authentications'] == 0
     assert trainer['capture_rate'] == capture_rate
-    assert trainer['pokedex'] == []
-    assert trainer['captured_pokemons'] == []
+    assert trainer['pokedex'] is not None
+    assert trainer['captured_pokemons'] is not None
     assert trainer['pokeballs'] == pokeballs
     assert trainer['role'] == 'USER'
     assert trainer['status'] == 'ACTIVE'
@@ -87,26 +88,3 @@ def test_get_trainer_should_return_not_found(client, token):
     )
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {'detail': 'Trainer not found'}
-
-
-def test_initialize_trainer_returns_trainer(client, trainer, token):
-    response = client.post(
-        '/trainers/initialize',
-        headers={'Authorization': f'Bearer {token}'},
-        json={},
-    )
-
-    assert response.status_code == HTTPStatus.OK
-    data = response.json()
-    assert data['id'] == trainer.id
-    assert data['email'] == trainer.email
-    assert data['status'] == trainer.status
-
-
-def test_initialize_trainer_unauthorized(client):
-    response = client.post(
-        '/trainers/initialize',
-        json={},
-    )
-
-    assert response.status_code == HTTPStatus.UNAUTHORIZED

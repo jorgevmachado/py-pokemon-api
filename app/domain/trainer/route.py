@@ -9,7 +9,6 @@ from app.core.security import get_current_user
 from app.domain.trainer.model import Trainer
 from app.domain.trainer.schema import (
     CreateTrainerSchema,
-    TrainerInitializeTrainerSchema,
     TrainerPublicSchema,
 )
 from app.domain.trainer.service import TrainerService
@@ -23,14 +22,6 @@ CurrentTrainer = Annotated[Trainer, Depends(get_current_user)]
 async def create_trainer(trainers: CreateTrainerSchema, session: Session):
     service = TrainerService(session)
     return await service.create(trainers)
-
-
-@router.post('/initialize', response_model=TrainerPublicSchema)
-async def initialize(
-    session: Session, params: TrainerInitializeTrainerSchema, current_trainer: CurrentTrainer
-):
-    service = TrainerService(session)
-    return await service.initialize(params, current_trainer)
 
 
 @router.get('/{trainer_id}', status_code=HTTPStatus.OK, response_model=TrainerPublicSchema)

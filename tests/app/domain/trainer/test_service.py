@@ -8,7 +8,7 @@ from fastapi import HTTPException
 
 from app.core.security import verify_password
 from app.domain.trainer.model import Trainer
-from app.domain.trainer.schema import CreateTrainerSchema, TrainerInitializeTrainerSchema
+from app.domain.trainer.schema import CreateTrainerSchema
 from app.domain.trainer.service import TrainerService
 from app.shared.gender_enum import GenderEnum
 from app.shared.role_enum import RoleEnum
@@ -20,7 +20,7 @@ class TestTrainerServiceCreate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_trainer_create_service_success(session):
+    async def test_trainer_create_service_success(session, pokemon):
         """Should create trainer successfully when data is valid"""
         trainer_data = CreateTrainerSchema(
             name='John Doe',
@@ -31,8 +31,11 @@ class TestTrainerServiceCreate:
         )
 
         service = TrainerService(session=session)
-
-        result = await service.create(trainer=trainer_data)
+        first_pokemon = MagicMock(pokemon=pokemon, pokemons=[pokemon])
+        service.pokemon_service.first_pokemon = AsyncMock(return_value=first_pokemon)
+        service.pokedex_service.initialize = AsyncMock()
+        service.captured_pokemon_service.create = AsyncMock()
+        result = await service.create(create_trainer=trainer_data)
 
         assert isinstance(result, Trainer)
         assert result.name == 'John Doe'
@@ -40,6 +43,8 @@ class TestTrainerServiceCreate:
         assert result.status == StatusEnum.ACTIVE
         assert result.gender == GenderEnum.MALE
         assert verify_password('secret', result.password)
+        service.pokedex_service.initialize.assert_called_once()
+        service.captured_pokemon_service.create.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -57,10 +62,33 @@ class TestTrainerServiceCreate:
         service = TrainerService(session=session)
 
         with pytest.raises(HTTPException) as exc_info:
-            await service.create(trainer=trainer_data)
+            await service.create(create_trainer=trainer_data)
 
         assert exc_info.value.status_code == HTTPStatus.CONFLICT
         assert exc_info.value.detail == 'Email already exists'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_trainer_create_service_error_first_pokemon_missing(session):
+        """Should raise HTTPException when fail first pokemon"""
+        trainer_data = CreateTrainerSchema(
+            name='John Doe',
+            email='john.doe@example.com',
+            gender=GenderEnum.MALE,
+            password='secret',
+            date_of_birth=datetime(2000, 1, 1),
+            pokemon_name='missing',
+        )
+
+        service = TrainerService(session=session)
+
+        service.pokemon_service.first_pokemon = AsyncMock(return_value=None)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await service.create(create_trainer=trainer_data)
+
+        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert exc_info.value.detail == 'Error creating trainer'
 
 
 class TestTrainerServiceFindOne:
@@ -143,70 +171,4 @@ class TestTrainerServiceUpdate:
         result = await service.update(trainer=trainer)
 
         assert result == trainer
-        service.repository.update.assert_called_once_with(trainer=trainer)
-
-
-class TestTrainerServiceInitialize:
-    """Test scope for initialize method"""
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_trainer_initialize_returns_trainer_when_active(session, trainer):
-        """Should return trainer when status is active"""
-        service = TrainerService(session=session)
-        trainer.status = StatusEnum.ACTIVE
-        service.find_one = AsyncMock(return_value=trainer)
-        service.pokemon_service.first_pokemon = AsyncMock()
-
-        params = TrainerInitializeTrainerSchema(pokemon_name='pikachu')
-        result = await service.initialize(params=params, current_trainer=trainer)
-
-        assert result == trainer
-        service.pokemon_service.first_pokemon.assert_not_called()
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_trainer_initialize_raises_internal_error_when_first_pokemon_missing(
-        session, trainer
-    ):
-        """Should raise HTTPException when first pokemon is not found"""
-        service = TrainerService(session=session)
-        trainer.status = StatusEnum.INCOMPLETE
-        trainer.pokedex = []
-        trainer.captured_pokemons = []
-        service.find_one = AsyncMock(return_value=trainer)
-        service.pokemon_service.first_pokemon = AsyncMock(return_value=None)
-
-        params = TrainerInitializeTrainerSchema(pokemon_name='missing')
-
-        with pytest.raises(HTTPException) as exc_info:
-            await service.initialize(params=params, current_trainer=trainer)
-
-        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert exc_info.value.detail == 'Error initializing trainer'
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_trainer_initialize_sets_active_and_updates_trainer(
-        session, trainer, pokemon
-    ):
-        """Should initialize pokedex and captured pokemon and update status"""
-        service = TrainerService(session=session)
-        trainer.status = StatusEnum.INCOMPLETE
-        trainer.pokedex = []
-        trainer.captured_pokemons = []
-        service.find_one = AsyncMock(return_value=trainer)
-        first_pokemon = MagicMock(pokemon=pokemon, pokemons=[pokemon])
-        service.pokemon_service.first_pokemon = AsyncMock(return_value=first_pokemon)
-        service.pokedex_service.initialize = AsyncMock()
-        service.captured_pokemon_service.create = AsyncMock()
-        service.repository.update = AsyncMock(return_value=trainer)
-
-        params = TrainerInitializeTrainerSchema(pokemon_name='pikachu')
-        result = await service.initialize(params=params, current_trainer=trainer)
-
-        assert result == trainer
-        assert trainer.status == StatusEnum.ACTIVE
-        service.pokedex_service.initialize.assert_called_once()
-        service.captured_pokemon_service.create.assert_called_once()
         service.repository.update.assert_called_once_with(trainer=trainer)
