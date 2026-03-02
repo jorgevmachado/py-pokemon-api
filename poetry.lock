@@ -695,6 +695,44 @@ uvicorn = {version = ">=0.17.6", extras = ["standard"]}
 standard = ["uvicorn[standard] (>=0.15.0)"]
 
 [[package]]
+name = "fastapi-pagination"
+version = "0.15.10"
+description = "FastAPI pagination"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "fastapi_pagination-0.15.10-py3-none-any.whl", hash = "sha256:d50071ebc93b519391f16ff6c3ba9e3603bd659963fe6774ba2f4d5037e17fd8"},
+    {file = "fastapi_pagination-0.15.10.tar.gz", hash = "sha256:0ba7d4f795059a91a9e89358af129f2114876452c1defaf198ea8e3419e9a3cd"},
+]
+
+[package.dependencies]
+fastapi = ">=0.93.0"
+pydantic = ">=1.9.1"
+typing-extensions = ">=4.8.0"
+
+[package.extras]
+aiosqlite = ["aiosqlite (>=0.19.0,!=0.22.0,!=0.22.1)"]
+asyncpg = ["asyncpg (>=0.24.0)", "sqlalchemy (>=1.3.20)"]
+beanie = ["beanie (>=2.0.0)"]
+bunnet = ["bunnet (>=1.1.0)"]
+databases = ["databases (>=0.6.0)"]
+django = ["databases (>=0.6.0)", "django (<6.0.0)"]
+elasticsearch = ["elasticsearch-dsl (>=8.13.0)"]
+firestore = ["google-cloud-firestore (>=2.19.0)"]
+mongoengine = ["mongoengine (>=0.23.1)"]
+motor = ["motor (>=3.6.0)"]
+odmantic = ["odmantic (>=1.0.2)"]
+orm = ["databases (>=0.6.0)", "orm (>=0.3.1)"]
+ormar = ["ormar (>=0.21.0)"]
+piccolo = ["piccolo (>=0.89)"]
+psycopg = ["psycopg[binary] (>=3.3.2)"]
+scylla-driver = ["scylla-driver (>=3.25.6)"]
+sqlalchemy = ["sqlakeyset (>=2.0.1680321678)", "sqlalchemy (>=1.3.20)"]
+sqlmodel = ["sqlakeyset (>=2.0.1680321678)", "sqlmodel (>=0.0.22)"]
+tortoise = ["tortoise-orm (>=0.22.0)"]
+
+[[package]]
 name = "fastar"
 version = "0.8.0"
 description = "High-level bindings for the Rust tar crate"
@@ -2816,4 +2854,4 @@ dev = ["pytest", "setuptools"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13"
-content-hash = "d516329ed4027a83a6bf8e4161f94df297a4a656d78c4a4fda4ba9083bb5126c"
+content-hash = "ae29d640cc739fa6c1fdad0c45fa5348cec96ec1bd468a8c5a4c554acb54d7ac"

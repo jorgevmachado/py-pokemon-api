@@ -20,6 +20,7 @@ from app.domain.pokemon.schema import (
     PokemonSchema,
 )
 from app.domain.type.service import PokemonTypeService
+from app.shared.pagination import exception_pagination
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
 
@@ -37,18 +38,20 @@ class PokemonService:
         self.external_service = PokemonExternalService()
         self.business = PokemonBusiness()
 
-    async def fetch_all(self, pokemon_filter: Annotated[FilterPage, Query()]) -> list[Pokemon]:
+    async def fetch_all(
+        self,
+        page_filter: Annotated[FilterPage, Query()],
+    ):
         try:
             total = await self.repository.total()
             if total != POKEMON_TOTAL_LIMIT:
                 await self.initialize_database(total=total)
 
-            pokemons = await self.repository.list(pokemon_filter=pokemon_filter)
-            return pokemons
+            return await self.repository.list_all(page_filter=page_filter)
 
         except Exception as e:
             print(f'# => service => fetch_all => error => {e}')
-        return []
+        return exception_pagination(page_filter)
 
     async def initialize_database(self, total: int = 0) -> list[Pokemon]:
         try:
@@ -72,7 +75,7 @@ class PokemonService:
                     result_initial.append(pokemon_created)
                 return result_initial
 
-            entities = await self.repository.list()
+            entities = await self.repository.list_all()
 
             existing_names = {entity.name for entity in entities}
             save_list = [item for item in external_data if item.name not in existing_names]
@@ -218,8 +221,14 @@ class PokemonService:
 
     async def first_pokemon(self, name: str | None = None) -> FirstPokemonSchemaResult:
         try:
-            pokemons = await self.fetch_all(
-                pokemon_filter=FilterPage(limit=POKEMON_TOTAL_LIMIT)
+            page_filter = FilterPage(limit=POKEMON_TOTAL_LIMIT, offset=0)
+            pokemons_result = await self.fetch_all(page_filter=page_filter)
+
+            # Se retornou paginação, pega os items, senão usa a lista direto
+            pokemons = (
+                list(pokemons_result.items)
+                if hasattr(pokemons_result, 'items')
+                else pokemons_result
             )
 
             first_pokemon = self.business.find_first_pokemon(

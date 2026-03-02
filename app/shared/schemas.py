@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -6,5 +8,5 @@ class Message(BaseModel):
 
 
 class FilterPage(BaseModel):
-    offset: int = Field(0, ge=0)
-    limit: int = Field(100, ge=1)
+    offset: Optional[int] = Field(None, ge=0)
+    limit: Optional[int] = Field(None, ge=1)

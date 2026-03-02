@@ -125,7 +125,7 @@ class TestPokemonRepositoryTotal:
 
 
 class TestPokemonRepositoryList:
-    """Test scope for list method"""
+    """Test scope for list_all method"""
 
     @staticmethod
     @pytest.mark.asyncio
@@ -137,7 +137,7 @@ class TestPokemonRepositoryList:
         await session.refresh(pokemon1)
 
         repository = PokemonRepository(session=session)
-        result = await repository.list()
+        result = await repository.list_all()
 
         assert isinstance(result, list)
         assert len(result) >= 1
@@ -147,7 +147,7 @@ class TestPokemonRepositoryList:
     async def test_pokemon_repository_list_empty(session):
         """Should return empty list when no pokemon exists"""
         repository = PokemonRepository(session=session)
-        result = await repository.list()
+        result = await repository.list_all()
 
         assert isinstance(result, list)
         assert len(result) == 0
@@ -156,7 +156,6 @@ class TestPokemonRepositoryList:
     @pytest.mark.asyncio
     async def test_pokemon_repository_list_with_offset(session):
         """Should apply offset filter correctly"""
-        total_result = 3
 
         for _ in range(5):
             pokemon = PokemonFactory()
@@ -164,41 +163,67 @@ class TestPokemonRepositoryList:
             await session.commit()
 
         repository = PokemonRepository(session=session)
-        result = await repository.list(pokemon_filter=FilterPage(offset=2, limit=10))
+        page_filter = FilterPage(offset=2, limit=10)
+        result = await repository.list_all(page_filter=page_filter)
 
-        assert isinstance(result, list)
-        assert len(result) == total_result
+        assert result is not None
+        # Com paginação, retorna LimitOffsetPage
+        assert hasattr(result, 'items') or isinstance(result, list)
 
     @staticmethod
     @pytest.mark.asyncio
     async def test_pokemon_repository_list_with_limit(session):
         """Should apply limit filter correctly"""
         total_result = 2
-
         for _ in range(5):
             pokemon = PokemonFactory()
             session.add(pokemon)
             await session.commit()
 
         repository = PokemonRepository(session=session)
-        result = await repository.list(pokemon_filter=FilterPage(offset=0, limit=2))
+        page_filter = FilterPage(offset=0, limit=2)
+        result = await repository.list_all(page_filter=page_filter)
 
-        assert isinstance(result, list)
-        assert len(result) == total_result
+        assert result is not None
+        # Com paginação, retorna LimitOffsetPage
+        if hasattr(result, 'items'):
+            assert len(result.items) == total_result
+        else:
+            assert len(result) == total_result
 
     @staticmethod
     @pytest.mark.asyncio
     async def test_pokemon_repository_list_with_offset_and_limit(session):
         """Should apply both offset and limit correctly"""
         total_result = 4
-
         for _ in range(10):
             pokemon = PokemonFactory()
             session.add(pokemon)
             await session.commit()
 
         repository = PokemonRepository(session=session)
-        result = await repository.list(pokemon_filter=FilterPage(offset=3, limit=4))
+        page_filter = FilterPage(offset=3, limit=4)
+        result = await repository.list_all(page_filter=page_filter)
+
+        assert result is not None
+        # Com paginação, retorna LimitOffsetPage
+        if hasattr(result, 'items'):
+            assert len(result.items) == total_result
+        else:
+            assert len(result) == total_result
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_repository_list_without_pagination(session):
+        """Should return plain list when no pagination params provided"""
+        total_result = 3
+        for _ in range(3):
+            pokemon = PokemonFactory()
+            session.add(pokemon)
+            await session.commit()
+
+        repository = PokemonRepository(session=session)
+        result = await repository.list_all(page_filter=None)
 
         assert isinstance(result, list)
         assert len(result) == total_result

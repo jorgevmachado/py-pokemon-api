@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
+from fastapi_pagination import LimitOffsetPage, LimitOffsetParams
 
 from app.core.database import get_session
 from app.main import app
@@ -52,14 +53,18 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = pokemons_data
+            mock_fetch.return_value = LimitOffsetPage.create(
+                pokemons_data,
+                total=total_results,
+                params=LimitOffsetParams(limit=10, offset=0),
+            )
 
             response = client.get(
                 '/pokemon/?offset=0&limit=10',
                 headers={'Authorization': f'Bearer {token}'},
             )
             response_data = response.json()
-            results = response_data.get('results')
+            results = response_data.get('items')
             assert response.status_code == HTTPStatus.OK
             assert isinstance(response_data, dict)
             assert len(results) == total_results
@@ -72,7 +77,11 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = []
+            mock_fetch.return_value = LimitOffsetPage.create(
+                [],
+                total=0,
+                params=LimitOffsetParams(limit=10, offset=0),
+            )
 
             response = client.get(
                 '/pokemon/?offset=0&limit=10',
@@ -80,7 +89,7 @@ class TestPokemonRouterList:
             )
 
             response_data = response.json()
-            results = response_data.get('results')
+            results = response_data.get('items')
             assert response.status_code == HTTPStatus.OK
             assert results == []
 
@@ -104,14 +113,18 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = pokemons_data
+            mock_fetch.return_value = LimitOffsetPage.create(
+                pokemons_data,
+                total=1,
+                params=LimitOffsetParams(limit=1, offset=10),
+            )
 
             response = client.get(
                 '/pokemon/?offset=10&limit=1',
                 headers={'Authorization': f'Bearer {token}'},
             )
             response_data = response.json()
-            results = response_data.get('results')
+            results = response_data.get('items')
 
             assert response.status_code == HTTPStatus.OK
             assert len(results) == 1
@@ -148,21 +161,29 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = pokemons_data
+            mock_fetch.return_value = LimitOffsetPage.create(
+                pokemons_data,
+                total=total_results,
+                params=LimitOffsetParams(limit=2, offset=0),
+            )
 
             response = client.get(
                 '/pokemon/?offset=0&limit=2',
                 headers={'Authorization': f'Bearer {token}'},
             )
+
             response_data = response.json()
-            results = response_data.get('results')
+            results = response_data.get('items')
 
             assert response.status_code == HTTPStatus.OK
+            total_results = 2
             assert len(results) == total_results
+            assert results[0]['name'] == 'Pokemon1'
+            assert results[1]['name'] == 'Pokemon2'
 
     @staticmethod
     def test_list_pokemons_with_offset_and_limit(client, trainer, token):
-        """Should apply both offset and limit filters"""
+        """Should apply both offset and limit correctly"""
         pokemons_data = [
             SimpleNamespace(
                 id='mock-pokemon-id',
@@ -199,23 +220,26 @@ class TestPokemonRouterList:
             ),
         ]
 
-        total_results = 3
-
         with patch(
             'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = pokemons_data
+            mock_fetch.return_value = LimitOffsetPage.create(
+                [pokemons_data[0]],
+                total=3,
+                params=LimitOffsetParams(limit=1, offset=2),
+            )
 
             response = client.get(
-                '/pokemon/?offset=5&limit=3',
+                '/pokemon/?offset=2&limit=1',
                 headers={'Authorization': f'Bearer {token}'},
             )
 
             response_data = response.json()
-            results = response_data.get('results')
+            results = response_data.get('items')
 
             assert response.status_code == HTTPStatus.OK
-            assert len(results) == total_results
+            assert len(results) == 1
+            assert results[0]['name'] == 'Charizard'
 
     @staticmethod
     def test_list_pokemons_without_authorization(client):
@@ -236,7 +260,7 @@ class TestPokemonRouterList:
 
     @staticmethod
     def test_list_pokemons_missing_filter_params(client, trainer, token):
-        """Should use default filters when query params are missing"""
+        """Should return non-paginated list when query params are missing"""
         pokemons_data = [
             SimpleNamespace(
                 id='mock-pokemon-id',
@@ -250,8 +274,6 @@ class TestPokemonRouterList:
                 deleted_at=None,
             ),
         ]
-        filter_limit = 100
-        filter_offset = 0
         with patch(
             'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
         ) as mock_fetch:
@@ -264,9 +286,13 @@ class TestPokemonRouterList:
 
             assert response.status_code == HTTPStatus.OK
             mock_fetch.assert_called_once()
-            pokemon_filter = mock_fetch.call_args.kwargs['pokemon_filter']
-            assert pokemon_filter.offset == filter_offset
-            assert pokemon_filter.limit == filter_limit
+            page_filter = mock_fetch.call_args.kwargs['page_filter']
+            assert page_filter.offset is None
+            assert page_filter.limit is None
+
+            response_data = response.json()
+            assert isinstance(response_data, list)
+            assert response_data[0]['name'] == 'Pikachu'
 
     @staticmethod
     def test_list_pokemons_service_error(session, token):
@@ -317,7 +343,11 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = pokemons_data
+            mock_fetch.return_value = LimitOffsetPage.create(
+                pokemons_data,
+                total=1,
+                params=LimitOffsetParams(limit=10, offset=0),
+            )
 
             response = client.get(
                 '/pokemon/?offset=0&limit=10',
@@ -327,7 +357,7 @@ class TestPokemonRouterList:
             assert response.status_code == HTTPStatus.OK
             response_data = response.json()
             assert isinstance(response_data, dict)
-            assert 'results' in response_data
+            assert 'items' in response_data
 
     @staticmethod
     def test_list_pokemons_preserves_pokemon_attributes(client, trainer, token):
@@ -353,14 +383,18 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = pokemons_data
+            mock_fetch.return_value = LimitOffsetPage.create(
+                pokemons_data,
+                total=1,
+                params=LimitOffsetParams(limit=10, offset=0),
+            )
 
             response = client.get(
                 '/pokemon/?offset=0&limit=10',
                 headers={'Authorization': f'Bearer {token}'},
             )
             response_data = response.json()
-            results = response_data.get('results')
+            results = response_data.get('items')
 
             assert response.status_code == HTTPStatus.OK
             pokemon = results[0]
@@ -377,14 +411,18 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = []
+            mock_fetch.return_value = LimitOffsetPage.create(
+                [],
+                total=0,
+                params=LimitOffsetParams(limit=10, offset=1300),
+            )
 
             response = client.get(
                 '/pokemon/?offset=1300&limit=10',
                 headers={'Authorization': f'Bearer {token}'},
             )
             response_data = response.json()
-            results = response_data.get('results')
+            results = response_data.get('items')
 
             assert response.status_code == HTTPStatus.OK
             assert results == []
@@ -410,16 +448,30 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = pokemons_data
+            mock_fetch.return_value = LimitOffsetPage.create(
+                pokemons_data,
+                total=total_results,
+                params=LimitOffsetParams(limit=100, offset=0),
+            )
 
             response = client.get(
                 '/pokemon/?offset=0&limit=1000',
                 headers={'Authorization': f'Bearer {token}'},
             )
             response_data = response.json()
-            results = response_data.get('results')
+            results = response_data.get('items')
             assert response.status_code == HTTPStatus.OK
             assert len(results) == total_results
+
+    @staticmethod
+    def test_list_pokemons_invalid_pagination(client, trainer, token):
+        """Should return validation error for invalid pagination params"""
+        response = client.get(
+            '/pokemon/?offset=-1&limit=0',
+            headers={'Authorization': f'Bearer {token}'},
+        )
+
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 class TestPokemonRouterDetail:

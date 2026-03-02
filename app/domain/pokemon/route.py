@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
+from fastapi_pagination import LimitOffsetPage
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.security import get_current_user
-from app.domain.pokemon.schema import PokemonListSchema, PokemonSchema
+from app.domain.pokemon.schema import PokemonSchema
 from app.domain.pokemon.service import PokemonService
 from app.domain.trainer.model import Trainer
 from app.shared.schemas import FilterPage
@@ -15,17 +16,14 @@ Session = Annotated[AsyncSession, Depends(get_session)]
 CurrentTrainer = Annotated[Trainer, Depends(get_current_user)]
 
 
-@router.get('/', response_model=PokemonListSchema)
+@router.get('/', response_model=LimitOffsetPage[PokemonSchema] | list[PokemonSchema])
 async def list_pokemons(
     session: Session,
     trainer: CurrentTrainer,
-    pokemon_filter: Annotated[FilterPage, Query()],
+    page_filter: Annotated[FilterPage, Depends()],
 ):
     service = PokemonService(session)
-    pokemons = await service.fetch_all(pokemon_filter=pokemon_filter)
-    # Convert ORM objects to Pydantic schemas to avoid lazy-loading issues
-    results = [PokemonSchema.model_validate(pokemon) for pokemon in pokemons]
-    return {'results': results}
+    return await service.fetch_all(page_filter=page_filter)
 
 
 @router.get('/{pokemon_name}', response_model=PokemonSchema)

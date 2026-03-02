@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.domain.captured_pokemon.model import CapturedPokemon
-from app.domain.captured_pokemon.repository import CapturedPokemonRepository
 from app.domain.captured_pokemon.schema import CreateCapturedPokemonSchema
 
 MOCK_CAPTURED_POKEMON = CapturedPokemon(
@@ -40,9 +39,7 @@ class TestCapturedPokemonRepositoryCreate:
     @staticmethod
     @pytest.mark.asyncio
     async def test_captured_pokemon_repository_create_success(
-            captured_pokemon_repository,
-            trainer,
-            pokemon
+        captured_pokemon_repository, trainer, pokemon
     ):
         """Should persist captured pokemon when data is valid"""
         captured_pokemon_data = CreateCapturedPokemonSchema(
@@ -70,9 +67,7 @@ class TestCapturedPokemonRepositoryCreate:
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
         )
-        result = await captured_pokemon_repository.create(
-            captured_pokemon_data
-        )
+        result = await captured_pokemon_repository.create(captured_pokemon_data)
 
         assert result.hp == MOCK_CAPTURED_POKEMON.hp
         assert result.wins == MOCK_CAPTURED_POKEMON.wins
@@ -98,10 +93,7 @@ class TestCapturedPokemonRepositoryCreate:
     @staticmethod
     @pytest.mark.asyncio
     async def test_captured_pokemon_repository_create_commit_error(
-            captured_pokemon_repository,
-            session,
-            trainer,
-            pokemon
+        captured_pokemon_repository, session, trainer, pokemon
     ):
         """Should raise exception when database commit fails"""
         captured_pokemon_data = CreateCapturedPokemonSchema(
@@ -132,6 +124,4 @@ class TestCapturedPokemonRepositoryCreate:
         session.commit = AsyncMock(side_effect=Exception('Database error'))
 
         with pytest.raises(Exception, match='Database error'):
-            await captured_pokemon_repository.create(
-                captured_pokemon_data
-            )
+            await captured_pokemon_repository.create(captured_pokemon_data)
