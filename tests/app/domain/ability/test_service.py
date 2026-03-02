@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.domain.ability.model import PokemonAbility
-from app.domain.ability.service import PokemonAbilityService
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
     PokemonExternalBaseAbilitySchemaResponse,
@@ -20,7 +19,7 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_abilities_in_database_success(session):
+    async def test_verify_pokemon_abilities_in_database_success(ability_service):
         """Should return pokemon ability from database when it exists"""
         total_results = 1
         pokemon_ability = PokemonAbility(
@@ -37,24 +36,25 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
             slot=MOCK_POKEMON_ABILITY_SLOT,
             is_hidden=MOCK_POKEMON_ABILITY_IS_HIDDEN,
         )
+        repository = ability_service.repository
+        repository.find_one_by_order = AsyncMock(return_value=pokemon_ability)
 
-        service = PokemonAbilityService(session=session)
-        service.repository.find_one_by_order = AsyncMock(return_value=pokemon_ability)
-        result = await service.verify_pokemon_abilities(abilities=[response_pokemon_ability])
+        result = await ability_service.verify_pokemon_abilities(
+            abilities=[response_pokemon_ability]
+        )
 
         assert len(result) == total_results
         assert result[0].name == 'stench'
         assert result[0].order == 1
         assert result[0].slot == MOCK_POKEMON_ABILITY_SLOT
         assert result[0].is_hidden is MOCK_POKEMON_ABILITY_IS_HIDDEN
-        service.repository.find_one_by_order.assert_called_once()
+        repository.find_one_by_order.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_abilities_not_in_database_success(session):
+    async def test_verify_pokemon_abilities_not_in_database_success(ability_service):
         """Should create and return pokemon ability when it does not exist in database"""
         total_results = 1
-        service = PokemonAbilityService(session=session)
         pokemon_ability_order = 1
         response_pokemon_ability = PokemonExternalBaseAbilitySchemaResponse(
             ability=PokemonExternalBase(
@@ -72,26 +72,27 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
             slot=MOCK_POKEMON_ABILITY_SLOT,
             is_hidden=MOCK_POKEMON_ABILITY_IS_HIDDEN,
         )
+        repository = ability_service.repository
+        repository.find_one_by_order = AsyncMock(return_value=None)
+        repository.create = AsyncMock(return_value=pokemon_ability)
 
-        service.repository.find_one_by_order = AsyncMock(return_value=None)
-        service.repository.create = AsyncMock(return_value=pokemon_ability)
-
-        result = await service.verify_pokemon_abilities(abilities=[response_pokemon_ability])
+        result = await ability_service.verify_pokemon_abilities(
+            abilities=[response_pokemon_ability]
+        )
 
         assert len(result) == total_results
         assert result[0].name == 'stench'
         assert result[0].order == pokemon_ability_order
         assert result[0].slot == MOCK_POKEMON_ABILITY_SLOT
         assert result[0].is_hidden is MOCK_POKEMON_ABILITY_IS_HIDDEN
-        service.repository.find_one_by_order.assert_called_once()
-        service.repository.create.assert_called_once()
+        repository.find_one_by_order.assert_called_once()
+        repository.create.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_abilities_with_hidden_ability(session):
+    async def test_verify_pokemon_abilities_with_hidden_ability(ability_service):
         """Should create and return hidden pokemon ability when not in database"""
         total_results = 1
-        service = PokemonAbilityService(session=session)
         pokemon_ability_order = MOCK_POKEMON_ABILITY_SLOT_2
         response_pokemon_ability = PokemonExternalBaseAbilitySchemaResponse(
             ability=PokemonExternalBase(
@@ -109,37 +110,38 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
             slot=MOCK_POKEMON_ABILITY_SLOT_2,
             is_hidden=True,
         )
+        repository = ability_service.repository
+        repository.find_one_by_order = AsyncMock(return_value=None)
+        repository.create = AsyncMock(return_value=pokemon_ability)
 
-        service.repository.find_one_by_order = AsyncMock(return_value=None)
-        service.repository.create = AsyncMock(return_value=pokemon_ability)
-
-        result = await service.verify_pokemon_abilities(abilities=[response_pokemon_ability])
+        result = await ability_service.verify_pokemon_abilities(
+            abilities=[response_pokemon_ability]
+        )
 
         assert len(result) == total_results
         assert result[0].name == 'static'
         assert result[0].order == pokemon_ability_order
         assert result[0].slot == MOCK_POKEMON_ABILITY_SLOT_2
         assert result[0].is_hidden is True
-        service.repository.find_one_by_order.assert_called_once()
-        service.repository.create.assert_called_once()
+        repository.find_one_by_order.assert_called_once()
+        repository.create.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_abilities_empty_list(session):
+    async def test_verify_pokemon_abilities_empty_list(ability_service):
         """Should return empty list when abilities list is empty"""
-        service = PokemonAbilityService(session=session)
-        service.repository.find_one_by_order = AsyncMock()
-        result = await service.verify_pokemon_abilities(abilities=[])
+        repository = ability_service.repository
+        repository.find_one_by_order = AsyncMock()
+
+        result = await ability_service.verify_pokemon_abilities(abilities=[])
 
         assert len(result) == 0
-        service.repository.find_one_by_order.assert_not_called()
+        repository.find_one_by_order.assert_not_called()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_abilities_multiple_abilities(session):
+    async def test_verify_pokemon_abilities_multiple_abilities(ability_service):
         """Should process multiple abilities correctly"""
-        service = PokemonAbilityService(session=session)
-
         pokemon_ability_1 = PokemonAbility(
             url='https://pokeapi.co/api/v2/ability/1/',
             name='stench',
@@ -172,26 +174,24 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
                 is_hidden=True,
             ),
         ]
-
-        service.repository.find_one_by_order = AsyncMock(
+        repository = ability_service.repository
+        repository.find_one_by_order = AsyncMock(
             side_effect=[pokemon_ability_1, pokemon_ability_2]
         )
 
-        result = await service.verify_pokemon_abilities(abilities=response_abilities)
+        result = await ability_service.verify_pokemon_abilities(abilities=response_abilities)
 
         assert len(result) == TOTAL_ABILITIES_MULTIPLE
         assert result[0].name == 'stench'
         assert result[0].is_hidden is MOCK_POKEMON_ABILITY_IS_HIDDEN
         assert result[1].name == 'static'
         assert result[1].is_hidden is True
-        assert service.repository.find_one_by_order.call_count == TOTAL_ABILITIES_MULTIPLE
+        assert repository.find_one_by_order.call_count == TOTAL_ABILITIES_MULTIPLE
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_abilities_mixed_database_and_new(session):
+    async def test_verify_pokemon_abilities_mixed_database_and_new(ability_service):
         """Should return abilities from database and create new ones"""
-        service = PokemonAbilityService(session=session)
-
         pokemon_ability_1 = PokemonAbility(
             url='https://pokeapi.co/api/v2/ability/1/',
             name='stench',
@@ -224,24 +224,22 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
                 is_hidden=True,
             ),
         ]
+        repository = ability_service.repository
+        repository.find_one_by_order = AsyncMock(side_effect=[pokemon_ability_1, None])
+        repository.create = AsyncMock(return_value=pokemon_ability_2)
 
-        service.repository.find_one_by_order = AsyncMock(side_effect=[pokemon_ability_1, None])
-        service.repository.create = AsyncMock(return_value=pokemon_ability_2)
-
-        result = await service.verify_pokemon_abilities(abilities=response_abilities)
+        result = await ability_service.verify_pokemon_abilities(abilities=response_abilities)
 
         assert len(result) == TOTAL_ABILITIES_MULTIPLE
         assert result[0].name == 'stench'
         assert result[1].name == 'static'
-        assert service.repository.find_one_by_order.call_count == TOTAL_ABILITIES_MULTIPLE
-        service.repository.create.assert_called_once()
+        assert repository.find_one_by_order.call_count == TOTAL_ABILITIES_MULTIPLE
+        repository.create.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_abilities_error(session):
+    async def test_verify_pokemon_abilities_error(ability_service):
         """Should return pokemon ability error when repository error occurs"""
-        service = PokemonAbilityService(session=session)
-
         response_pokemon_ability = PokemonExternalBaseAbilitySchemaResponse(
             ability=PokemonExternalBase(
                 name='stench', url='https://pokeapi.co/api/v2/ability/1/'
@@ -249,11 +247,12 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
             slot=MOCK_POKEMON_ABILITY_SLOT,
             is_hidden=MOCK_POKEMON_ABILITY_IS_HIDDEN,
         )
+        repository = ability_service.repository
+        repository.find_one_by_order = AsyncMock(side_effect=Exception('Database error'))
 
-        service.repository.find_one_by_order = AsyncMock(
-            side_effect=Exception('Database error')
+        result = await ability_service.verify_pokemon_abilities(
+            abilities=[response_pokemon_ability]
         )
-        result = await service.verify_pokemon_abilities(abilities=[response_pokemon_ability])
 
         assert len(result) == 0
-        service.repository.find_one_by_order.assert_called_once()
+        repository.find_one_by_order.assert_called_once()

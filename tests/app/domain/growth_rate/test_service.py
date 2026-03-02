@@ -4,7 +4,6 @@ import pytest
 
 from app.domain.growth_rate.business import PokemonGrowthRateBusiness
 from app.domain.growth_rate.model import PokemonGrowthRate
-from app.domain.growth_rate.service import PokemonGrowthRateService
 from app.domain.pokemon.external.schemas import PokemonExternalBase
 from app.domain.pokemon.external.schemas.growth_rate import (
     PokemonExternalGrowthRateSchemaResponse,
@@ -18,7 +17,7 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_growth_rate_in_database_success(session):
+    async def test_verify_pokemon_growth_rate_in_database_success(growth_rate_service):
         """Should return pokemon growth rate from database when it exists"""
         pokemon_growth_rate = PokemonGrowthRate(
             url='https://pokeapi.co/api/v2/growth-rate/1/',
@@ -30,23 +29,25 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
             name='slow', url='https://pokeapi.co/api/v2/growth-rate/1/'
         )
 
-        service = PokemonGrowthRateService(session=session)
-        service.repository.find_one_by_order = AsyncMock(return_value=pokemon_growth_rate)
-        result = await service.verify_pokemon_growth_rate(growth_rate=response_growth_rate)
+        growth_rate_service.repository.find_one_by_order = AsyncMock(
+            return_value=pokemon_growth_rate
+        )
+        result = await growth_rate_service.verify_pokemon_growth_rate(
+            growth_rate=response_growth_rate
+        )
 
         assert result is not None
         assert result.name == 'slow'
         assert result.order == MOCK_GROWTH_RATE_ORDER
         assert result.formula == '\\frac{5x^3}{4}'
-        service.repository.find_one_by_order.assert_called_once_with(
+        growth_rate_service.repository.find_one_by_order.assert_called_once_with(
             order=MOCK_GROWTH_RATE_ORDER
         )
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_growth_rate_not_in_database_success(session):
+    async def test_verify_pokemon_growth_rate_not_in_database_success(growth_rate_service):
         """Should create and return pokemon growth rate when not in database"""
-        service = PokemonGrowthRateService(session=session)
         pokemon_growth_rate_order = MOCK_GROWTH_RATE_ORDER
         response_growth_rate = PokemonExternalBase(
             name='slow',
@@ -68,8 +69,8 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
             formula='\\frac{5x^3}{4}',
         )
 
-        service.repository.find_one_by_order = AsyncMock(return_value=None)
-        service.repository.create = AsyncMock(return_value=pokemon_growth_rate)
+        growth_rate_service.repository.find_one_by_order = AsyncMock(return_value=None)
+        growth_rate_service.repository.create = AsyncMock(return_value=pokemon_growth_rate)
 
         with patch.object(
             PokemonGrowthRateBusiness,
@@ -77,11 +78,11 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
             return_value='Slow growth rate description',
         ):
             with patch.object(
-                service.external_service,
+                growth_rate_service.external_service,
                 'pokemon_external_growth_rate_by_order',
                 return_value=external_growth_rate_data,
             ):
-                result = await service.verify_pokemon_growth_rate(
+                result = await growth_rate_service.verify_pokemon_growth_rate(
                     growth_rate=response_growth_rate
                 )
 
@@ -89,36 +90,36 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
         assert result.name == 'slow'
         assert result.order == pokemon_growth_rate_order
         assert result.formula == '\\frac{5x^3}{4}'
-        service.repository.find_one_by_order.assert_called_once()
-        service.repository.create.assert_called_once()
+        growth_rate_service.repository.find_one_by_order.assert_called_once()
+        growth_rate_service.repository.create.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_growth_rate_external_service_no_data(session):
+    async def test_verify_pokemon_growth_rate_external_service_no_data(growth_rate_service):
         """Should return None when external service returns no data"""
-        service = PokemonGrowthRateService(session=session)
         response_growth_rate = PokemonExternalBase(
             name='unknown-growth-rate',
             url='https://pokeapi.co/api/v2/growth-rate/999/',
         )
 
-        service.repository.find_one_by_order = AsyncMock(return_value=None)
+        growth_rate_service.repository.find_one_by_order = AsyncMock(return_value=None)
 
         with patch.object(
-            service.external_service,
+            growth_rate_service.external_service,
             'pokemon_external_growth_rate_by_order',
             return_value=None,
         ):
-            result = await service.verify_pokemon_growth_rate(growth_rate=response_growth_rate)
+            result = await growth_rate_service.verify_pokemon_growth_rate(
+                growth_rate=response_growth_rate
+            )
 
         assert result is None
-        service.repository.find_one_by_order.assert_called_once()
+        growth_rate_service.repository.find_one_by_order.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_growth_rate_with_description(session):
+    async def test_verify_pokemon_growth_rate_with_description(growth_rate_service):
         """Should create growth rate with description from business logic"""
-        service = PokemonGrowthRateService(session=session)
         response_growth_rate = PokemonExternalBase(
             name='medium',
             url='https://pokeapi.co/api/v2/growth-rate/2/',
@@ -139,8 +140,8 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
             formula='x^3',
         )
 
-        service.repository.find_one_by_order = AsyncMock(return_value=None)
-        service.repository.create = AsyncMock(return_value=pokemon_growth_rate)
+        growth_rate_service.repository.find_one_by_order = AsyncMock(return_value=None)
+        growth_rate_service.repository.create = AsyncMock(return_value=pokemon_growth_rate)
 
         expected_description = 'Medium growth rate description'
 
@@ -150,41 +151,41 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
             return_value=expected_description,
         ) as mock_ensure_description:
             with patch.object(
-                service.external_service,
+                growth_rate_service.external_service,
                 'pokemon_external_growth_rate_by_order',
                 return_value=external_growth_rate_data,
             ):
-                result = await service.verify_pokemon_growth_rate(
+                result = await growth_rate_service.verify_pokemon_growth_rate(
                     growth_rate=response_growth_rate
                 )
 
         assert result is not None
         mock_ensure_description.assert_called_once_with(external_growth_rate_data.descriptions)
-        service.repository.create.assert_called_once()
+        growth_rate_service.repository.create.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_growth_rate_in_error(session):
+    async def test_verify_pokemon_growth_rate_in_error(growth_rate_service):
         """Should return pokemon growth rate error"""
         response_growth_rate = PokemonExternalBase(
             name='slow', url='https://pokeapi.co/api/v2/growth-rate/1/'
         )
-        service = PokemonGrowthRateService(session=session)
 
-        service.repository.find_one_by_order = AsyncMock(
+        growth_rate_service.repository.find_one_by_order = AsyncMock(
             side_effect=Exception('Database error')
         )
-        result = await service.verify_pokemon_growth_rate(growth_rate=response_growth_rate)
+        result = await growth_rate_service.verify_pokemon_growth_rate(
+            growth_rate=response_growth_rate
+        )
 
         assert not result
-        service.repository.find_one_by_order.assert_called_once()
+        growth_rate_service.repository.find_one_by_order.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_growth_rate_none(session):
+    async def test_verify_pokemon_growth_rate_none(growth_rate_service):
         """Should return pokemon growth rate error"""
-        service = PokemonGrowthRateService(session=session)
 
-        result = await service.verify_pokemon_growth_rate(growth_rate=None)
+        result = await growth_rate_service.verify_pokemon_growth_rate(growth_rate=None)
 
         assert not result

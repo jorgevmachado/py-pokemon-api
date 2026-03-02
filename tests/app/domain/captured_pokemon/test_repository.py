@@ -39,7 +39,11 @@ class TestCapturedPokemonRepositoryCreate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_captured_pokemon_repository_create_success(session, trainer, pokemon):
+    async def test_captured_pokemon_repository_create_success(
+            captured_pokemon_repository,
+            trainer,
+            pokemon
+    ):
         """Should persist captured pokemon when data is valid"""
         captured_pokemon_data = CreateCapturedPokemonSchema(
             hp=MOCK_CAPTURED_POKEMON.hp,
@@ -66,8 +70,9 @@ class TestCapturedPokemonRepositoryCreate:
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
         )
-        repository = CapturedPokemonRepository(session=session)
-        result = await repository.create(captured_pokemon_data)
+        result = await captured_pokemon_repository.create(
+            captured_pokemon_data
+        )
 
         assert result.hp == MOCK_CAPTURED_POKEMON.hp
         assert result.wins == MOCK_CAPTURED_POKEMON.wins
@@ -92,7 +97,12 @@ class TestCapturedPokemonRepositoryCreate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_captured_pokemon_repository_create_commit_error(session, trainer, pokemon):
+    async def test_captured_pokemon_repository_create_commit_error(
+            captured_pokemon_repository,
+            session,
+            trainer,
+            pokemon
+    ):
         """Should raise exception when database commit fails"""
         captured_pokemon_data = CreateCapturedPokemonSchema(
             hp=MOCK_CAPTURED_POKEMON.hp,
@@ -121,7 +131,7 @@ class TestCapturedPokemonRepositoryCreate:
         )
         session.commit = AsyncMock(side_effect=Exception('Database error'))
 
-        repository = CapturedPokemonRepository(session=session)
-
         with pytest.raises(Exception, match='Database error'):
-            await repository.create(captured_pokemon_data)
+            await captured_pokemon_repository.create(
+                captured_pokemon_data
+            )

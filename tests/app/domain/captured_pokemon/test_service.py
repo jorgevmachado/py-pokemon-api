@@ -1,7 +1,5 @@
 import pytest
 
-from app.domain.captured_pokemon.service import CapturedPokemonService
-
 MOCK_EXP_GAINED = 10
 MOCK_EV_AMOUNT = 10
 MOCK_EV_CAP = 252
@@ -12,11 +10,10 @@ class TestCapturedPokemonServiceCreate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_create_returns_captured_pokemon(session, trainer, pokemon):
+    async def test_create_returns_captured_pokemon(captured_pokemon_service, trainer, pokemon):
         """Should create captured pokemon for trainer"""
-        service = CapturedPokemonService(session=session)
 
-        result = await service.create(pokemon=pokemon, trainer=trainer)
+        result = await captured_pokemon_service.create(pokemon=pokemon, trainer=trainer)
 
         assert result.pokemon_id == pokemon.id
         assert result.trainer_id == trainer.id
@@ -28,14 +25,17 @@ class TestCapturedPokemonServiceRecordBattleWin:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_record_battle_win_increments_stats(session, trainer, pokemon):
+    async def test_record_battle_win_increments_stats(
+        captured_pokemon_service, trainer, pokemon
+    ):
         """Should increment wins and battles"""
-        service = CapturedPokemonService(session=session)
-        captured_pokemon = await service.create(pokemon=pokemon, trainer=trainer)
+        captured_pokemon = await captured_pokemon_service.create(
+            pokemon=pokemon, trainer=trainer
+        )
         wins_before = captured_pokemon.wins
         battles_before = captured_pokemon.battles
 
-        result = await service.record_battle_win(
+        result = await captured_pokemon_service.record_battle_win(
             captured_pokemon=captured_pokemon,
             exp_gained=MOCK_EXP_GAINED,
         )
@@ -50,14 +50,19 @@ class TestCapturedPokemonServiceRecordBattleLoss:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_record_battle_loss_increments_stats(session, trainer, pokemon):
+    async def test_record_battle_loss_increments_stats(
+        captured_pokemon_service, trainer, pokemon
+    ):
         """Should increment losses and battles"""
-        service = CapturedPokemonService(session=session)
-        captured_pokemon = await service.create(pokemon=pokemon, trainer=trainer)
+        captured_pokemon = await captured_pokemon_service.create(
+            pokemon=pokemon, trainer=trainer
+        )
         losses_before = captured_pokemon.losses
         battles_before = captured_pokemon.battles
 
-        result = await service.record_battle_loss(captured_pokemon=captured_pokemon)
+        result = await captured_pokemon_service.record_battle_loss(
+            captured_pokemon=captured_pokemon
+        )
 
         assert result.losses == losses_before + 1
         assert result.battles == battles_before + 1
@@ -68,13 +73,14 @@ class TestCapturedPokemonServiceAddEffortValue:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_add_effort_value_increases_ev(session, trainer, pokemon):
+    async def test_add_effort_value_increases_ev(captured_pokemon_service, trainer, pokemon):
         """Should increase EV value"""
-        service = CapturedPokemonService(session=session)
-        captured_pokemon = await service.create(pokemon=pokemon, trainer=trainer)
+        captured_pokemon = await captured_pokemon_service.create(
+            pokemon=pokemon, trainer=trainer
+        )
         ev_before = captured_pokemon.ev_hp
 
-        result = await service.add_effort_value(
+        result = await captured_pokemon_service.add_effort_value(
             captured_pokemon=captured_pokemon,
             ev_type='hp',
             ev_amount=MOCK_EV_AMOUNT,
@@ -84,13 +90,14 @@ class TestCapturedPokemonServiceAddEffortValue:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_add_effort_value_caps_ev(session, trainer, pokemon):
+    async def test_add_effort_value_caps_ev(captured_pokemon_service, trainer, pokemon):
         """Should cap EV at 252"""
-        service = CapturedPokemonService(session=session)
-        captured_pokemon = await service.create(pokemon=pokemon, trainer=trainer)
+        captured_pokemon = await captured_pokemon_service.create(
+            pokemon=pokemon, trainer=trainer
+        )
         captured_pokemon.ev_hp = MOCK_EV_CAP
 
-        result = await service.add_effort_value(
+        result = await captured_pokemon_service.add_effort_value(
             captured_pokemon=captured_pokemon,
             ev_type='hp',
             ev_amount=MOCK_EV_AMOUNT,
@@ -104,10 +111,13 @@ class TestCapturedPokemonServiceRecalculateStats:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_recalculate_stats_updates_values(session, trainer, pokemon):
+    async def test_recalculate_stats_updates_values(
+        captured_pokemon_service, trainer, pokemon
+    ):
         """Should update calculated stats"""
-        service = CapturedPokemonService(session=session)
-        captured_pokemon = await service.create(pokemon=pokemon, trainer=trainer)
+        captured_pokemon = await captured_pokemon_service.create(
+            pokemon=pokemon, trainer=trainer
+        )
 
         # Ensure required base stats are defined
         pokemon.hp = pokemon.hp or 1
@@ -129,7 +139,7 @@ class TestCapturedPokemonServiceRecalculateStats:
         captured_pokemon.iv_speed = captured_pokemon.iv_speed or 0
         captured_pokemon.ev_speed = captured_pokemon.ev_speed or 0
 
-        result = await service.recalculate_stats_for_level_up(
+        result = await captured_pokemon_service.recalculate_stats_for_level_up(
             captured_pokemon=captured_pokemon,
             pokemon=pokemon,
         )

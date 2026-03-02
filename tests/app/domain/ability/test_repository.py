@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.domain.ability.model import PokemonAbility
-from app.domain.ability.repository import PokemonAbilityRepository
 from app.domain.ability.schema import CreatePokemonAbilitySchema
 
 MOCK_POKEMON_ABILITY_SLOT = 1
@@ -16,7 +15,7 @@ class TestPokemonAbilityRepositoryCreate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokemon_ability_repository_create_success(session):
+    async def test_pokemon_ability_repository_create_success(ability_repository):
         """Should persist pokemon ability when data is valid"""
         pokemon_ability_data_order = 1
         pokemon_ability_data = CreatePokemonAbilitySchema(
@@ -26,8 +25,7 @@ class TestPokemonAbilityRepositoryCreate:
             slot=MOCK_POKEMON_ABILITY_SLOT,
             is_hidden=MOCK_POKEMON_ABILITY_IS_HIDDEN,
         )
-        repository = PokemonAbilityRepository(session=session)
-        pokemon_ability = await repository.create(pokemon_ability_data)
+        pokemon_ability = await ability_repository.create(pokemon_ability_data)
 
         assert pokemon_ability.url == 'https://pokeapi.co/api/v2/ability/1/'
         assert pokemon_ability.name == 'stench'
@@ -37,7 +35,7 @@ class TestPokemonAbilityRepositoryCreate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokemon_ability_repository_create_with_hidden_ability(session):
+    async def test_pokemon_ability_repository_create_with_hidden_ability(ability_repository):
         """Should persist pokemon ability with hidden flag when data is valid"""
         pokemon_ability_data_order = MOCK_POKEMON_ABILITY_SLOT_2
         pokemon_ability_data = CreatePokemonAbilitySchema(
@@ -47,8 +45,8 @@ class TestPokemonAbilityRepositoryCreate:
             slot=MOCK_POKEMON_ABILITY_SLOT_2,
             is_hidden=True,
         )
-        repository = PokemonAbilityRepository(session=session)
-        pokemon_ability = await repository.create(pokemon_ability_data)
+
+        pokemon_ability = await ability_repository.create(pokemon_ability_data)
 
         assert pokemon_ability.url == 'https://pokeapi.co/api/v2/ability/2/'
         assert pokemon_ability.name == 'static'
@@ -58,7 +56,7 @@ class TestPokemonAbilityRepositoryCreate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokemon_ability_repository_create_commit_error(session):
+    async def test_pokemon_ability_repository_create_commit_error(ability_repository, session):
         """Should raise exception when database commit fails"""
         pokemon_ability_data = CreatePokemonAbilitySchema(
             url='https://pokeapi.co/api/v2/ability/1/',
@@ -69,10 +67,8 @@ class TestPokemonAbilityRepositoryCreate:
         )
         session.commit = AsyncMock(side_effect=Exception('Database error'))
 
-        repository = PokemonAbilityRepository(session=session)
-
         with pytest.raises(Exception, match='Database error'):
-            await repository.create(pokemon_ability_data)
+            await ability_repository.create(pokemon_ability_data)
 
 
 class TestPokemonAbilityRepositoryFindOneByOrder:
@@ -80,16 +76,18 @@ class TestPokemonAbilityRepositoryFindOneByOrder:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokemon_ability_repository_find_one_not_found(session):
+    async def test_pokemon_ability_repository_find_one_not_found(ability_repository):
         """Should return None when pokemon ability is not found"""
-        repository = PokemonAbilityRepository(session=session)
-        result = await repository.find_one_by_order(999)
+
+        result = await ability_repository.find_one_by_order(999)
 
         assert result is None
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokemon_ability_repository_find_one_by_order_success(session):
+    async def test_pokemon_ability_repository_find_one_by_order_success(
+        ability_repository, session
+    ):
         """Should return pokemon ability when found by order"""
         result_order = 1
 
@@ -103,8 +101,7 @@ class TestPokemonAbilityRepositoryFindOneByOrder:
         session.add(pokemon_ability)
         await session.commit()
 
-        repository = PokemonAbilityRepository(session=session)
-        result = await repository.find_one_by_order(result_order)
+        result = await ability_repository.find_one_by_order(result_order)
 
         assert result is not None
         assert isinstance(result, PokemonAbility)
@@ -115,7 +112,9 @@ class TestPokemonAbilityRepositoryFindOneByOrder:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokemon_ability_repository_find_one_by_order_hidden(session):
+    async def test_pokemon_ability_repository_find_one_by_order_hidden(
+        ability_repository, session
+    ):
         """Should return hidden pokemon ability when found by order"""
         result_order = MOCK_POKEMON_ABILITY_SLOT_2
 
@@ -129,8 +128,7 @@ class TestPokemonAbilityRepositoryFindOneByOrder:
         session.add(pokemon_ability)
         await session.commit()
 
-        repository = PokemonAbilityRepository(session=session)
-        result = await repository.find_one_by_order(result_order)
+        result = await ability_repository.find_one_by_order(result_order)
 
         assert result is not None
         assert isinstance(result, PokemonAbility)
