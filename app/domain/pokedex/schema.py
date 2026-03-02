@@ -1,8 +1,10 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.pokemon.schema import PublicPokemonSchema
+from app.shared.schemas import FilterPage
 
 
 class CreatePokedexSchema(BaseModel):
@@ -29,7 +31,7 @@ class CreatePokedexSchema(BaseModel):
     iv_special_defense: int
     ev_special_defense: int
     discovered: bool = Field(default=False)
-    discovered_at: datetime
+    discovered_at: Optional[datetime] = None
     pokemon_id: str
     trainer_id: str
 
@@ -60,5 +62,11 @@ class PokedexPublicSchema(BaseModel):
     iv_special_defense: int
     ev_special_defense: int
     discovered: bool = Field(default=False)
-    discovered_at: datetime
+    discovered_at: Optional[datetime] = None
     pokemon: PublicPokemonSchema
+
+
+class PokedexFilterPage(FilterPage):
+    trainer_id: str
+    nickname: Optional[str] = None
+    discovered: Optional[bool] = None

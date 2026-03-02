@@ -38,9 +38,12 @@ class PokemonService:
         self.external_service = PokemonExternalService()
         self.business = PokemonBusiness()
 
+    async def total(self) -> int:
+        return await self.repository.total()
+
     async def fetch_all(
         self,
-        page_filter: Annotated[FilterPage, Query()],
+        page_filter: Annotated[FilterPage, Query()] = None,
     ):
         try:
             total = await self.repository.total()

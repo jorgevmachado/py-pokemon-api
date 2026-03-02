@@ -1,17 +1,19 @@
 from datetime import datetime
+from http import HTTPStatus
 from typing import Annotated, Optional
 
-from fastapi import Depends
+from fastapi import Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.pokedex.model import Pokedex
 from app.domain.pokedex.repository import PokedexRepository
-from app.domain.pokedex.schema import CreatePokedexSchema
+from app.domain.pokedex.schema import CreatePokedexSchema, PokedexFilterPage
 from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.model import Pokemon
 from app.domain.trainer.model import Trainer
+from app.shared.schemas import FilterPage
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
@@ -63,7 +65,7 @@ class PokedexService:
                     iv_special_defense=stats['iv_special_defense'],
                     ev_special_defense=stats['ev_special_defense'],
                     discovered=discovered,
-                    discovered_at=datetime.now(),
+                    discovered_at=None,
                     pokemon_id=item.id,
                     trainer_id=trainer.id,
                 )
@@ -239,3 +241,59 @@ class PokedexService:
         )
 
         return pokedex_entry, captured_entry
+
+
+    async def fetch_all(
+            self,
+            page_filter: Annotated[PokedexFilterPage, Query()],
+    ):
+        try:
+            return await self.repository.list_all(page_filter=page_filter)
+        except Exception as e:
+            print(f'# => pokedex => service => fetch_all => error => {e}')
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail='Error fetching pokedex entries',
+            )
+
+    async def refresh(self, trainer_id: str, pokemons: list[Pokemon]):
+        total_not_exist = 0
+        new_entries: list[Pokedex] = []
+        for pokemon in pokemons:
+            exist_pokedex = await self.repository.find_by_pokemon(
+                trainer_id=trainer_id,
+                pokemon_id=pokemon.id
+            )
+            if not exist_pokedex:
+                total_not_exist += 1
+                stats = self.business.calculate_pokemon_stats(pokemon=pokemon)
+                create_pokedex = CreatePokedexSchema(
+                    hp=stats['hp'],
+                    wins=stats['wins'],
+                    level=stats['level'],
+                    iv_hp=stats['iv_hp'],
+                    ev_hp=stats['ev_hp'],
+                    losses=stats['losses'],
+                    max_hp=stats['max_hp'],
+                    battles=stats['battles'],
+                    nickname=stats['nickname'],
+                    iv_speed=stats['iv_speed'],
+                    ev_speed=stats['ev_speed'],
+                    iv_attack=stats['iv_attack'],
+                    ev_attack=stats['ev_attack'],
+                    iv_defense=stats['iv_defense'],
+                    ev_defense=stats['ev_defense'],
+                    experience=stats['experience'],
+                    iv_special_attack=stats['iv_special_attack'],
+                    ev_special_attack=stats['ev_special_attack'],
+                    iv_special_defense=stats['iv_special_defense'],
+                    ev_special_defense=stats['ev_special_defense'],
+                    discovered=False,
+                    discovered_at=None,
+                    pokemon_id=pokemon.id,
+                    trainer_id=trainer_id,
+                )
+                new_entry = await self.repository.create(create_pokedex)
+                new_entries.append(new_entry)
+        print(f'# LOG => pokedex => service => refresh => total_not_exist => {total_not_exist}')
+        return new_entries

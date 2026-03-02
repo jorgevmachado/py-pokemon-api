@@ -1,11 +1,16 @@
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Query
+from fastapi_pagination import LimitOffsetParams
+from fastapi_pagination.ext.sqlalchemy import paginate
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_session
 from app.domain.captured_pokemon.model import CapturedPokemon
-from app.domain.captured_pokemon.schema import CreateCapturedPokemonSchema
+from app.domain.captured_pokemon.schema import CreateCapturedPokemonSchema, CapturedPokemonFilterPage
+from app.shared.pagination import is_paginate, limit_paginate
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
@@ -46,3 +51,39 @@ class CapturedPokemonRepository:
         await self.session.commit()
         await self.session.refresh(captured_pokemon)
         return captured_pokemon
+
+    async def list_all(
+            self,
+            page_filter: Annotated[CapturedPokemonFilterPage, Query()]
+    ):
+        trainer_id = page_filter.trainer_id
+        query = (
+            select(CapturedPokemon)
+            .options(selectinload(CapturedPokemon.pokemon))
+            .order_by(CapturedPokemon.captured_at.desc())
+            .where(CapturedPokemon.trainer_id == trainer_id)
+        )
+
+        if page_filter.nickname is not None:
+            query = query.where(CapturedPokemon.nickname.ilike(f'%{page_filter.nickname}%'))
+
+        if is_paginate(page_filter):
+            params = LimitOffsetParams(
+                limit=limit_paginate(page_filter.limit),
+                offset=page_filter.offset,
+            )
+            return await paginate(self.session, query, params=params)
+        captured_pokemons = await self.session.scalars(query)
+        return captured_pokemons.all()
+
+    async def find_by_pokemon(self, trainer_id: str, pokemon_id: str):
+        query = (
+            select(CapturedPokemon)
+            .options(selectinload(CapturedPokemon.pokemon))
+            .where(
+                CapturedPokemon.trainer_id == trainer_id,
+                CapturedPokemon.pokemon_id == pokemon_id
+            )
+        )
+
+        return await self.session.scalar(query)

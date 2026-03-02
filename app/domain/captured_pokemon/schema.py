@@ -1,10 +1,12 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
 from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.schema import PublicPokemonSchema
 from app.domain.trainer.model import Trainer
+from app.shared.schemas import FilterPage
 
 
 class CreateCapturedPokemonSchema(BaseModel):
@@ -63,3 +65,13 @@ class CapturedPokemonPublicSchema(BaseModel):
     ev_special_defense: int
     captured_at: datetime
     pokemon: PublicPokemonSchema
+
+class CapturedPokemonFilterPage(FilterPage):
+    trainer_id: str
+    nickname: Optional[str] = None
+
+
+class CapturePokemonSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    nickname: Optional[str] = None
+    pokemon_name: str

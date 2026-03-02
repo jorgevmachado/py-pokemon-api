@@ -3,35 +3,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.domain.pokedex.model import Pokedex
 from app.domain.pokedex.repository import PokedexRepository
-from app.domain.pokedex.schema import CreatePokedexSchema
-
-MOCK_POKEDEX = Pokedex(
-    hp=7,
-    wins=0,
-    level=1,
-    iv_hp=11,
-    ev_hp=0,
-    losses=0,
-    max_hp=7,
-    battles=0,
-    iv_speed=12,
-    ev_speed=0,
-    iv_attack=8,
-    ev_attack=0,
-    iv_defense=2,
-    ev_defense=0,
-    experience=1,
-    nickname='nickname',
-    iv_special_attack=9,
-    ev_special_attack=0,
-    iv_special_defense=19,
-    ev_special_defense=0,
-    discovered=True,
-    pokemon_id='9efd7c0a-7fa8-402a-8166-ff85b82cac33',
-    trainer_id='6129c647-9823-48c1-a09e-7f471497a0e9',
-)
+from app.domain.pokedex.schema import CreatePokedexSchema, PokedexFilterPage
+from tests.app.domain.pokedex.conftest import MOCK_POKEDEX, PokedexFactory
 
 
 class TestPokedexRepositoryCreate:
@@ -127,7 +101,6 @@ class TestPokedexRepositoryCreate:
 
         with pytest.raises(Exception, match='Database error'):
             await repository.create(pokedex_data)
-
 
 class TestPokedexRepositoryFindByTrainer:
     """Test scope for find_by_trainer method"""
@@ -292,3 +265,137 @@ class TestPokedexRepositoryFindByTrainer:
 
         assert isinstance(result, set)
         assert pokemon.id in result
+
+class TestPokedexRepositoryListByTrainer:
+    """Test scope for list_by_trainer method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokedex_repository_list_success(session, trainer, pokemon):
+        pokedex_data = CreatePokedexSchema(
+            hp=MOCK_POKEDEX.hp,
+            wins=MOCK_POKEDEX.wins,
+            level=MOCK_POKEDEX.level,
+            iv_hp=MOCK_POKEDEX.iv_hp,
+            ev_hp=MOCK_POKEDEX.ev_hp,
+            losses=MOCK_POKEDEX.losses,
+            max_hp=MOCK_POKEDEX.max_hp,
+            battles=MOCK_POKEDEX.battles,
+            iv_speed=MOCK_POKEDEX.iv_speed,
+            ev_speed=MOCK_POKEDEX.ev_speed,
+            iv_attack=MOCK_POKEDEX.iv_attack,
+            ev_attack=MOCK_POKEDEX.ev_attack,
+            iv_defense=MOCK_POKEDEX.iv_defense,
+            ev_defense=MOCK_POKEDEX.ev_defense,
+            experience=MOCK_POKEDEX.experience,
+            nickname=MOCK_POKEDEX.nickname,
+            iv_special_attack=MOCK_POKEDEX.iv_special_attack,
+            ev_special_attack=MOCK_POKEDEX.ev_special_attack,
+            iv_special_defense=MOCK_POKEDEX.iv_special_defense,
+            ev_special_defense=MOCK_POKEDEX.ev_special_defense,
+            discovered=MOCK_POKEDEX.discovered,
+            pokemon_id=pokemon.id,
+            trainer_id=trainer.id,
+            discovered_at=datetime.now(),
+        )
+        repository = PokedexRepository(session=session)
+        await repository.create(pokedex_data)
+
+        result = await repository.list_all(PokedexFilterPage(
+            trainer_id=trainer.id,
+        ))
+        assert isinstance(result, list)
+        assert len(result) >= 1
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokedex_repository_list_empty(session, trainer, pokemon):
+        repository = PokedexRepository(session=session)
+
+        result = await repository.list_all(PokedexFilterPage(
+            trainer_id=trainer.id,
+        ))
+        assert isinstance(result, list)
+        assert len(result) == 0
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokedex_repository_list_with_offset(session, trainer, pokemon):
+        for _ in range(5):
+            pokedex = PokedexFactory(trainer_id=trainer.id, pokemon_id=pokemon.id)
+            session.add(pokedex)
+            await session.commit()
+
+        repository = PokedexRepository(session=session)
+
+        result = await repository.list_all(PokedexFilterPage(
+            trainer_id=trainer.id,
+            offset=2,
+            limit=10
+        ))
+        assert result is not None
+        assert hasattr(result, 'items')
+        assert len(result.items) >= 1
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokedex_repository_list_with_limit(session, trainer, pokemon):
+        total_results = 2
+        for _ in range(5):
+            pokedex = PokedexFactory(trainer_id=trainer.id, pokemon_id=pokemon.id)
+            session.add(pokedex)
+            await session.commit()
+
+        repository = PokedexRepository(session=session)
+
+        result = await repository.list_all(PokedexFilterPage(
+            trainer_id=trainer.id,
+            offset=0,
+            limit=2
+        ))
+        assert result is not None
+        if hasattr(result, 'items'):
+            assert len(result.items) == total_results
+        else:
+            assert len(result) == total_results
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokedex_repository_list_with_offset_and_limit(session, trainer, pokemon):
+        total_results = 4
+        for _ in range(10):
+            pokedex = PokedexFactory(trainer_id=trainer.id, pokemon_id=pokemon.id)
+            session.add(pokedex)
+            await session.commit()
+
+        repository = PokedexRepository(session=session)
+
+        result = await repository.list_all(PokedexFilterPage(
+            trainer_id=trainer.id,
+            offset=3,
+            limit=4
+        ))
+        assert result is not None
+        if hasattr(result, 'items'):
+            assert len(result.items) == total_results
+        else:
+            assert len(result) == total_results
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokedex_repository_list_without_pagination(session, trainer, pokemon):
+        total_results = 3
+        for _ in range(3):
+            pokedex = PokedexFactory(trainer_id=trainer.id, pokemon_id=pokemon.id)
+            session.add(pokedex)
+            await session.commit()
+
+        repository = PokedexRepository(session=session)
+
+        result = await repository.list_all(PokedexFilterPage(
+            trainer_id=trainer.id,
+            offset=None,
+            limit=None
+        ))
+        assert isinstance(result, list)
+        assert len(result) == total_results

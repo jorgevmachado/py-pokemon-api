@@ -1,12 +1,16 @@
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Query
+from fastapi_pagination import LimitOffsetParams
+from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_session
 from app.domain.pokedex.model import Pokedex
-from app.domain.pokedex.schema import CreatePokedexSchema
+from app.domain.pokedex.schema import CreatePokedexSchema, PokedexFilterPage
+from app.shared.pagination import is_paginate, limit_paginate
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
@@ -59,3 +63,40 @@ class PokedexRepository:
         )
         result = await self.session.scalars(query)
         return set(result.all())
+
+
+
+    async def list_all(
+            self,
+            page_filter: Annotated[PokedexFilterPage, Query()]
+    ):
+        trainer_id = page_filter.trainer_id
+        query = (
+            select(Pokedex)
+            .options(selectinload(Pokedex.pokemon))
+            .order_by(Pokedex.discovered_at.desc())
+            .where(Pokedex.trainer_id == trainer_id)
+        )
+        if page_filter.discovered is not None:
+            query = query.where(Pokedex.discovered == page_filter.discovered)
+
+        if page_filter.nickname is not None:
+            query = query.where(Pokedex.nickname.ilike(f'%{page_filter.nickname}%'))
+
+        if is_paginate(page_filter):
+            params = LimitOffsetParams(
+                limit=limit_paginate(page_filter.limit),
+                offset=page_filter.offset,
+            )
+            return await paginate(self.session, query, params=params)
+        pokedex = await self.session.scalars(query)
+        return pokedex.all()
+
+    async def find_by_pokemon(self, trainer_id: str, pokemon_id: str):
+        query = (
+            select(Pokedex)
+            .options(selectinload(Pokedex.pokemon))
+            .order_by(Pokedex.discovered_at.desc())
+            .where(Pokedex.trainer_id == trainer_id, Pokedex.pokemon_id == pokemon_id)
+        )
+        return await self.session.scalar(query)

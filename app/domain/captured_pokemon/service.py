@@ -1,15 +1,16 @@
 """Captured Pokemon Service - Manages trainer's caught pokemon collection."""
 
 from datetime import datetime
+from http import HTTPStatus
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.captured_pokemon.repository import CapturedPokemonRepository
-from app.domain.captured_pokemon.schema import CreateCapturedPokemonSchema
+from app.domain.captured_pokemon.schema import CreateCapturedPokemonSchema, CapturedPokemonFilterPage
 from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.model import Pokemon
 from app.domain.trainer.model import Trainer
@@ -27,6 +28,7 @@ class CapturedPokemonService:
         self,
         pokemon: Pokemon,
         trainer: Trainer,
+        nickname: str = None,
     ):
         stats = self.business.calculate_pokemon_stats(
             pokemon=pokemon,
@@ -41,7 +43,7 @@ class CapturedPokemonService:
             losses=stats['losses'],
             max_hp=stats['max_hp'],
             battles=stats['battles'],
-            nickname=stats['nickname'],
+            nickname=nickname if nickname else stats['nickname'],
             iv_speed=stats['iv_speed'],
             ev_speed=stats['ev_speed'],
             iv_attack=stats['iv_attack'],
@@ -255,3 +257,83 @@ class CapturedPokemonService:
         await self.session.refresh(captured_pokemon)
 
         return captured_pokemon
+
+    async def fetch_all(
+            self,
+            page_filter: Annotated[CapturedPokemonFilterPage, Query()],
+    ):
+        try:
+            return await self.repository.list_all(page_filter=page_filter)
+        except Exception as e:
+            print(f'# => captured_pokemon => service => fetch_all => error => {e}')
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail='Error fetching captured_pokemons entries',
+            )
+
+    async def capture(
+            self,
+            trainer: Trainer,
+            capture_pokemon: Pokemon,
+            nickname: str = None
+    ):
+        try:
+            if trainer.pokeballs == 0:
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN,
+                    detail='Not enough pokeballs'
+                )
+
+            if trainer.capture_rate < capture_pokemon.capture_rate:
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN,
+                    detail=(
+                        f'You have {trainer.capture_rate} capture rate. '
+                        f'To capture this Pokemon, you need '
+                        f'{capture_pokemon.capture_rate}.'
+                    ),
+                )
+
+            current_nickname = capture_pokemon.name
+
+            exist_pokemon =  await self.find_by_pokemon(
+                trainer_id=trainer.id,
+                pokemon_id=capture_pokemon.id
+            )
+
+            if exist_pokemon and exist_pokemon.nickname == nickname:
+                current_nickname = f'{capture_pokemon.name}_1'
+
+
+            return await self.create(
+                pokemon=capture_pokemon,
+                trainer=trainer,
+                nickname=current_nickname
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f'# => captured_pokemon => service => capture => error => {e}')
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail='Error capture pokemons',
+            )
+
+    async def find_by_pokemon(self, trainer_id: str, pokemon_id: str):
+        try:
+            return await self.repository.find_by_pokemon(
+                trainer_id=trainer_id,
+                pokemon_id=pokemon_id
+            )
+        except Exception as e:
+            print(
+                f'# => captured_pokemon '
+                f'=> service '
+                f'=> find by pokemon '
+                f'=> error '
+                f'=> {e}'
+            )
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail='Error find by pokemon',
+            )
