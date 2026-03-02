@@ -64,12 +64,7 @@ class PokedexRepository:
         result = await self.session.scalars(query)
         return set(result.all())
 
-
-
-    async def list_all(
-            self,
-            page_filter: Annotated[PokedexFilterPage, Query()]
-    ):
+    async def list_all(self, page_filter: Annotated[PokedexFilterPage, Query()]):
         trainer_id = page_filter.trainer_id
         query = (
             select(Pokedex)

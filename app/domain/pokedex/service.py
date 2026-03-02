@@ -2,7 +2,7 @@ from datetime import datetime
 from http import HTTPStatus
 from typing import Annotated, Optional
 
-from fastapi import Depends, Query, HTTPException
+from fastapi import Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
@@ -13,7 +13,6 @@ from app.domain.pokedex.schema import CreatePokedexSchema, PokedexFilterPage
 from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.model import Pokemon
 from app.domain.trainer.model import Trainer
-from app.shared.schemas import FilterPage
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
@@ -242,10 +241,9 @@ class PokedexService:
 
         return pokedex_entry, captured_entry
 
-
     async def fetch_all(
-            self,
-            page_filter: Annotated[PokedexFilterPage, Query()],
+        self,
+        page_filter: Annotated[PokedexFilterPage, Query()],
     ):
         try:
             return await self.repository.list_all(page_filter=page_filter)
@@ -261,8 +259,7 @@ class PokedexService:
         new_entries: list[Pokedex] = []
         for pokemon in pokemons:
             exist_pokedex = await self.repository.find_by_pokemon(
-                trainer_id=trainer_id,
-                pokemon_id=pokemon.id
+                trainer_id=trainer_id, pokemon_id=pokemon.id
             )
             if not exist_pokedex:
                 total_not_exist += 1
@@ -295,5 +292,7 @@ class PokedexService:
                 )
                 new_entry = await self.repository.create(create_pokedex)
                 new_entries.append(new_entry)
-        print(f'# LOG => pokedex => service => refresh => total_not_exist => {total_not_exist}')
+        print(
+            f'# LOG => pokedex => service => refresh => total_not_exist => {total_not_exist}'
+        )
         return new_entries

@@ -17,7 +17,6 @@ from app.domain.trainer.schema import (
     CreateTrainerSchema,
     FindOneUserSchemaParams,
 )
-from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
 
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -84,10 +83,7 @@ class TrainerService:
         total_pokedex = len(db_user.pokedex)
         pokemons = await self.pokemon_service.fetch_all()
         if total_pokedex < pokemon_total:
-            await self.pokedex_service.refresh(
-                trainer_id=db_user.id,
-                pokemons=pokemons
-            )
+            await self.pokedex_service.refresh(trainer_id=db_user.id, pokemons=pokemons)
         return db_user
 
     async def find_one_by_email(self, email: str) -> Trainer:
@@ -97,24 +93,22 @@ class TrainerService:
         return await self.repository.update(trainer=trainer)
 
     async def list_pokedex(
-            self,
-            trainer_id: str,
-            current_trainer: Trainer,
-            page_filter: Annotated[PokedexFilterPage, Query()],
+        self,
+        trainer_id: str,
+        current_trainer: Trainer,
+        page_filter: Annotated[PokedexFilterPage, Query()],
     ):
         try:
             if trainer_id != current_trainer.id:
                 raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN,
-                    detail='Not enough permissions'
+                    status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
                 )
 
             db_trainer = await self.find_one(trainer_id, current_trainer)
 
             if not db_trainer:
                 raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND,
-                    detail='Trainer not found'
+                    status_code=HTTPStatus.NOT_FOUND, detail='Trainer not found'
                 )
 
             page_filter.trainer_id = db_trainer.id
@@ -127,28 +121,26 @@ class TrainerService:
             print(f'# => TrainerService => list_pokedex => error => {e}')
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail='Error getting trainer pokedex'
+                detail='Error getting trainer pokedex',
             )
 
     async def list_captured_pokemon(
-            self,
-            trainer_id: str,
-            current_trainer: Trainer,
-            page_filter: Annotated[CapturedPokemonFilterPage, Query()],
+        self,
+        trainer_id: str,
+        current_trainer: Trainer,
+        page_filter: Annotated[CapturedPokemonFilterPage, Query()],
     ):
         try:
             if trainer_id != current_trainer.id:
                 raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN,
-                    detail='Not enough permissions'
+                    status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
                 )
 
             db_trainer = await self.find_one(trainer_id, current_trainer)
 
             if not db_trainer:
                 raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND,
-                    detail='Trainer not found'
+                    status_code=HTTPStatus.NOT_FOUND, detail='Trainer not found'
                 )
 
             page_filter.trainer_id = db_trainer.id
@@ -161,28 +153,23 @@ class TrainerService:
             print(f'# => TrainerService => list_captured_pokemon => error => {e}')
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail='Error getting trainer pokemons'
+                detail='Error getting trainer pokemons',
             )
 
     async def capture_pokemon(
-            self,
-            trainer_id: str,
-            current_trainer: Trainer,
-            capture_pokemon: CapturePokemonSchema
+        self, trainer_id: str, current_trainer: Trainer, capture_pokemon: CapturePokemonSchema
     ):
         try:
             if trainer_id != current_trainer.id:
                 raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN,
-                    detail='Not enough permissions'
+                    status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
                 )
 
             db_trainer = await self.find_one(trainer_id, current_trainer)
 
             if not db_trainer:
                 raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND,
-                    detail='Trainer not found'
+                    status_code=HTTPStatus.NOT_FOUND, detail='Trainer not found'
                 )
 
             pokemon = await self.pokemon_service.fetch_one(name=capture_pokemon.pokemon_name)
@@ -197,6 +184,5 @@ class TrainerService:
             print(f'# => TrainerService => capture_pokemon => error => {e}')
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail='Error trainer capture pokemon'
+                detail='Error trainer capture pokemon',
             )
-

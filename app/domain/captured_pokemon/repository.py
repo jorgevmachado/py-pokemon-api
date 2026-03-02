@@ -9,7 +9,10 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_session
 from app.domain.captured_pokemon.model import CapturedPokemon
-from app.domain.captured_pokemon.schema import CreateCapturedPokemonSchema, CapturedPokemonFilterPage
+from app.domain.captured_pokemon.schema import (
+    CapturedPokemonFilterPage,
+    CreateCapturedPokemonSchema,
+)
 from app.shared.pagination import is_paginate, limit_paginate
 
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -52,10 +55,7 @@ class CapturedPokemonRepository:
         await self.session.refresh(captured_pokemon)
         return captured_pokemon
 
-    async def list_all(
-            self,
-            page_filter: Annotated[CapturedPokemonFilterPage, Query()]
-    ):
+    async def list_all(self, page_filter: Annotated[CapturedPokemonFilterPage, Query()]):
         trainer_id = page_filter.trainer_id
         query = (
             select(CapturedPokemon)
@@ -82,7 +82,7 @@ class CapturedPokemonRepository:
             .options(selectinload(CapturedPokemon.pokemon))
             .where(
                 CapturedPokemon.trainer_id == trainer_id,
-                CapturedPokemon.pokemon_id == pokemon_id
+                CapturedPokemon.pokemon_id == pokemon_id,
             )
         )
 

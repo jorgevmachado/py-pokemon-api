@@ -19,6 +19,7 @@ async def pokedex_repository(session):
 async def pokedex_service(session):
     return PokedexService(session=session)
 
+
 MOCK_POKEDEX = Pokedex(
     hp=7,
     wins=0,
@@ -44,6 +45,7 @@ MOCK_POKEDEX = Pokedex(
     pokemon_id='9efd7c0a-7fa8-402a-8166-ff85b82cac33',
     trainer_id='6129c647-9823-48c1-a09e-7f471497a0e9',
 )
+
 
 class PokedexFactory(factory.Factory):
     class Meta:

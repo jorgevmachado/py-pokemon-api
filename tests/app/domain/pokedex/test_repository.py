@@ -102,6 +102,7 @@ class TestPokedexRepositoryCreate:
         with pytest.raises(Exception, match='Database error'):
             await repository.create(pokedex_data)
 
+
 class TestPokedexRepositoryFindByTrainer:
     """Test scope for find_by_trainer method"""
 
@@ -266,6 +267,7 @@ class TestPokedexRepositoryFindByTrainer:
         assert isinstance(result, set)
         assert pokemon.id in result
 
+
 class TestPokedexRepositoryListByTrainer:
     """Test scope for list_by_trainer method"""
 
@@ -301,9 +303,11 @@ class TestPokedexRepositoryListByTrainer:
         repository = PokedexRepository(session=session)
         await repository.create(pokedex_data)
 
-        result = await repository.list_all(PokedexFilterPage(
-            trainer_id=trainer.id,
-        ))
+        result = await repository.list_all(
+            PokedexFilterPage(
+                trainer_id=trainer.id,
+            )
+        )
         assert isinstance(result, list)
         assert len(result) >= 1
 
@@ -312,9 +316,11 @@ class TestPokedexRepositoryListByTrainer:
     async def test_pokedex_repository_list_empty(session, trainer, pokemon):
         repository = PokedexRepository(session=session)
 
-        result = await repository.list_all(PokedexFilterPage(
-            trainer_id=trainer.id,
-        ))
+        result = await repository.list_all(
+            PokedexFilterPage(
+                trainer_id=trainer.id,
+            )
+        )
         assert isinstance(result, list)
         assert len(result) == 0
 
@@ -328,11 +334,9 @@ class TestPokedexRepositoryListByTrainer:
 
         repository = PokedexRepository(session=session)
 
-        result = await repository.list_all(PokedexFilterPage(
-            trainer_id=trainer.id,
-            offset=2,
-            limit=10
-        ))
+        result = await repository.list_all(
+            PokedexFilterPage(trainer_id=trainer.id, offset=2, limit=10)
+        )
         assert result is not None
         assert hasattr(result, 'items')
         assert len(result.items) >= 1
@@ -348,11 +352,9 @@ class TestPokedexRepositoryListByTrainer:
 
         repository = PokedexRepository(session=session)
 
-        result = await repository.list_all(PokedexFilterPage(
-            trainer_id=trainer.id,
-            offset=0,
-            limit=2
-        ))
+        result = await repository.list_all(
+            PokedexFilterPage(trainer_id=trainer.id, offset=0, limit=2)
+        )
         assert result is not None
         if hasattr(result, 'items'):
             assert len(result.items) == total_results
@@ -370,11 +372,9 @@ class TestPokedexRepositoryListByTrainer:
 
         repository = PokedexRepository(session=session)
 
-        result = await repository.list_all(PokedexFilterPage(
-            trainer_id=trainer.id,
-            offset=3,
-            limit=4
-        ))
+        result = await repository.list_all(
+            PokedexFilterPage(trainer_id=trainer.id, offset=3, limit=4)
+        )
         assert result is not None
         if hasattr(result, 'items'):
             assert len(result.items) == total_results
@@ -392,10 +392,8 @@ class TestPokedexRepositoryListByTrainer:
 
         repository = PokedexRepository(session=session)
 
-        result = await repository.list_all(PokedexFilterPage(
-            trainer_id=trainer.id,
-            offset=None,
-            limit=None
-        ))
+        result = await repository.list_all(
+            PokedexFilterPage(trainer_id=trainer.id, offset=None, limit=None)
+        )
         assert isinstance(result, list)
         assert len(result) == total_results

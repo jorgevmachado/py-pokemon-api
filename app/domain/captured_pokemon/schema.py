@@ -66,6 +66,7 @@ class CapturedPokemonPublicSchema(BaseModel):
     captured_at: datetime
     pokemon: PublicPokemonSchema
 
+
 class CapturedPokemonFilterPage(FilterPage):
     trainer_id: str
     nickname: Optional[str] = None
