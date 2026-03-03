@@ -6,6 +6,7 @@ import pytest
 from app.domain.captured_pokemon.schema import (
     CapturedPokemonFilterPage,
     CreateCapturedPokemonSchema,
+    FindCapturePokemonSchema,
 )
 from tests.app.domain.captured_pokemon.conftest import (
     MOCK_CAPTURED_POKEMON,
@@ -296,15 +297,223 @@ class TestCapturedPokemonRepositoryFindByPokemon:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_captured_pokemon_repository_find_by_pokemon_success(
-        session, trainer, pokemon, captured_pokemon_repository
+    async def test_find_by_pokemon_returns_none_when_all_params_empty(
+        captured_pokemon_repository,
+        trainer,
     ):
-        captured_pokemon = CapturedPokemonFactory(trainer_id=trainer.id, pokemon_id=pokemon.id)
-        session.add(captured_pokemon)
-        await session.commit()
+        """Should return None when pokemon_id, name and nickname are all None"""
+        find_schema = FindCapturePokemonSchema(
+            trainer_id=trainer.id,
+            pokemon_id=None,
+            name=None,
+            nickname=None,
+        )
 
         result = await captured_pokemon_repository.find_by_pokemon(
-            trainer_id=trainer.id, pokemon_id=pokemon.id
+            find_capture_pokemon=find_schema
         )
+
+        assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_searches_by_pokemon_id_only(
+        session,
+        captured_pokemon_repository,
+        captured_pokemon_service,
+        trainer,
+        pokemon,
+    ):
+        """Should find pokemon by pokemon_id alone"""
+        await captured_pokemon_service.create(
+            pokemon=pokemon, trainer=trainer, nickname='test'
+        )
+
+        find_schema = FindCapturePokemonSchema(
+            trainer_id=trainer.id,
+            pokemon_id=pokemon.id,
+            name=None,
+            nickname=None,
+        )
+
+        result = await captured_pokemon_repository.find_by_pokemon(
+            find_capture_pokemon=find_schema
+        )
+
+        assert result is not None
         assert result.pokemon_id == pokemon.id
-        assert result.trainer_id == trainer.id
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_searches_by_name_only(
+        session,
+        captured_pokemon_repository,
+        captured_pokemon_service,
+        trainer,
+        pokemon,
+    ):
+        """Should find pokemon by name alone"""
+        await captured_pokemon_service.create(
+            pokemon=pokemon, trainer=trainer, nickname='test'
+        )
+
+        find_schema = FindCapturePokemonSchema(
+            trainer_id=trainer.id,
+            pokemon_id=None,
+            name=pokemon.name,
+            nickname=None,
+        )
+
+        result = await captured_pokemon_repository.find_by_pokemon(
+            find_capture_pokemon=find_schema
+        )
+
+        assert result is not None
+        assert result.pokemon.name == pokemon.name
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_searches_by_nickname_only(
+        session,
+        captured_pokemon_repository,
+        captured_pokemon_service,
+        trainer,
+        pokemon,
+    ):
+        """Should find pokemon by nickname alone (case-insensitive partial match)"""
+        await captured_pokemon_service.create(
+            pokemon=pokemon, trainer=trainer, nickname='unique_nickname'
+        )
+
+        find_schema = FindCapturePokemonSchema(
+            trainer_id=trainer.id,
+            pokemon_id=None,
+            name=None,
+            nickname='unique',
+        )
+
+        result = await captured_pokemon_repository.find_by_pokemon(
+            find_capture_pokemon=find_schema
+        )
+
+        assert result is not None
+        assert 'unique' in result.nickname
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_applies_pokemon_id_and_nickname_filters(
+        session,
+        captured_pokemon_service,
+        trainer,
+        pokemon,
+        pokemon_incomplete,
+    ):
+        """Should apply AND logic when pokemon_id and nickname are provided"""
+        captured_1 = await captured_pokemon_service.create(
+            pokemon=pokemon, trainer=trainer, nickname='first'
+        )
+        await captured_pokemon_service.create(
+            pokemon=pokemon, trainer=trainer, nickname='second'
+        )
+
+        # Search with pokemon_id AND nickname
+        find_schema = FindCapturePokemonSchema(
+            trainer_id=trainer.id,
+            pokemon_id=pokemon.id,
+            name=None,
+            nickname='first',
+        )
+
+        result = await captured_pokemon_service.repository.find_by_pokemon(
+            find_capture_pokemon=find_schema
+        )
+
+        assert result is not None
+        assert result.id == captured_1.id
+        assert result.pokemon_id == pokemon.id
+        assert result.nickname == 'first'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_applies_pokemon_id_and_name_filters(
+        session,
+        captured_pokemon_service,
+        trainer,
+        pokemon,
+        pokemon_incomplete,
+    ):
+        """Should apply AND logic when pokemon_id and name are provided"""
+        await captured_pokemon_service.create(
+            pokemon=pokemon, trainer=trainer, nickname='first'
+        )
+        await captured_pokemon_service.create(
+            pokemon=pokemon_incomplete, trainer=trainer, nickname='second'
+        )
+
+        # Search with pokemon_id AND name
+        find_schema = FindCapturePokemonSchema(
+            trainer_id=trainer.id,
+            pokemon_id=pokemon.id,
+            name=pokemon.name,
+            nickname=None,
+        )
+
+        result = await captured_pokemon_service.repository.find_by_pokemon(
+            find_capture_pokemon=find_schema
+        )
+
+        assert result is not None
+        assert result.pokemon_id == pokemon.id
+        assert result.pokemon.name == pokemon.name
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_applies_all_three_filters(
+        session,
+        captured_pokemon_repository,
+        captured_pokemon_service,
+        trainer,
+        pokemon,
+    ):
+        """Should apply AND logic when all three filters are provided"""
+        await captured_pokemon_service.create(
+            pokemon=pokemon, trainer=trainer, nickname='target_nickname'
+        )
+
+        # Search with pokemon_id AND name AND nickname
+        find_schema = FindCapturePokemonSchema(
+            trainer_id=trainer.id,
+            pokemon_id=pokemon.id,
+            name=pokemon.name,
+            nickname='target',
+        )
+
+        result = await captured_pokemon_repository.find_by_pokemon(
+            find_capture_pokemon=find_schema
+        )
+
+        assert result is not None
+        assert result.pokemon_id == pokemon.id
+        assert result.pokemon.name == pokemon.name
+        assert result.nickname == 'target_nickname'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_returns_none_when_no_match(
+        captured_pokemon_repository,
+        trainer,
+        pokemon,
+    ):
+        """Should return None when no pokemon matches the filters"""
+        find_schema = FindCapturePokemonSchema(
+            trainer_id=trainer.id,
+            pokemon_id=pokemon.id,
+            name=None,
+            nickname=None,
+        )
+
+        result = await captured_pokemon_repository.find_by_pokemon(
+            find_capture_pokemon=find_schema
+        )
+
+        assert result is None

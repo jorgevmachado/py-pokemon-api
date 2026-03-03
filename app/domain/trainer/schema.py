@@ -50,3 +50,11 @@ class TrainerPublicSchema(BaseModel):
 class FindOneUserSchemaParams(BaseModel):
     id: str | None = None
     email: str | None = None
+
+
+class BattlePokemonSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    trainer_pokemon: str
+    trainer_pokemon_move: str
+    opponent_pokemon: str

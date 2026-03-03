@@ -9,7 +9,8 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_session
 from app.domain.pokedex.model import Pokedex
-from app.domain.pokedex.schema import CreatePokedexSchema, PokedexFilterPage
+from app.domain.pokedex.schema import CreatePokedexSchema, FindPokedexSchema, PokedexFilterPage
+from app.domain.pokemon.model import Pokemon
 from app.shared.pagination import is_paginate, limit_paginate
 
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -68,7 +69,10 @@ class PokedexRepository:
         trainer_id = page_filter.trainer_id
         query = (
             select(Pokedex)
-            .options(selectinload(Pokedex.pokemon))
+            .options(
+                selectinload(Pokedex.pokemon),
+                selectinload(Pokedex.pokemon).selectinload(Pokemon.moves),
+            )
             .order_by(Pokedex.discovered_at.desc())
             .where(Pokedex.trainer_id == trainer_id)
         )
@@ -87,11 +91,28 @@ class PokedexRepository:
         pokedex = await self.session.scalars(query)
         return pokedex.all()
 
-    async def find_by_pokemon(self, trainer_id: str, pokemon_id: str):
+    async def find_by_pokemon(self, find_pokedex: FindPokedexSchema):
+        if (
+            find_pokedex.pokemon_id is None
+            and find_pokedex.name is None
+            and find_pokedex.nickname is None
+        ):
+            return None
+
         query = (
             select(Pokedex)
             .options(selectinload(Pokedex.pokemon))
             .order_by(Pokedex.discovered_at.desc())
-            .where(Pokedex.trainer_id == trainer_id, Pokedex.pokemon_id == pokemon_id)
+            .where(Pokedex.trainer_id == find_pokedex.trainer_id)
         )
+
+        if find_pokedex.pokemon_id is not None:
+            query = query.where(Pokedex.pokemon_id == find_pokedex.pokemon_id)
+
+        if find_pokedex.name is not None:
+            query = query.where(Pokedex.pokemon.has(name=find_pokedex.name))
+
+        if find_pokedex.nickname is not None:
+            query = query.where(Pokedex.nickname.ilike(f'%{find_pokedex.nickname}%'))
+
         return await self.session.scalar(query)

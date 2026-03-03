@@ -6,14 +6,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.security import get_password_hash
-from app.domain.captured_pokemon.schema import CapturedPokemonFilterPage, CapturePokemonSchema
+from app.domain.captured_pokemon.schema import (
+    CapturedPokemonFilterPage,
+    CapturePokemonSchema,
+    FindCapturePokemonSchema,
+)
 from app.domain.captured_pokemon.service import CapturedPokemonService
-from app.domain.pokedex.schema import PokedexFilterPage
+from app.domain.pokedex.schema import FindPokedexSchema, PokedexFilterPage
 from app.domain.pokedex.service import PokedexService
 from app.domain.pokemon.service import PokemonService
 from app.domain.trainer.model import Trainer
 from app.domain.trainer.repository import TrainerRepository
 from app.domain.trainer.schema import (
+    BattlePokemonSchema,
     CreateTrainerSchema,
     FindOneUserSchemaParams,
 )
@@ -99,17 +104,7 @@ class TrainerService:
         page_filter: Annotated[PokedexFilterPage, Query()],
     ):
         try:
-            if trainer_id != current_trainer.id:
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
-                )
-
             db_trainer = await self.find_one(trainer_id, current_trainer)
-
-            if not db_trainer:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND, detail='Trainer not found'
-                )
 
             page_filter.trainer_id = db_trainer.id
             return await self.pokedex_service.fetch_all(
@@ -131,17 +126,7 @@ class TrainerService:
         page_filter: Annotated[CapturedPokemonFilterPage, Query()],
     ):
         try:
-            if trainer_id != current_trainer.id:
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
-                )
-
             db_trainer = await self.find_one(trainer_id, current_trainer)
-
-            if not db_trainer:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND, detail='Trainer not found'
-                )
 
             page_filter.trainer_id = db_trainer.id
             return await self.captured_pokemon_service.fetch_all(
@@ -160,17 +145,7 @@ class TrainerService:
         self, trainer_id: str, current_trainer: Trainer, capture_pokemon: CapturePokemonSchema
     ):
         try:
-            if trainer_id != current_trainer.id:
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
-                )
-
             db_trainer = await self.find_one(trainer_id, current_trainer)
-
-            if not db_trainer:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND, detail='Trainer not found'
-                )
 
             pokemon = await self.pokemon_service.fetch_one(name=capture_pokemon.pokemon_name)
 
@@ -185,4 +160,53 @@ class TrainerService:
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 detail='Error trainer capture pokemon',
+            )
+
+    async def battle(
+        self, trainer_id: str, current_trainer: Trainer, battle_pokemon: BattlePokemonSchema
+    ):
+
+        try:
+            db_trainer = await self.find_one(trainer_id, current_trainer)
+
+            trainer_pokemon = await self.captured_pokemon_service.find_by_pokemon(
+                FindCapturePokemonSchema(
+                    trainer_id=db_trainer.id, name=battle_pokemon.trainer_pokemon
+                )
+            )
+            if not trainer_pokemon:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND, detail='Trainer Pokemon not found'
+                )
+
+            if trainer_pokemon.hp <= 0:
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST, detail='Trainer Pokemon is fainted'
+                )
+
+            opponent_pokemon = await self.pokedex_service.find_by_pokemon(
+                FindPokedexSchema(
+                    trainer_id=db_trainer.id, name=battle_pokemon.opponent_pokemon
+                )
+            )
+
+            if not opponent_pokemon:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    detail='Opponent Pokedex Pokemon not found',
+                )
+
+            if opponent_pokemon.hp <= 0:
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST, detail='Opponent Pokemon is fainted'
+                )
+
+            return None
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f'# => TrainerService => battle => error => {e}')
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail='Error battle pokemon',
             )

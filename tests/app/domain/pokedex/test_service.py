@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
-from app.domain.pokedex.schema import PokedexFilterPage
+from app.domain.pokedex.schema import FindPokedexSchema, PokedexFilterPage
 from tests.app.domain.pokedex.conftest import PokedexFactory
 
 MOCK_STATS = {
@@ -265,8 +265,12 @@ class TestPokedexServiceRefresh:
         assert result[0].trainer_id == trainer.id
         assert result[0].discovered is False
         pokedex_service.repository.find_by_pokemon.assert_awaited_once_with(
-            trainer_id=trainer.id,
-            pokemon_id=pokemon.id,
+            FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=pokemon.id,
+                name=None,
+                nickname=None,
+            )
         )
         pokedex_service.business.calculate_pokemon_stats.assert_called_once_with(
             pokemon=pokemon
@@ -340,3 +344,68 @@ class TestPokedexServiceRefresh:
                 trainer_id=trainer.id,
                 pokemons=[pokemon],
             )
+
+
+class TestPokedexServiceFindByPokemon:
+    """Test scope for find_by_pokemon method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_returns_entry(
+        pokedex_service,
+        trainer,
+        pokemon,
+    ):
+        """Should return pokedex entry when found"""
+        expected_result = {'pokemon_id': pokemon.id, 'trainer_id': trainer.id}
+        pokedex_service.repository.find_by_pokemon = AsyncMock(return_value=expected_result)
+
+        result = await pokedex_service.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=pokemon.id,
+            )
+        )
+
+        assert result == expected_result
+        pokedex_service.repository.find_by_pokemon.assert_awaited_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_returns_none_when_empty_params(
+        pokedex_service,
+        trainer,
+    ):
+        """Should return None when all parameters are empty"""
+
+        result = await pokedex_service.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=None,
+                name=None,
+                nickname=None,
+            )
+        )
+
+        assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_raises_http_exception_on_error(
+        pokedex_service,
+        trainer,
+        pokemon,
+    ):
+        """Should raise HTTPException when repository fails"""
+        pokedex_service.repository.find_by_pokemon = AsyncMock(side_effect=Exception('boom'))
+
+        with pytest.raises(HTTPException) as exc_info:
+            await pokedex_service.find_by_pokemon(
+                find_pokedex=FindPokedexSchema(
+                    trainer_id=trainer.id,
+                    pokemon_id=pokemon.id,
+                )
+            )
+
+        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert exc_info.value.detail == 'Error pokedex find by pokemon'

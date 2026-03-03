@@ -70,3 +70,11 @@ class PokedexFilterPage(FilterPage):
     trainer_id: str
     nickname: Optional[str] = None
     discovered: Optional[bool] = None
+
+
+class FindPokedexSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    trainer_id: str
+    name: Optional[str] = None
+    nickname: Optional[str] = None
+    pokemon_id: Optional[str] = None

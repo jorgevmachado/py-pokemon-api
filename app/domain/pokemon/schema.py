@@ -63,6 +63,7 @@ class PublicPokemonSchema(BaseModel):
     evolution_chain_url: Optional[str] = None
     evolves_from_species: Optional[str] = None
     has_gender_differences: Optional[bool] = None
+    moves: list[PokemonMove] = []
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None

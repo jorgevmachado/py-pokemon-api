@@ -13,6 +13,7 @@ from app.domain.captured_pokemon.repository import CapturedPokemonRepository
 from app.domain.captured_pokemon.schema import (
     CapturedPokemonFilterPage,
     CreateCapturedPokemonSchema,
+    FindCapturePokemonSchema,
 )
 from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.model import Pokemon
@@ -294,7 +295,10 @@ class CapturedPokemonService:
             current_nickname = capture_pokemon.name
 
             exist_pokemon = await self.find_by_pokemon(
-                trainer_id=trainer.id, pokemon_id=capture_pokemon.id
+                find_capture_pokemon=FindCapturePokemonSchema(
+                    trainer_id=trainer.id,
+                    pokemon_id=capture_pokemon.id,
+                )
             )
 
             if exist_pokemon and exist_pokemon.nickname == nickname:
@@ -312,10 +316,10 @@ class CapturedPokemonService:
                 detail='Error capture pokemons',
             )
 
-    async def find_by_pokemon(self, trainer_id: str, pokemon_id: str):
+    async def find_by_pokemon(self, find_capture_pokemon: FindCapturePokemonSchema):
         try:
             return await self.repository.find_by_pokemon(
-                trainer_id=trainer_id, pokemon_id=pokemon_id
+                find_capture_pokemon=find_capture_pokemon
             )
         except Exception as e:
             print(f'# => captured_pokemon => service => find by pokemon => error => {e}')

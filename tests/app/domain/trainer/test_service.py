@@ -242,9 +242,14 @@ class TestTrainerServiceListPokedex:
         trainer_service,
         trainer,
     ):
-        """Should raise not found when find_one returns no trainer"""
+        """Should raise not found when find_one raises"""
         page_filter = PokedexFilterPage(trainer_id='placeholder')
-        trainer_service.find_one = AsyncMock(return_value=None)
+        trainer_service.find_one = AsyncMock(
+            side_effect=HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail='Trainer not found',
+            )
+        )
 
         with pytest.raises(HTTPException) as exc_info:
             await trainer_service.list_pokedex(
@@ -330,9 +335,14 @@ class TestTrainerServiceListCapturedPokemon:
         trainer_service,
         trainer,
     ):
-        """Should raise not found when find_one returns no trainer"""
+        """Should raise not found when find_one raises"""
         page_filter = CapturedPokemonFilterPage(trainer_id='placeholder')
-        trainer_service.find_one = AsyncMock(return_value=None)
+        trainer_service.find_one = AsyncMock(
+            side_effect=HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail='Trainer not found',
+            )
+        )
 
         with pytest.raises(HTTPException) as exc_info:
             await trainer_service.list_captured_pokemon(
@@ -420,9 +430,14 @@ class TestTrainerServiceCapturePokemon:
         trainer_service,
         trainer,
     ):
-        """Should raise not found when find_one returns no trainer"""
+        """Should raise not found when find_one raises"""
         capture_payload = CapturePokemonSchema(pokemon_name='pikachu')
-        trainer_service.find_one = AsyncMock(return_value=None)
+        trainer_service.find_one = AsyncMock(
+            side_effect=HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail='Trainer not found',
+            )
+        )
 
         with pytest.raises(HTTPException) as exc_info:
             await trainer_service.capture_pokemon(

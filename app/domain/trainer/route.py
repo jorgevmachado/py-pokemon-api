@@ -15,6 +15,7 @@ from app.domain.captured_pokemon.schema import (
 from app.domain.pokedex.schema import PokedexFilterPage, PokedexPublicSchema
 from app.domain.trainer.model import Trainer
 from app.domain.trainer.schema import (
+    BattlePokemonSchema,
     CreateTrainerSchema,
     TrainerPublicSchema,
 )
@@ -69,6 +70,17 @@ async def trainer_capture_pokemons(
 ):
     service = TrainerService(session)
     return await service.capture_pokemon(trainer_id, current_trainer, capture_pokemon)
+
+
+@router.post('/{trainer_id}/battle')
+async def trainer_battle(
+    trainer_id: str,
+    session: Session,
+    current_trainer: CurrentTrainer,
+    battle_pokemon: BattlePokemonSchema,
+):
+    service = TrainerService(session)
+    return await service.battle(trainer_id, current_trainer, battle_pokemon)
 
 
 @router.get('/{trainer_id}', status_code=HTTPStatus.OK, response_model=TrainerPublicSchema)

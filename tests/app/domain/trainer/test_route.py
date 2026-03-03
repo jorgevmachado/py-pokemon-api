@@ -111,13 +111,13 @@ def test_get_trainer_pokedex_should_return_forbidden_when_not_owner(
     assert response.json() == {'detail': 'Not enough permissions'}
 
 
-def test_get_trainer_pokedex_should_return_forbidden_when_trainer_missing(client, token):
+def test_get_trainer_pokedex_should_return_not_found_when_trainer_missing(client, token):
     response = client.get(
         '/trainers/17aafbdd-1cd5-42a1-9516-b3a55ca52e7f/pokedex',
         headers={'Authorization': f'Bearer {token}'},
     )
-    assert response.status_code == HTTPStatus.FORBIDDEN
-    assert response.json() == {'detail': 'Not enough permissions'}
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {'detail': 'Trainer not found'}
 
 
 def test_get_trainer_pokemons(client, trainer, token):
@@ -141,13 +141,13 @@ def test_get_trainer_pokemons_should_return_forbidden_when_not_owner(
     assert response.json() == {'detail': 'Not enough permissions'}
 
 
-def test_get_trainer_pokemons_should_return_forbidden_when_trainer_missing(client, token):
+def test_get_trainer_pokemons_should_return_not_found_when_trainer_missing(client, token):
     response = client.get(
         '/trainers/17aafbdd-1cd5-42a1-9516-b3a55ca52e7f/pokemons',
         headers={'Authorization': f'Bearer {token}'},
     )
-    assert response.status_code == HTTPStatus.FORBIDDEN
-    assert response.json() == {'detail': 'Not enough permissions'}
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {'detail': 'Trainer not found'}
 
 
 def test_trainer_capture_pokemons(client, trainer, token, pokemon):
@@ -211,7 +211,7 @@ def test_trainer_capture_pokemons_should_return_forbidden_when_low_capture_rate(
     }
 
 
-def test_trainer_capture_pokemons_should_return_forbidden_when_trainer_missing(
+def test_trainer_capture_pokemons_should_return_not_found_when_trainer_missing(
     client, token, pokemon
 ):
     response = client.post(
@@ -219,5 +219,5 @@ def test_trainer_capture_pokemons_should_return_forbidden_when_trainer_missing(
         headers={'Authorization': f'Bearer {token}'},
         json={'pokemon_name': pokemon.name},
     )
-    assert response.status_code == HTTPStatus.FORBIDDEN
-    assert response.json() == {'detail': 'Not enough permissions'}
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {'detail': 'Trainer not found'}

@@ -9,7 +9,7 @@ from app.core.database import get_session
 from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.pokedex.model import Pokedex
 from app.domain.pokedex.repository import PokedexRepository
-from app.domain.pokedex.schema import CreatePokedexSchema, PokedexFilterPage
+from app.domain.pokedex.schema import CreatePokedexSchema, FindPokedexSchema, PokedexFilterPage
 from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.model import Pokemon
 from app.domain.trainer.model import Trainer
@@ -259,7 +259,7 @@ class PokedexService:
         new_entries: list[Pokedex] = []
         for pokemon in pokemons:
             exist_pokedex = await self.repository.find_by_pokemon(
-                trainer_id=trainer_id, pokemon_id=pokemon.id
+                FindPokedexSchema(trainer_id=trainer_id, pokemon_id=pokemon.id)
             )
             if not exist_pokedex:
                 total_not_exist += 1
@@ -296,3 +296,13 @@ class PokedexService:
             f'# LOG => pokedex => service => refresh => total_not_exist => {total_not_exist}'
         )
         return new_entries
+
+    async def find_by_pokemon(self, find_pokedex: FindPokedexSchema):
+        try:
+            return await self.repository.find_by_pokemon(find_pokedex=find_pokedex)
+        except Exception as e:
+            print(f'# => pokedex => service => find by pokemon => error => {e}')
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail='Error pokedex find by pokemon',
+            )

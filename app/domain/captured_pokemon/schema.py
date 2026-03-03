@@ -76,3 +76,11 @@ class CapturePokemonSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     nickname: Optional[str] = None
     pokemon_name: str
+
+
+class FindCapturePokemonSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    trainer_id: str
+    name: Optional[str] = None
+    nickname: Optional[str] = None
+    pokemon_id: Optional[str] = None

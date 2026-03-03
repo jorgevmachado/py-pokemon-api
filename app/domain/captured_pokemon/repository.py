@@ -12,7 +12,9 @@ from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.captured_pokemon.schema import (
     CapturedPokemonFilterPage,
     CreateCapturedPokemonSchema,
+    FindCapturePokemonSchema,
 )
+from app.domain.pokemon.model import Pokemon
 from app.shared.pagination import is_paginate, limit_paginate
 
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -59,7 +61,10 @@ class CapturedPokemonRepository:
         trainer_id = page_filter.trainer_id
         query = (
             select(CapturedPokemon)
-            .options(selectinload(CapturedPokemon.pokemon))
+            .options(
+                selectinload(CapturedPokemon.pokemon),
+                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.moves),
+            )
             .order_by(CapturedPokemon.captured_at.desc())
             .where(CapturedPokemon.trainer_id == trainer_id)
         )
@@ -76,14 +81,29 @@ class CapturedPokemonRepository:
         captured_pokemons = await self.session.scalars(query)
         return captured_pokemons.all()
 
-    async def find_by_pokemon(self, trainer_id: str, pokemon_id: str):
+    async def find_by_pokemon(self, find_capture_pokemon: FindCapturePokemonSchema):
+        if (
+            find_capture_pokemon.pokemon_id is None
+            and find_capture_pokemon.name is None
+            and find_capture_pokemon.nickname is None
+        ):
+            return None
+
         query = (
             select(CapturedPokemon)
             .options(selectinload(CapturedPokemon.pokemon))
-            .where(
-                CapturedPokemon.trainer_id == trainer_id,
-                CapturedPokemon.pokemon_id == pokemon_id,
-            )
+            .where(CapturedPokemon.trainer_id == find_capture_pokemon.trainer_id)
         )
+
+        if find_capture_pokemon.pokemon_id is not None:
+            query = query.where(CapturedPokemon.pokemon_id == find_capture_pokemon.pokemon_id)
+
+        if find_capture_pokemon.name is not None:
+            query = query.where(CapturedPokemon.pokemon.has(name=find_capture_pokemon.name))
+
+        if find_capture_pokemon.nickname is not None:
+            query = query.where(
+                CapturedPokemon.nickname.ilike(f'%{find_capture_pokemon.nickname}%')
+            )
 
         return await self.session.scalar(query)

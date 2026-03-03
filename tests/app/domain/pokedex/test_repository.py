@@ -1,10 +1,10 @@
 from datetime import datetime
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from app.domain.pokedex.repository import PokedexRepository
-from app.domain.pokedex.schema import CreatePokedexSchema, PokedexFilterPage
+from app.domain.pokedex.schema import CreatePokedexSchema, FindPokedexSchema, PokedexFilterPage
 from tests.app.domain.pokedex.conftest import MOCK_POKEDEX, PokedexFactory
 
 
@@ -459,13 +459,301 @@ class TestPokedexRepositoryFindByPokemon:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokedex_repository_find_by_pokemon_success(session, trainer, pokemon):
+    async def test_find_by_pokemon_returns_none_when_all_params_empty(session, trainer):
+        """Should return None when all parameters are empty"""
+
+        repository = PokedexRepository(session=session)
+
+        result = await repository.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=None,
+                name=None,
+                nickname=None,
+            )
+        )
+
+        assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_searches_by_pokemon_id_only(session, trainer, pokemon):
+        """Should find pokedex entry by pokemon_id alone"""
+
         pokedex = PokedexFactory(trainer_id=trainer.id, pokemon_id=pokemon.id)
         session.add(pokedex)
         await session.commit()
 
         repository = PokedexRepository(session=session)
 
-        result = await repository.find_by_pokemon(trainer_id=trainer.id, pokemon_id=pokemon.id)
+        result = await repository.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=pokemon.id,
+                name=None,
+                nickname=None,
+            )
+        )
+
+        assert result is not None
         assert result.pokemon_id == pokemon.id
-        assert result.trainer_id == trainer.id
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_searches_by_name_only(session, trainer, pokemon):
+        """Should find pokedex entry by pokemon name alone"""
+
+        pokedex = PokedexFactory(trainer_id=trainer.id, pokemon_id=pokemon.id)
+        session.add(pokedex)
+        await session.commit()
+
+        repository = PokedexRepository(session=session)
+
+        result = await repository.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=None,
+                name=pokemon.name,
+                nickname=None,
+            )
+        )
+
+        assert result is not None
+        assert result.pokemon.name == pokemon.name
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_searches_by_nickname_only(session, trainer, pokemon):
+        """Should find pokedex entry by nickname alone (case-insensitive partial match)"""
+
+        pokedex = PokedexFactory(
+            trainer_id=trainer.id, pokemon_id=pokemon.id, nickname='unique_nickname'
+        )
+        session.add(pokedex)
+        await session.commit()
+
+        repository = PokedexRepository(session=session)
+
+        result = await repository.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=None,
+                name=None,
+                nickname='unique',
+            )
+        )
+
+        assert result is not None
+        assert 'unique' in result.nickname
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_applies_pokemon_id_and_nickname_filters(
+        session, trainer, pokemon
+    ):
+        """Should apply AND logic when pokemon_id and nickname are provided"""
+
+        pokedex = PokedexFactory(
+            trainer_id=trainer.id, pokemon_id=pokemon.id, nickname='first'
+        )
+        session.add(pokedex)
+        await session.commit()
+
+        repository = PokedexRepository(session=session)
+
+        result = await repository.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=pokemon.id,
+                name=None,
+                nickname='first',
+            )
+        )
+
+        assert result is not None
+        assert result.pokemon_id == pokemon.id
+        assert result.nickname == 'first'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_applies_pokemon_id_and_name_filters(
+        session, trainer, pokemon
+    ):
+        """Should apply AND logic when pokemon_id and name are provided"""
+
+        pokedex = PokedexFactory(trainer_id=trainer.id, pokemon_id=pokemon.id)
+        session.add(pokedex)
+        await session.commit()
+
+        repository = PokedexRepository(session=session)
+
+        result = await repository.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=pokemon.id,
+                name=pokemon.name,
+                nickname=None,
+            )
+        )
+
+        assert result is not None
+        assert result.pokemon_id == pokemon.id
+        assert result.pokemon.name == pokemon.name
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_applies_all_three_filters(session, trainer, pokemon):
+        """Should apply AND logic when all three filters are provided"""
+
+        pokedex = PokedexFactory(
+            trainer_id=trainer.id, pokemon_id=pokemon.id, nickname='target_nickname'
+        )
+        session.add(pokedex)
+        await session.commit()
+
+        repository = PokedexRepository(session=session)
+
+        result = await repository.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=pokemon.id,
+                name=pokemon.name,
+                nickname='target',
+            )
+        )
+
+        assert result is not None
+        assert result.pokemon_id == pokemon.id
+        assert result.pokemon.name == pokemon.name
+        assert result.nickname == 'target_nickname'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_returns_none_when_no_match(session, trainer, pokemon):
+        """Should return None when no pokedex entry matches the filters"""
+
+        repository = PokedexRepository(session=session)
+
+        result = await repository.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=pokemon.id,
+                name=None,
+                nickname=None,
+            )
+        )
+
+        assert result is None
+
+
+class TestPokedexRepositoryQueryBranches:
+    """Focused branch coverage tests for query filters and non-paginated returns."""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_list_all_applies_discovered_filter_and_returns_all_items():
+        """Should apply discovered filter and return scalars().all() in non-paginated mode."""
+        session = AsyncMock()
+        scalars_result = MagicMock()
+        scalars_result.all.return_value = ['row']
+        session.scalars = AsyncMock(return_value=scalars_result)
+
+        repository = PokedexRepository(session=session)
+        result = await repository.list_all(
+            PokedexFilterPage(
+                trainer_id='trainer-id',
+                discovered=True,
+                offset=None,
+                limit=None,
+            )
+        )
+
+        query = session.scalars.await_args.args[0]
+        assert 'pokedex.discovered' in str(query)
+        assert result == ['row']
+        scalars_result.all.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_list_all_applies_nickname_filter_and_returns_all_items():
+        """Should apply nickname filter and return scalars().all() in non-paginated mode."""
+        session = AsyncMock()
+        scalars_result = MagicMock()
+        scalars_result.all.return_value = []
+        session.scalars = AsyncMock(return_value=scalars_result)
+
+        repository = PokedexRepository(session=session)
+        result = await repository.list_all(
+            PokedexFilterPage(
+                trainer_id='trainer-id',
+                nickname='pi',
+                offset=None,
+                limit=None,
+            )
+        )
+
+        query = session.scalars.await_args.args[0]
+        assert 'pokedex.nickname' in str(query)
+        assert result == []
+        scalars_result.all.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_applies_pokemon_id_filter_clause():
+        """Should include pokemon_id clause when pokemon_id is provided."""
+        session = AsyncMock()
+        session.scalar = AsyncMock(return_value='row')
+        repository = PokedexRepository(session=session)
+
+        await repository.find_by_pokemon(
+            FindPokedexSchema(
+                trainer_id='trainer-id',
+                pokemon_id='pokemon-id',
+                name=None,
+                nickname=None,
+            )
+        )
+
+        query = session.scalar.await_args.args[0]
+        assert 'pokedex.pokemon_id' in str(query)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_applies_name_filter_clause():
+        """Should include pokemon name clause when name is provided."""
+        session = AsyncMock()
+        session.scalar = AsyncMock(return_value='row')
+        repository = PokedexRepository(session=session)
+
+        await repository.find_by_pokemon(
+            FindPokedexSchema(
+                trainer_id='trainer-id',
+                pokemon_id=None,
+                name='pikachu',
+                nickname=None,
+            )
+        )
+
+        query = session.scalar.await_args.args[0]
+        assert 'EXISTS' in str(query)
+        assert 'pokemon.name' in str(query)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_applies_nickname_filter_clause():
+        """Should include nickname clause when nickname is provided."""
+        session = AsyncMock()
+        session.scalar = AsyncMock(return_value='row')
+        repository = PokedexRepository(session=session)
+
+        await repository.find_by_pokemon(
+            FindPokedexSchema(
+                trainer_id='trainer-id',
+                pokemon_id=None,
+                name=None,
+                nickname='nick',
+            )
+        )
+
+        query = session.scalar.await_args.args[0]
+        assert 'pokedex.nickname' in str(query)
