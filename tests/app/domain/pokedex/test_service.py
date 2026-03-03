@@ -1,6 +1,11 @@
+from http import HTTPStatus
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import HTTPException
+
+from app.domain.pokedex.schema import PokedexFilterPage
+from tests.app.domain.pokedex.conftest import PokedexFactory
 
 MOCK_STATS = {
     'hp': 10,
@@ -197,3 +202,39 @@ class TestPokedexServiceAddPokemonToPokedexAndCapture:
                 level=1,
             )
         )
+
+
+class TestPokedexServiceFetchAll:
+    """Test scope for fetch_all method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokedex_fetch_all_returns_list(
+        session, pokedex_service, trainer, pokemon, pokemon_incomplete
+    ):
+        """Should return a list of pokedex entries"""
+        pokedex_1 = PokedexFactory(trainer_id=trainer.id, pokemon_id=pokemon.id)
+        session.add(pokedex_1)
+        await session.commit()
+        pokedex_2 = PokedexFactory(trainer_id=trainer.id, pokemon_id=pokemon_incomplete.id)
+        session.add(pokedex_2)
+        await session.commit()
+
+        result = await pokedex_service.fetch_all(
+            page_filter=PokedexFilterPage(trainer_id=trainer.id)
+        )
+        assert isinstance(result, list)
+        assert len(result) >= 1
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokedex_fetch_all_returns_error(pokedex_service, trainer):
+        """Should raise HTTPException when repository fails"""
+        pokedex_service.repository.list_all = AsyncMock(side_effect=Exception('boom'))
+
+        with pytest.raises(HTTPException) as exc_info:
+            await pokedex_service.fetch_all(
+                page_filter=PokedexFilterPage(trainer_id=trainer.id)
+            )
+        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert exc_info.value.detail == 'Error fetching pokedex entries'
