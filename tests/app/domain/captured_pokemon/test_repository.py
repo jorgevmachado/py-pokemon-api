@@ -8,10 +8,7 @@ from app.domain.captured_pokemon.schema import (
     CreateCapturedPokemonSchema,
     FindCapturePokemonSchema,
 )
-from tests.app.domain.captured_pokemon.conftest import (
-    MOCK_CAPTURED_POKEMON,
-    CapturedPokemonFactory,
-)
+from tests.factories.captured_pokemon import MOCK_CAPTURED_POKEMON, CapturedPokemonFactory
 
 
 class TestCapturedPokemonRepositoryCreate:

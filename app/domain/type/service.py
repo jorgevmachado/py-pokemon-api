@@ -1,9 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_session
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
     PokemonExternalBaseTypeSchemaResponse,
@@ -18,12 +16,12 @@ from app.domain.type.schema import (
 )
 from app.shared.number import ensure_order_number
 
-Session = Annotated[AsyncSession, Depends(get_session)]
+Repository = Annotated[PokemonTypeRepository, Depends()]
 
 
 class PokemonTypeService:
-    def __init__(self, session: Session):
-        self.repository = PokemonTypeRepository(session)
+    def __init__(self, repository: Repository):
+        self.repository = repository
         self.external_service = PokemonExternalService()
 
     async def verify_pokemon_type(

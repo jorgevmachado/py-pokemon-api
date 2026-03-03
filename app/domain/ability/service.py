@@ -1,9 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_session
 from app.domain.ability.model import PokemonAbility
 from app.domain.ability.repository import PokemonAbilityRepository
 from app.domain.ability.schema import CreatePokemonAbilitySchema
@@ -12,12 +10,12 @@ from app.domain.pokemon.external.schemas import (
 )
 from app.shared.number import ensure_order_number
 
-Session = Annotated[AsyncSession, Depends(get_session)]
+Repository = Annotated[PokemonAbilityRepository, Depends()]
 
 
 class PokemonAbilityService:
-    def __init__(self, session: Session):
-        self.repository = PokemonAbilityRepository(session)
+    def __init__(self, repository: Repository):
+        self.repository = repository
 
     async def verify_pokemon_abilities(
         self, abilities: list[PokemonExternalBaseAbilitySchemaResponse]

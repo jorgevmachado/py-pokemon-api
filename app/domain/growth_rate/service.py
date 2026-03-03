@@ -1,9 +1,7 @@
 from typing import Annotated, Optional
 
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_session
 from app.domain.growth_rate.business import PokemonGrowthRateBusiness
 from app.domain.growth_rate.model import PokemonGrowthRate
 from app.domain.growth_rate.repository import PokemonGrowthRateRepository
@@ -14,12 +12,12 @@ from app.domain.pokemon.external.schemas import (
 from app.domain.pokemon.external.service import PokemonExternalService
 from app.shared.number import ensure_order_number
 
-Session = Annotated[AsyncSession, Depends(get_session)]
+Repository = Annotated[PokemonGrowthRateRepository, Depends()]
 
 
 class PokemonGrowthRateService:
-    def __init__(self, session: Session):
-        self.repository = PokemonGrowthRateRepository(session)
+    def __init__(self, repository: Repository):
+        self.repository = repository
         self.external_service = PokemonExternalService()
 
     async def verify_pokemon_growth_rate(

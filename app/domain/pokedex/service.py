@@ -3,9 +3,7 @@ from http import HTTPStatus
 from typing import Annotated, Optional
 
 from fastapi import Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_session
 from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.pokedex.model import Pokedex
 from app.domain.pokedex.repository import PokedexRepository
@@ -14,13 +12,12 @@ from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.model import Pokemon
 from app.domain.trainer.model import Trainer
 
-Session = Annotated[AsyncSession, Depends(get_session)]
+Repository = Annotated[PokedexRepository, Depends()]
 
 
 class PokedexService:
-    def __init__(self, session: Session):
-        self.session = session
-        self.repository = PokedexRepository(session)
+    def __init__(self, repository: Repository):
+        self.repository = repository
         self.business = PokemonBusiness()
 
     async def initialize(
@@ -105,7 +102,7 @@ class PokedexService:
             level=level,
         )
 
-        pokedex_entry = Pokedex(
+        create_pokedex = CreatePokedexSchema(
             hp=stats['hp'],
             wins=stats['wins'],
             level=stats['level'],
@@ -132,11 +129,7 @@ class PokedexService:
             trainer_id=trainer.id,
         )
 
-        self.session.add(pokedex_entry)
-        await self.session.commit()
-        await self.session.refresh(pokedex_entry)
-
-        return pokedex_entry
+        return await self.repository.create(create_pokedex)
 
     async def capture_pokemon(
         self,
@@ -196,9 +189,9 @@ class PokedexService:
             captured_at=datetime.now(),
         )
 
-        self.session.add(captured_pokemon)
-        await self.session.commit()
-        await self.session.refresh(captured_pokemon)
+        # self.session.add(captured_pokemon)
+        # await self.session.commit()
+        # await self.session.refresh(captured_pokemon)
 
         return captured_pokemon
 

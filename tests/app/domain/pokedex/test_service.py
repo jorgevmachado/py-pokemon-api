@@ -102,15 +102,6 @@ class TestPokedexServiceInitializeEntry:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_initialize_pokedex_entry_raises_type_error(
-        pokedex_service, trainer, pokemon
-    ):
-        """Should raise TypeError with current model signature"""
-        with pytest.raises(TypeError):
-            await pokedex_service.initialize_pokedex_entry(pokemon=pokemon, trainer=trainer)
-
-    @staticmethod
-    @pytest.mark.asyncio
     async def test_initialize_pokedex_entry_persists(pokedex_service, trainer, pokemon):
         """Should add, commit, and refresh a pokedex entry"""
         pokedex_service.business.calculate_pokemon_stats = MagicMock(return_value=MOCK_STATS)
@@ -123,9 +114,6 @@ class TestPokedexServiceInitializeEntry:
 
         assert result.pokemon_id == pokemon.id
         assert result.trainer_id == trainer.id
-        pokedex_service.session.add.assert_called_once_with(result)
-        pokedex_service.session.commit.assert_called_once()
-        pokedex_service.session.refresh.assert_called_once_with(result)
 
 
 class TestPokedexServiceCapturePokemon:
@@ -159,9 +147,6 @@ class TestPokedexServiceCapturePokemon:
 
         assert result.pokemon_id == pokemon.id
         assert result.trainer_id == trainer.id
-        pokedex_service.session.add.assert_called_once_with(result)
-        pokedex_service.session.commit.assert_called_once()
-        pokedex_service.session.refresh.assert_called_once_with(result)
 
 
 class TestPokedexServiceAddPokemonToPokedexAndCapture:

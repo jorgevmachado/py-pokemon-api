@@ -2,9 +2,7 @@ from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_session
 from app.core.security import get_password_hash
 from app.domain.captured_pokemon.schema import (
     CapturedPokemonFilterPage,
@@ -24,15 +22,24 @@ from app.domain.trainer.schema import (
 )
 from app.shared.status_enum import StatusEnum
 
-Session = Annotated[AsyncSession, Depends(get_session)]
+Repository = Annotated[TrainerRepository, Depends()]
+PokemonService = Annotated[PokemonService, Depends()]
+PokedexService = Annotated[PokedexService, Depends()]
+CapturedPokemonService = Annotated[CapturedPokemonService, Depends()]
 
 
 class TrainerService:
-    def __init__(self, session: Session):
-        self.repository = TrainerRepository(session)
-        self.pokemon_service = PokemonService(session)
-        self.pokedex_service = PokedexService(session)
-        self.captured_pokemon_service = CapturedPokemonService(session)
+    def __init__(
+        self,
+        repository: Repository,
+        pokemon_service: PokemonService,
+        pokedex_service: PokedexService,
+        captured_pokemon_service: CapturedPokemonService,
+    ):
+        self.repository = repository
+        self.pokemon_service = pokemon_service
+        self.pokedex_service = pokedex_service
+        self.captured_pokemon_service = captured_pokemon_service
 
     async def create(self, create_trainer: CreateTrainerSchema) -> Trainer:
         try:

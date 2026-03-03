@@ -5,9 +5,7 @@ from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_session
 from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.captured_pokemon.repository import CapturedPokemonRepository
 from app.domain.captured_pokemon.schema import (
@@ -20,14 +18,13 @@ from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.model import Pokemon
 from app.domain.trainer.model import Trainer
 
-Session = Annotated[AsyncSession, Depends(get_session)]
+Repository = Annotated[CapturedPokemonRepository, Depends()]
 
 
 class CapturedPokemonService:
-    def __init__(self, session: Session):
-        self.session = session
+    def __init__(self, repository: Repository):
         self.business = PokemonBusiness()
-        self.repository = CapturedPokemonRepository(session)
+        self.repository = repository
 
     async def create(
         self,
@@ -69,10 +66,8 @@ class CapturedPokemonService:
         pokemon_move_business = PokemonMoveBusiness()
         selected_moves = pokemon_move_business.select_random_moves(pokemon.moves)
         captured_pokemon.moves = selected_moves
-        await self.session.commit()
-        await self.session.refresh(captured_pokemon)
 
-        return captured_pokemon
+        return await self.repository.update(captured_pokemon)
 
     async def record_battle_win(
         self,
@@ -100,10 +95,7 @@ class CapturedPokemonService:
         # Will need pokemon data to check growth rate formula
         # For now, just update the record
 
-        await self.session.commit()
-        await self.session.refresh(captured_pokemon)
-
-        return captured_pokemon
+        return await self.repository.update(captured_pokemon)
 
     async def record_battle_loss(
         self,
@@ -123,10 +115,7 @@ class CapturedPokemonService:
         captured_pokemon.losses += 1
         captured_pokemon.battles += 1
 
-        await self.session.commit()
-        await self.session.refresh(captured_pokemon)
-
-        return captured_pokemon
+        return await self.repository.update(captured_pokemon)
 
     async def add_effort_value(
         self,
@@ -156,10 +145,7 @@ class CapturedPokemonService:
             # Cap EVs at 252 (max useful EVs per stat in Pokemon)
             setattr(captured_pokemon, ev_field, min(current_ev + ev_amount, 252))
 
-        await self.session.commit()
-        await self.session.refresh(captured_pokemon)
-
-        return captured_pokemon
+        return await self.repository.update(captured_pokemon)
 
     async def recalculate_stats_for_level_up(
         self,
@@ -266,10 +252,7 @@ class CapturedPokemonService:
         captured_pokemon.special_defense = special_defense
         captured_pokemon.speed = speed
 
-        await self.session.commit()
-        await self.session.refresh(captured_pokemon)
-
-        return captured_pokemon
+        return await self.repository.update(captured_pokemon)
 
     async def fetch_all(
         self,

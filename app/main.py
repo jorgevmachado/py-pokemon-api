@@ -3,15 +3,16 @@ from http import HTTPStatus
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 
-from app.domain import auth, pokemon
+from app.domain.auth.route import router as auth_router
+from app.domain.pokemon.route import router as pokemon_router
 from app.domain.trainer.route import router as trainer_router
 from app.shared.schemas import Message
 
 app = FastAPI()
 
 app.include_router(trainer_router)
-app.include_router(auth.router)
-app.include_router(pokemon.router)
+app.include_router(auth_router)
+app.include_router(pokemon_router)
 
 add_pagination(app)
 

@@ -10,11 +10,12 @@ from app.core.security import create_access_token, verify_password
 from app.domain.trainer.service import TrainerService
 
 Session = Annotated[AsyncSession, Depends(get_session)]
+Service = Annotated[TrainerService, Depends()]
 
 
 class AuthService:
-    def __init__(self, session: Session):
-        self.trainer_service = TrainerService(session)
+    def __init__(self, service: Service):
+        self.trainer_service = service
 
     async def authenticate(self, email: str, password: str):
         error_message = 'Incorrect email or password'

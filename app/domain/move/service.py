@@ -1,9 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_session
 from app.domain.move.business import PokemonMoveBusiness
 from app.domain.move.model import PokemonMove
 from app.domain.move.repository import PokemonMoveRepository
@@ -14,12 +12,12 @@ from app.domain.pokemon.external.schemas import (
 from app.domain.pokemon.external.service import PokemonExternalService
 from app.shared.number import ensure_order_number
 
-Session = Annotated[AsyncSession, Depends(get_session)]
+Repository = Annotated[PokemonMoveRepository, Depends()]
 
 
 class PokemonMoveService:
-    def __init__(self, session: Session):
-        self.repository = PokemonMoveRepository(session)
+    def __init__(self, repository: Repository):
+        self.repository = repository
         self.external_service = PokemonExternalService()
 
     async def verify_pokemon_move(

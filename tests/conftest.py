@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime
 
-import factory
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
@@ -12,12 +11,8 @@ from testcontainers.postgres import PostgresContainer
 from app.core.base import table_registry
 from app.core.database import get_session
 from app.core.security import get_password_hash
-from app.domain.pokemon.model import Pokemon
-from app.domain.trainer.model import Trainer
 from app.main import app
-from app.shared.gender_enum import GenderEnum
-from app.shared.role_enum import RoleEnum
-from app.shared.status_enum import StatusEnum
+from tests.factories.trainer import TrainerFactory
 
 
 @pytest.fixture
@@ -87,26 +82,6 @@ async def trainer(session: AsyncSession):
 
 
 @pytest_asyncio.fixture
-async def pokemon(session: AsyncSession):
-    pokemon = PokemonFactory()
-    session.add(pokemon)
-    await session.commit()
-    await session.refresh(pokemon)
-
-    return pokemon
-
-
-@pytest_asyncio.fixture
-async def pokemon_incomplete(session: AsyncSession):
-    pokemon = PokemonFactory(status=StatusEnum.INCOMPLETE)
-    session.add(pokemon)
-    await session.commit()
-    await session.refresh(pokemon)
-
-    return pokemon
-
-
-@pytest_asyncio.fixture
 async def other_trainer(session: AsyncSession):
     password = 'testtest'
     trainer = TrainerFactory(password=get_password_hash(password))
@@ -126,34 +101,3 @@ def token(client, trainer):
         json={'email': trainer.email, 'password': trainer.clean_password},
     )
     return response.json()['access_token']
-
-
-class TrainerFactory(factory.Factory):
-    class Meta:
-        model = Trainer
-
-    name = factory.Faker('name')
-    email = factory.Sequence(lambda n: f'test{n}@test.com')
-    password = 'hashed_password'
-    gender = GenderEnum.MALE
-    role = RoleEnum.USER
-    status = StatusEnum.ACTIVE
-    date_of_birth = '1990-07-20T00:00:00'
-    pokeballs = 5
-    capture_rate = 45
-    total_authentications = 0
-    authentication_success = 0
-    authentication_failures = 0
-
-
-class PokemonFactory(factory.Factory):
-    class Meta:
-        model = Pokemon
-
-    name = factory.Sequence(lambda n: f'pokemon_{n}')
-    order = factory.Sequence(lambda n: n)
-    url = factory.Sequence(lambda n: f'https://pokeapi.co/api/v2/pokemon/{n}')
-    external_image = factory.Sequence(
-        lambda n: f'https://raw.githubusercontent.com/PokeAPI/sprites/{n}.png'
-    )
-    status = StatusEnum.COMPLETE

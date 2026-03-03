@@ -2,9 +2,7 @@ from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_session
 from app.domain.ability.service import PokemonAbilityService
 from app.domain.growth_rate.service import PokemonGrowthRateService
 from app.domain.move.service import PokemonMoveService
@@ -25,16 +23,27 @@ from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
 
 POKEMON_TOTAL_LIMIT = 1302
-Session = Annotated[AsyncSession, Depends(get_session)]
+Repository = Annotated[PokemonRepository, Depends()]
+PokemonMoveService = Annotated[PokemonMoveService, Depends()]
+PokemonTypeService = Annotated[PokemonTypeService, Depends()]
+PokemonAbilityService = Annotated[PokemonAbilityService, Depends()]
+PokemonGrowthRateService = Annotated[PokemonGrowthRateService, Depends()]
 
 
 class PokemonService:
-    def __init__(self, session: Session):
-        self.repository = PokemonRepository(session)
-        self.pokemon_move_service = PokemonMoveService(session)
-        self.pokemon_type_service = PokemonTypeService(session)
-        self.pokemon_ability_service = PokemonAbilityService(session)
-        self.pokemon_growth_rate_service = PokemonGrowthRateService(session)
+    def __init__(
+        self,
+        repository: Repository,
+        pokemon_move_service: PokemonMoveService,
+        pokemon_type_service: PokemonTypeService,
+        pokemon_ability_service: PokemonAbilityService,
+        pokemon_growth_rate_service: PokemonGrowthRateService,
+    ):
+        self.repository = repository
+        self.pokemon_move_service = pokemon_move_service
+        self.pokemon_type_service = pokemon_type_service
+        self.pokemon_ability_service = pokemon_ability_service
+        self.pokemon_growth_rate_service = pokemon_growth_rate_service
         self.external_service = PokemonExternalService()
         self.business = PokemonBusiness()
 

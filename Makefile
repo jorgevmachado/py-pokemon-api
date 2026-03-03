@@ -16,3 +16,6 @@ test:
 	make lint
 	make test-app
 	make test-coverage
+
+dev:
+	fastapi dev app/main.py

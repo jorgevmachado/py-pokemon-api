@@ -19,7 +19,7 @@ class TestPokemonTypeServiceVerifyPokemonType:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_type_in_database_success(type_service):
+    async def test_verify_pokemon_type_in_database_success(pokemon_type_service):
         total_results = 1
         pokemon_type = PokemonType(
             url='https://pokeapi.co/api/v2/type/12/',
@@ -33,19 +33,21 @@ class TestPokemonTypeServiceVerifyPokemonType:
             type=PokemonExternalBase(name='ice', url='https://pokeapi.co/api/v2/type/12/'),
         )
 
-        type_service.repository.find_one_by_order = AsyncMock(return_value=pokemon_type)
-        result = await type_service.verify_pokemon_type(types=[response_pokemon_type])
+        pokemon_type_service.repository.find_one_by_order = AsyncMock(
+            return_value=pokemon_type
+        )
+        result = await pokemon_type_service.verify_pokemon_type(types=[response_pokemon_type])
 
         assert len(result) == total_results
         assert result[0].name == 'fire'
         assert result[0].order == 1
         assert result[0].text_color == '#fff'
         assert result[0].background_color == '#fd7d24'
-        (type_service.repository.find_one_by_order.assert_called_once())
+        (pokemon_type_service.repository.find_one_by_order.assert_called_once())
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_type_not_in_database_success(type_service):
+    async def test_verify_pokemon_type_not_in_database_success(pokemon_type_service):
         total_results = 1
 
         pokemon_type_order = 12
@@ -73,35 +75,39 @@ class TestPokemonTypeServiceVerifyPokemonType:
             'ensure_colors',
             return_value=type_color,
         ):
-            type_service.repository.find_one_by_order = AsyncMock(return_value=None)
-            type_service.repository.find_one = AsyncMock(return_value=None)
-            type_service.repository.create = AsyncMock(return_value=created_pokemon_type)
-            result = await type_service.verify_pokemon_type(types=[response_pokemon_type])
+            pokemon_type_service.repository.find_one_by_order = AsyncMock(return_value=None)
+            pokemon_type_service.repository.find_one = AsyncMock(return_value=None)
+            pokemon_type_service.repository.create = AsyncMock(
+                return_value=created_pokemon_type
+            )
+            result = await pokemon_type_service.verify_pokemon_type(
+                types=[response_pokemon_type]
+            )
         total_call_count = 2
         assert len(result) == total_results
         assert result[0].name == 'fire'
         assert result[0].order == pokemon_type_order
         assert result[0].text_color == '#fff'
         assert result[0].background_color == '#fd7d24'
-        assert type_service.repository.find_one_by_order.call_count == total_call_count
-        type_service.repository.find_one.assert_called_once()
-        type_service.repository.create.assert_called_once()
+        assert pokemon_type_service.repository.find_one_by_order.call_count == total_call_count
+        pokemon_type_service.repository.find_one.assert_called_once()
+        pokemon_type_service.repository.create.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_type_error(type_service):
+    async def test_verify_pokemon_type_error(pokemon_type_service):
 
         response_pokemon_type = PokemonExternalBaseTypeSchemaResponse(
             slot=1,
             type=PokemonExternalBase(name='fire', url='https://pokeapi.co/api/v2/type/12/'),
         )
-        type_service.repository.find_one_by_order = AsyncMock(
+        pokemon_type_service.repository.find_one_by_order = AsyncMock(
             side_effect=Exception('Database error')
         )
 
-        result = await type_service.verify_pokemon_type(types=[response_pokemon_type])
+        result = await pokemon_type_service.verify_pokemon_type(types=[response_pokemon_type])
         assert len(result) == 0
-        type_service.repository.find_one_by_order.assert_called_once()
+        pokemon_type_service.repository.find_one_by_order.assert_called_once()
 
 
 class TestPokemonTypeServicePersist:
@@ -109,7 +115,7 @@ class TestPokemonTypeServicePersist:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_persist_existing_type_by_order(type_service):
+    async def test_persist_existing_type_by_order(pokemon_type_service):
         """Should return existing pokemon type when found by order"""
         pokemon_type = PokemonType(
             url='https://pokeapi.co/api/v2/type/10/',
@@ -119,22 +125,24 @@ class TestPokemonTypeServicePersist:
             background_color='#fd7d24',
         )
 
-        type_service.repository.find_one_by_order = AsyncMock(return_value=pokemon_type)
+        pokemon_type_service.repository.find_one_by_order = AsyncMock(
+            return_value=pokemon_type
+        )
 
         external_base = PokemonExternalBase(
             name='fire', url='https://pokeapi.co/api/v2/type/10/'
         )
-        result = await type_service.persist(
+        result = await pokemon_type_service.persist(
             pokemon_type=external_base, with_damage_relations=False
         )
 
         assert result.name == 'fire'
         assert result.order == MOCK_RESULT_ORDER
-        type_service.repository.find_one_by_order.assert_called_once()
+        pokemon_type_service.repository.find_one_by_order.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_persist_existing_type_by_name(type_service):
+    async def test_persist_existing_type_by_name(pokemon_type_service):
         """Should return existing pokemon type when found by name"""
         pokemon_type = PokemonType(
             url='https://pokeapi.co/api/v2/type/10/',
@@ -144,24 +152,24 @@ class TestPokemonTypeServicePersist:
             background_color='#fd7d24',
         )
 
-        type_service.repository.find_one_by_order = AsyncMock(return_value=None)
-        type_service.repository.find_one = AsyncMock(return_value=pokemon_type)
+        pokemon_type_service.repository.find_one_by_order = AsyncMock(return_value=None)
+        pokemon_type_service.repository.find_one = AsyncMock(return_value=pokemon_type)
 
         external_base = PokemonExternalBase(
             name='fire', url='https://pokeapi.co/api/v2/type/10/'
         )
-        result = await type_service.persist(
+        result = await pokemon_type_service.persist(
             pokemon_type=external_base, with_damage_relations=False
         )
 
         assert result.name == 'fire'
         assert result.order == MOCK_RESULT_ORDER
-        type_service.repository.find_one_by_order.assert_called_once()
-        type_service.repository.find_one.assert_called_once()
+        pokemon_type_service.repository.find_one_by_order.assert_called_once()
+        pokemon_type_service.repository.find_one.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_persist_new_type(type_service):
+    async def test_persist_new_type(pokemon_type_service):
         """Should create new pokemon type when not found"""
         type_color = TypeColor(
             id=3, name='fire', text_color='#fff', background_color='#fd7d24'
@@ -175,15 +183,15 @@ class TestPokemonTypeServicePersist:
             background_color='#fd7d24',
         )
 
-        type_service.repository.find_one_by_order = AsyncMock(return_value=None)
-        type_service.repository.find_one = AsyncMock(return_value=None)
-        type_service.repository.create = AsyncMock(return_value=created_pokemon_type)
+        pokemon_type_service.repository.find_one_by_order = AsyncMock(return_value=None)
+        pokemon_type_service.repository.find_one = AsyncMock(return_value=None)
+        pokemon_type_service.repository.create = AsyncMock(return_value=created_pokemon_type)
 
         with patch.object(PokemonTypeBusiness, 'ensure_colors', return_value=type_color):
             external_base = PokemonExternalBase(
                 name='fire', url='https://pokeapi.co/api/v2/type/10/'
             )
-            result = await type_service.persist(
+            result = await pokemon_type_service.persist(
                 pokemon_type=external_base, with_damage_relations=False
             )
 
@@ -191,11 +199,11 @@ class TestPokemonTypeServicePersist:
         assert result.order == MOCK_RESULT_ORDER
         assert result.text_color == '#fff'
         assert result.background_color == '#fd7d24'
-        type_service.repository.create.assert_called_once()
+        pokemon_type_service.repository.create.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_persist_existing_type_updates_damage_relations(type_service):
+    async def test_persist_existing_type_updates_damage_relations(pokemon_type_service):
         """Should update existing pokemon type with damage relations when missing"""
         pokemon_type = PokemonType(
             url='https://pokeapi.co/api/v2/type/10/',
@@ -219,9 +227,11 @@ class TestPokemonTypeServicePersist:
             background_color='#9bcc50',
         )
 
-        type_service.repository.find_one_by_order = AsyncMock(return_value=pokemon_type)
-        type_service.repository.update = AsyncMock(return_value=pokemon_type)
-        type_service.validate_damage_relations = AsyncMock(
+        pokemon_type_service.repository.find_one_by_order = AsyncMock(
+            return_value=pokemon_type
+        )
+        pokemon_type_service.repository.update = AsyncMock(return_value=pokemon_type)
+        pokemon_type_service.validate_damage_relations = AsyncMock(
             return_value=type(
                 'DamageResult',
                 (),
@@ -232,15 +242,15 @@ class TestPokemonTypeServicePersist:
         external_base = PokemonExternalBase(
             name='fire', url='https://pokeapi.co/api/v2/type/10/'
         )
-        result = await type_service.persist(
+        result = await pokemon_type_service.persist(
             pokemon_type=external_base, with_damage_relations=True
         )
 
         assert result.weaknesses == [weakness_type]
         assert result.strengths == [strength_type]
-        type_service.repository.find_one_by_order.assert_called_once()
-        type_service.validate_damage_relations.assert_called_once()
-        type_service.repository.update.assert_called_once()
+        pokemon_type_service.repository.find_one_by_order.assert_called_once()
+        pokemon_type_service.validate_damage_relations.assert_called_once()
+        pokemon_type_service.repository.update.assert_called_once()
 
 
 class TestPokemonTypeServiceValidateDamageRelations:
@@ -248,7 +258,7 @@ class TestPokemonTypeServiceValidateDamageRelations:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_validate_damage_relations_success(type_service):
+    async def test_validate_damage_relations_success(pokemon_type_service):
         """Should return damage relations when external API returns data"""
         damage_relations = PokemonExternalTypeDamageRelationsSchemaResponse(
             double_damage_from=[
@@ -274,18 +284,18 @@ class TestPokemonTypeServiceValidateDamageRelations:
             names=[],
         )
 
-        type_service.external_service.pokemon_external_type_by_url = AsyncMock(
+        pokemon_type_service.external_service.pokemon_external_type_by_url = AsyncMock(
             return_value=external_type
         )
-        type_service.repository.find_one_by_order = AsyncMock(return_value=None)
-        type_service.repository.find_one = AsyncMock(return_value=None)
+        pokemon_type_service.repository.find_one_by_order = AsyncMock(return_value=None)
+        pokemon_type_service.repository.find_one = AsyncMock(return_value=None)
 
         type_color = TypeColor(
             id=3, name='fire', text_color='#fff', background_color='#fd7d24'
         )
 
         with patch.object(PokemonTypeBusiness, 'ensure_colors', return_value=type_color):
-            result = await type_service.validate_damage_relations(
+            result = await pokemon_type_service.validate_damage_relations(
                 url='https://pokeapi.co/api/v2/type/10/'
             )
 
@@ -294,14 +304,14 @@ class TestPokemonTypeServiceValidateDamageRelations:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_validate_damage_relations_no_external_data(type_service):
+    async def test_validate_damage_relations_no_external_data(pokemon_type_service):
         """Should return empty relations when external API returns None"""
 
-        type_service.external_service.pokemon_external_type_by_url = AsyncMock(
+        pokemon_type_service.external_service.pokemon_external_type_by_url = AsyncMock(
             return_value=None
         )
 
-        result = await type_service.validate_damage_relations(
+        result = await pokemon_type_service.validate_damage_relations(
             url='https://pokeapi.co/api/v2/type/10/'
         )
 

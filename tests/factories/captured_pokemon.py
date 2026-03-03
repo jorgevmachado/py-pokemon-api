@@ -2,12 +2,9 @@ from datetime import datetime
 from uuid import uuid4
 
 import factory
-import pytest_asyncio
 from factory import Faker
 
 from app.domain.captured_pokemon.model import CapturedPokemon
-from app.domain.captured_pokemon.repository import CapturedPokemonRepository
-from app.domain.captured_pokemon.service import CapturedPokemonService
 
 MOCK_CAPTURED_POKEMON = CapturedPokemon(
     hp=7,
@@ -34,16 +31,6 @@ MOCK_CAPTURED_POKEMON = CapturedPokemon(
     pokemon_id='9efd7c0a-7fa8-402a-8166-ff85b82cac33',
     trainer_id='6129c647-9823-48c1-a09e-7f471497a0e9',
 )
-
-
-@pytest_asyncio.fixture
-async def captured_pokemon_repository(session):
-    return CapturedPokemonRepository(session=session)
-
-
-@pytest_asyncio.fixture
-async def captured_pokemon_service(session):
-    return CapturedPokemonService(session=session)
 
 
 class CapturedPokemonFactory(factory.Factory):

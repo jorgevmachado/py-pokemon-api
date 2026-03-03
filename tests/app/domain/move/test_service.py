@@ -23,7 +23,7 @@ class TestPokemonMoveServiceVerifyPokemonMove:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_move_in_database_success(move_service):
+    async def test_verify_pokemon_move_in_database_success(pokemon_move_service):
         """Should return pokemon move from database when it exists"""
         total_results = 1
         pokemon_move = PokemonMove(
@@ -44,9 +44,9 @@ class TestPokemonMoveServiceVerifyPokemonMove:
         response_pokemon_move = PokemonExternalBaseMoveSchemaResponse(
             move=PokemonExternalBase(name='pound', url='https://pokeapi.co/api/v2/move/1/')
         )
-        repository = move_service.repository
+        repository = pokemon_move_service.repository
         repository.find_one_by_order = AsyncMock(return_value=pokemon_move)
-        result = await move_service.verify_pokemon_move(moves=[response_pokemon_move])
+        result = await pokemon_move_service.verify_pokemon_move(moves=[response_pokemon_move])
 
         assert len(result) == total_results
         assert result[0].name == 'pound'
@@ -58,7 +58,7 @@ class TestPokemonMoveServiceVerifyPokemonMove:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_move_not_in_database_success(move_service):
+    async def test_verify_pokemon_move_not_in_database_success(pokemon_move_service):
         """Should create and return pokemon move when it does not exist in database"""
         total_results = 1
         pokemon_move_order = 1
@@ -106,7 +106,7 @@ class TestPokemonMoveServiceVerifyPokemonMove:
             short_effect='Deals regular damage.',
             effect_chance=None,
         )
-        repository = move_service.repository
+        repository = pokemon_move_service.repository
         repository.find_one_by_order = AsyncMock(return_value=None)
         repository.create = AsyncMock(return_value=pokemon_move)
 
@@ -116,11 +116,13 @@ class TestPokemonMoveServiceVerifyPokemonMove:
             return_value=effect_entry,
         ):
             with patch.object(
-                move_service.external_service,
+                pokemon_move_service.external_service,
                 'pokemon_external_move_by_name',
                 return_value=external_move_data,
             ):
-                result = await move_service.verify_pokemon_move(moves=[response_pokemon_move])
+                result = await pokemon_move_service.verify_pokemon_move(
+                    moves=[response_pokemon_move]
+                )
 
         assert len(result) == total_results
         assert result[0].name == 'pound'
@@ -132,40 +134,42 @@ class TestPokemonMoveServiceVerifyPokemonMove:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_move_external_service_no_data(move_service):
+    async def test_verify_pokemon_move_external_service_no_data(pokemon_move_service):
         """Should skip move when external service returns no data"""
         response_pokemon_move = PokemonExternalBaseMoveSchemaResponse(
             move=PokemonExternalBase(
                 name='unknown-move', url='https://pokeapi.co/api/v2/move/999/'
             )
         )
-        repository = move_service.repository
+        repository = pokemon_move_service.repository
         repository.find_one_by_order = AsyncMock(return_value=None)
 
         with patch.object(
-            move_service.external_service,
+            pokemon_move_service.external_service,
             'pokemon_external_move_by_name',
             return_value=None,
         ):
-            result = await move_service.verify_pokemon_move(moves=[response_pokemon_move])
+            result = await pokemon_move_service.verify_pokemon_move(
+                moves=[response_pokemon_move]
+            )
 
         assert len(result) == 0
         repository.find_one_by_order.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_move_empty_list(move_service):
+    async def test_verify_pokemon_move_empty_list(pokemon_move_service):
         """Should return empty list when moves list is empty"""
-        repository = move_service.repository
+        repository = pokemon_move_service.repository
         repository.find_one_by_order = AsyncMock()
-        result = await move_service.verify_pokemon_move(moves=[])
+        result = await pokemon_move_service.verify_pokemon_move(moves=[])
 
         assert len(result) == 0
         repository.find_one_by_order.assert_not_called()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_move_multiple_moves(move_service):
+    async def test_verify_pokemon_move_multiple_moves(pokemon_move_service):
         """Should process multiple moves correctly"""
         pokemon_move_1 = PokemonMove(
             url='https://pokeapi.co/api/v2/move/1/',
@@ -209,10 +213,10 @@ class TestPokemonMoveServiceVerifyPokemonMove:
                 )
             ),
         ]
-        repository = move_service.repository
+        repository = pokemon_move_service.repository
         repository.find_one_by_order = AsyncMock(side_effect=[pokemon_move_1, pokemon_move_2])
 
-        result = await move_service.verify_pokemon_move(moves=response_moves)
+        result = await pokemon_move_service.verify_pokemon_move(moves=response_moves)
 
         assert len(result) == TOTAL_MOVES_MULTIPLE
         assert result[0].name == 'pound'
@@ -221,42 +225,44 @@ class TestPokemonMoveServiceVerifyPokemonMove:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_move_repository_error(move_service):
+    async def test_verify_pokemon_move_repository_error(pokemon_move_service):
         """Should return empty list when repository raises exception"""
         response_pokemon_move = PokemonExternalBaseMoveSchemaResponse(
             move=PokemonExternalBase(name='pound', url='https://pokeapi.co/api/v2/move/1/')
         )
-        repository = move_service.repository
+        repository = pokemon_move_service.repository
         repository.find_one_by_order = AsyncMock(side_effect=Exception('Database error'))
 
-        result = await move_service.verify_pokemon_move(moves=[response_pokemon_move])
+        result = await pokemon_move_service.verify_pokemon_move(moves=[response_pokemon_move])
 
         assert len(result) == 0
         repository.find_one_by_order.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_move_external_service_error(move_service):
+    async def test_verify_pokemon_move_external_service_error(pokemon_move_service):
         """Should return empty list when external service raises exception"""
         response_pokemon_move = PokemonExternalBaseMoveSchemaResponse(
             move=PokemonExternalBase(name='pound', url='https://pokeapi.co/api/v2/move/1/')
         )
-        repository = move_service.repository
+        repository = pokemon_move_service.repository
         repository.find_one_by_order = AsyncMock(return_value=None)
 
         with patch.object(
-            move_service.external_service,
+            pokemon_move_service.external_service,
             'pokemon_external_move_by_name',
             side_effect=Exception('External API error'),
         ):
-            result = await move_service.verify_pokemon_move(moves=[response_pokemon_move])
+            result = await pokemon_move_service.verify_pokemon_move(
+                moves=[response_pokemon_move]
+            )
 
         assert len(result) == 0
         repository.find_one_by_order.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_move_create_error(move_service):
+    async def test_verify_pokemon_move_create_error(pokemon_move_service):
         """Should return empty list when repository create raises exception"""
         response_pokemon_move = PokemonExternalBaseMoveSchemaResponse(
             move=PokemonExternalBase(name='pound', url='https://pokeapi.co/api/v2/move/1/')
@@ -285,7 +291,7 @@ class TestPokemonMoveServiceVerifyPokemonMove:
         external_move_data.effect_entries = []
         external_move_data.effect_chance = None
 
-        repository = move_service.repository
+        repository = pokemon_move_service.repository
         repository.find_one_by_order = AsyncMock(return_value=None)
         repository.create = AsyncMock(side_effect=Exception('Database create error'))
 
@@ -295,11 +301,13 @@ class TestPokemonMoveServiceVerifyPokemonMove:
             return_value=effect_entry,
         ):
             with patch.object(
-                move_service.external_service,
+                pokemon_move_service.external_service,
                 'pokemon_external_move_by_name',
                 return_value=external_move_data,
             ):
-                result = await move_service.verify_pokemon_move(moves=[response_pokemon_move])
+                result = await pokemon_move_service.verify_pokemon_move(
+                    moves=[response_pokemon_move]
+                )
 
         assert len(result) == 0
         repository.find_one_by_order.assert_called_once()
@@ -307,7 +315,7 @@ class TestPokemonMoveServiceVerifyPokemonMove:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_verify_pokemon_move_business_error(move_service):
+    async def test_verify_pokemon_move_business_error(pokemon_move_service):
         """Should return empty list when business logic raises exception"""
         response_pokemon_move = PokemonExternalBaseMoveSchemaResponse(
             move=PokemonExternalBase(name='pound', url='https://pokeapi.co/api/v2/move/1/')
@@ -331,7 +339,7 @@ class TestPokemonMoveServiceVerifyPokemonMove:
         external_move_data.effect_entries = []
         external_move_data.effect_chance = None
 
-        repository = move_service.repository
+        repository = pokemon_move_service.repository
         repository.find_one_by_order = AsyncMock(return_value=None)
 
         with patch.object(
@@ -340,11 +348,13 @@ class TestPokemonMoveServiceVerifyPokemonMove:
             side_effect=Exception('Business logic error'),
         ):
             with patch.object(
-                move_service.external_service,
+                pokemon_move_service.external_service,
                 'pokemon_external_move_by_name',
                 return_value=external_move_data,
             ):
-                result = await move_service.verify_pokemon_move(moves=[response_pokemon_move])
+                result = await pokemon_move_service.verify_pokemon_move(
+                    moves=[response_pokemon_move]
+                )
 
         assert len(result) == 0
         repository.find_one_by_order.assert_called_once()

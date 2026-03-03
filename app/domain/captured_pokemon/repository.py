@@ -108,3 +108,9 @@ class CapturedPokemonRepository:
             )
 
         return await self.session.scalar(query)
+
+    async def update(self, captured_pokemon: CapturedPokemon):
+        await self.session.merge(captured_pokemon)
+        await self.session.commit()
+        await self.session.refresh(captured_pokemon)
+        return captured_pokemon
