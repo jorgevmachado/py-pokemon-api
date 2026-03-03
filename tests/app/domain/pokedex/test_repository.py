@@ -397,3 +397,75 @@ class TestPokedexRepositoryListByTrainer:
         )
         assert isinstance(result, list)
         assert len(result) == total_results
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokedex_repository_list_with_filters(session, trainer, pokemon):
+        total_results = 1
+        for _ in range(3):
+            pokedex = PokedexFactory(
+                trainer_id=trainer.id,
+                pokemon_id=pokemon.id,
+                discovered=False,
+            )
+            session.add(pokedex)
+            await session.commit()
+        pokedex_data = CreatePokedexSchema(
+            hp=MOCK_POKEDEX.hp,
+            wins=MOCK_POKEDEX.wins,
+            level=MOCK_POKEDEX.level,
+            iv_hp=MOCK_POKEDEX.iv_hp,
+            ev_hp=MOCK_POKEDEX.ev_hp,
+            losses=MOCK_POKEDEX.losses,
+            max_hp=MOCK_POKEDEX.max_hp,
+            battles=MOCK_POKEDEX.battles,
+            iv_speed=MOCK_POKEDEX.iv_speed,
+            ev_speed=MOCK_POKEDEX.ev_speed,
+            iv_attack=MOCK_POKEDEX.iv_attack,
+            ev_attack=MOCK_POKEDEX.ev_attack,
+            iv_defense=MOCK_POKEDEX.iv_defense,
+            ev_defense=MOCK_POKEDEX.ev_defense,
+            experience=MOCK_POKEDEX.experience,
+            nickname=MOCK_POKEDEX.nickname,
+            iv_special_attack=MOCK_POKEDEX.iv_special_attack,
+            ev_special_attack=MOCK_POKEDEX.ev_special_attack,
+            iv_special_defense=MOCK_POKEDEX.iv_special_defense,
+            ev_special_defense=MOCK_POKEDEX.ev_special_defense,
+            discovered=MOCK_POKEDEX.discovered,
+            pokemon_id=pokemon.id,
+            trainer_id=trainer.id,
+            discovered_at=datetime.now(),
+        )
+
+        repository = PokedexRepository(session=session)
+
+        await repository.create(pokedex_data)
+
+        result = await repository.list_all(
+            PokedexFilterPage(
+                trainer_id=trainer.id,
+                nickname=MOCK_POKEDEX.nickname,
+                discovered=MOCK_POKEDEX.discovered,
+                offset=None,
+                limit=None,
+            )
+        )
+        assert isinstance(result, list)
+        assert len(result) == total_results
+
+
+class TestPokedexRepositoryFindByPokemon:
+    """Test scope for find_by_pokemon method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokedex_repository_find_by_pokemon_success(session, trainer, pokemon):
+        pokedex = PokedexFactory(trainer_id=trainer.id, pokemon_id=pokemon.id)
+        session.add(pokedex)
+        await session.commit()
+
+        repository = PokedexRepository(session=session)
+
+        result = await repository.find_by_pokemon(trainer_id=trainer.id, pokemon_id=pokemon.id)
+        assert result.pokemon_id == pokemon.id
+        assert result.trainer_id == trainer.id
