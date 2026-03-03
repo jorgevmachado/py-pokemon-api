@@ -241,3 +241,132 @@ class TestCapturedPokemonServiceFindByPokemon:
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         assert exc_info.value.detail == 'Error find by pokemon'
+
+
+class TestCapturedPokemonServiceCapture:
+    """Test scope for capture method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_capture_creates_entry_when_requirements_are_met(
+        captured_pokemon_service,
+        trainer,
+        pokemon,
+    ):
+        """Should create captured pokemon when trainer can capture"""
+        trainer.pokeballs = 5
+        trainer.capture_rate = 100
+        pokemon.capture_rate = 30
+
+        expected_result = {'pokemon_id': pokemon.id, 'trainer_id': trainer.id}
+        captured_pokemon_service.find_by_pokemon = AsyncMock(return_value=None)
+        captured_pokemon_service.create = AsyncMock(return_value=expected_result)
+
+        result = await captured_pokemon_service.capture(
+            trainer=trainer,
+            capture_pokemon=pokemon,
+        )
+
+        assert result == expected_result
+        captured_pokemon_service.find_by_pokemon.assert_awaited_once_with(
+            trainer_id=trainer.id,
+            pokemon_id=pokemon.id,
+        )
+        captured_pokemon_service.create.assert_awaited_once_with(
+            pokemon=pokemon,
+            trainer=trainer,
+            nickname=pokemon.name,
+        )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_capture_uses_suffix_when_nickname_already_exists(
+        captured_pokemon_service,
+        trainer,
+        pokemon,
+    ):
+        """Should append suffix when nickname already exists for captured pokemon"""
+        trainer.pokeballs = 5
+        trainer.capture_rate = 100
+        pokemon.capture_rate = 30
+
+        existing_pokemon = type('ExistingPokemon', (), {'nickname': 'sparky'})()
+        captured_pokemon_service.find_by_pokemon = AsyncMock(return_value=existing_pokemon)
+        captured_pokemon_service.create = AsyncMock(return_value={'ok': True})
+
+        await captured_pokemon_service.capture(
+            trainer=trainer,
+            capture_pokemon=pokemon,
+            nickname='sparky',
+        )
+
+        captured_pokemon_service.create.assert_awaited_once_with(
+            pokemon=pokemon,
+            trainer=trainer,
+            nickname=f'{pokemon.name}_1',
+        )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_capture_raises_forbidden_when_trainer_has_no_pokeballs(
+        captured_pokemon_service,
+        trainer,
+        pokemon,
+    ):
+        """Should raise forbidden when trainer has no pokeballs"""
+        trainer.pokeballs = 0
+
+        with pytest.raises(HTTPException) as exc_info:
+            await captured_pokemon_service.capture(
+                trainer=trainer,
+                capture_pokemon=pokemon,
+            )
+
+        assert exc_info.value.status_code == HTTPStatus.FORBIDDEN
+        assert exc_info.value.detail == 'Not enough pokeballs'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_capture_raises_forbidden_when_capture_rate_is_low(
+        captured_pokemon_service,
+        trainer,
+        pokemon,
+    ):
+        """Should raise forbidden when trainer capture rate is below pokemon requirement"""
+        trainer.pokeballs = 5
+        trainer.capture_rate = 45
+        pokemon.capture_rate = 65
+
+        with pytest.raises(HTTPException) as exc_info:
+            await captured_pokemon_service.capture(
+                trainer=trainer,
+                capture_pokemon=pokemon,
+            )
+
+        assert exc_info.value.status_code == HTTPStatus.FORBIDDEN
+        assert (
+            exc_info.value.detail
+            == 'You have 45 capture rate. To capture this Pokemon, you need 65.'
+        )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_capture_raises_internal_server_error_on_unexpected_exception(
+        captured_pokemon_service,
+        trainer,
+        pokemon,
+    ):
+        """Should raise internal server error when unexpected exception occurs"""
+        trainer.pokeballs = 5
+        trainer.capture_rate = 100
+        pokemon.capture_rate = 30
+        captured_pokemon_service.find_by_pokemon = AsyncMock(side_effect=Exception('boom'))
+
+        with pytest.raises(HTTPException) as exc_info:
+            await captured_pokemon_service.capture(
+                trainer=trainer,
+                capture_pokemon=pokemon,
+            )
+
+        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert exc_info.value.detail == 'Error capture pokemons'
