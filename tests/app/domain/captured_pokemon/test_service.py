@@ -28,6 +28,23 @@ class TestCapturedPokemonServiceCreate:
         assert result.trainer_id == trainer.id
         assert result.nickname is not None
 
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_create_assigns_moves_from_pokemon(
+        captured_pokemon_service, trainer, pokemon
+    ):
+        total_moves = 4
+        """Should assign moves from pokemon to captured pokemon"""
+        result = await captured_pokemon_service.create(pokemon=pokemon, trainer=trainer)
+
+        # Pokemon should have moves assigned to captured_pokemon
+        assert result.moves is not None
+        # If pokemon has moves, they should be assigned (respecting max 4)
+        if pokemon.moves:
+            assert len(result.moves) <= total_moves
+            for move in result.moves:
+                assert move in pokemon.moves
+
 
 class TestCapturedPokemonServiceRecordBattleWin:
     """Test scope for record_battle_win method"""

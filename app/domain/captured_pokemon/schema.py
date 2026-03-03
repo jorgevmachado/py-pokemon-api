@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from app.domain.move.model import PokemonMove
 from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.schema import PublicPokemonSchema
 from app.domain.trainer.model import Trainer
@@ -64,6 +65,7 @@ class CapturedPokemonPublicSchema(BaseModel):
     iv_special_defense: int
     ev_special_defense: int
     captured_at: datetime
+    moves: list[PokemonMove] = []
     pokemon: PublicPokemonSchema
 
 

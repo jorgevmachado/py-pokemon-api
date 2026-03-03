@@ -5,8 +5,20 @@ from sqlalchemy import UUID, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.base import default_lazy, table_registry
+from app.domain.move.model import PokemonMove
 from app.domain.pokemon.model import Pokemon
 from app.domain.trainer.model import Trainer
+
+
+@table_registry.mapped_as_dataclass
+class CapturedPokemonMoveFK:
+    __tablename__ = 'captured_pokemon_moves'
+    captured_pokemon_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('captured_pokemons.id'), primary_key=True
+    )
+    move_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey('moves.id'), primary_key=True
+    )
 
 
 @table_registry.mapped_as_dataclass
@@ -52,4 +64,8 @@ class CapturedPokemon:
 
     trainer: Mapped['Trainer'] = relationship(
         lazy=default_lazy, init=False, back_populates='captured_pokemons'
+    )
+
+    moves: Mapped[list['PokemonMove']] = relationship(
+        lazy=default_lazy, secondary='captured_pokemon_moves', init=False, default_factory=list
     )

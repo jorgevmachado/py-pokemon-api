@@ -64,6 +64,7 @@ class CapturedPokemonRepository:
             .options(
                 selectinload(CapturedPokemon.pokemon),
                 selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.moves),
+                selectinload(CapturedPokemon.moves),
             )
             .order_by(CapturedPokemon.captured_at.desc())
             .where(CapturedPokemon.trainer_id == trainer_id)

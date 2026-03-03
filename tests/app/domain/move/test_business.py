@@ -1,4 +1,7 @@
+from unittest.mock import MagicMock
+
 from app.domain.move.business import EffectEntry, PokemonMoveBusiness
+from app.domain.move.model import PokemonMove
 from app.domain.pokemon.external.schemas import (
     PokemonExternalLanguage,
     PokemonExternalMoveEffectEntriesSchemaResponse,
@@ -139,3 +142,95 @@ class TestPokemonMoveBusinessEnsureEffectMessage:
         assert result.short_effect == long_short_effect
         assert len(result.effect) == total_result_effect
         assert len(result.short_effect) == total_result_short_effect
+
+
+class TestPokemonMoveBusinessSelectRandomMove:
+    """Test scope for select_random_move method"""
+
+    @staticmethod
+    def test_empty_moves_list():
+        """Should return empty list when no moves available"""
+        result = PokemonMoveBusiness.select_random_moves([])
+        assert result == []
+
+    @staticmethod
+    def test_single_move():
+        """Should return single move when only one move available"""
+        move = MagicMock(spec=PokemonMove)
+        moves = [move]
+        result = PokemonMoveBusiness.select_random_moves(moves)
+        assert result == moves
+
+    @staticmethod
+    def test_less_than_max_moves():
+        """Should return all moves when pokemon has less than max moves"""
+        moves = [MagicMock(spec=PokemonMove, name=f'move_{i}') for i in range(3)]
+        total_moves = 4
+        total_moves_result = 3
+        result = PokemonMoveBusiness.select_random_moves(moves, max_moves=total_moves)
+
+        assert len(result) == total_moves_result
+        for move in moves:
+            assert move in result
+
+    @staticmethod
+    def test_exactly_max_moves():
+        """Should return all moves when pokemon has exactly max moves"""
+        total_moves = 4
+        moves = [MagicMock(spec=PokemonMove, name=f'move_{i}') for i in range(total_moves)]
+
+        result = PokemonMoveBusiness.select_random_moves(moves, max_moves=4)
+
+        assert len(result) == total_moves
+        for move in moves:
+            assert move in result
+
+    @staticmethod
+    def test_more_than_max_moves():
+        """Should return random selection when pokemon has more than max moves"""
+        moves = [MagicMock(spec=PokemonMove, name=f'move_{i}') for i in range(5)]
+
+        result = PokemonMoveBusiness.select_random_moves(moves, max_moves=4)
+        total_moves = 4
+        assert len(result) == total_moves
+        for move in result:
+            assert move in moves
+
+    @staticmethod
+    def test_five_moves_returns_four():
+        """Should randomly select 4 moves from 5 available"""
+        moves = [MagicMock(spec=PokemonMove, name=f'move_{i}') for i in range(5)]
+
+        result = PokemonMoveBusiness.select_random_moves(moves)
+        total_moves = 4
+        assert len(result) == total_moves
+        for move in result:
+            assert move in moves
+
+    @staticmethod
+    def test_many_moves_respects_max_moves():
+        """Should respect max_moves parameter even with many available moves"""
+        total_moves = 4
+        moves = [MagicMock(spec=PokemonMove, name=f'move_{i}') for i in range(10)]
+
+        result = PokemonMoveBusiness.select_random_moves(moves, max_moves=total_moves)
+
+        assert len(result) == total_moves
+        for move in result:
+            assert move in moves
+
+    @staticmethod
+    def test_randomness():
+        """Should return different random subsets across multiple calls"""
+        total_moves = 4
+        total_range = 6
+        total_result_range = 10
+        moves = [MagicMock(spec=PokemonMove, name=f'move_{i}') for i in range(total_range)]
+
+        results = [
+            PokemonMoveBusiness.select_random_moves(moves, max_moves=total_moves)
+            for _ in range(total_result_range)
+        ]
+
+        unique_results = [tuple(sorted([id(m) for m in r])) for r in results]
+        assert len(set(unique_results)) > 1 or len(moves) <= total_moves

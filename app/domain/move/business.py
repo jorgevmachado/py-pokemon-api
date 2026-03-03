@@ -1,5 +1,9 @@
+import random
+from typing import Sequence
+
 from pydantic import BaseModel
 
+from app.domain.move.model import PokemonMove
 from app.domain.pokemon.external.schemas import (
     PokemonExternalMoveEffectEntriesSchemaResponse,
 )
@@ -22,3 +26,17 @@ class PokemonMoveBusiness:
         effect = effect_entry.effect if effect_entry else ''
         short_effect = effect_entry.short_effect if effect_entry else ''
         return EffectEntry(effect=effect, short_effect=short_effect)
+
+    @staticmethod
+    def select_random_moves(
+        available_moves: Sequence[PokemonMove],
+        max_moves: int = 4,
+    ) -> list[PokemonMove]:
+        if not available_moves:
+            return []
+
+        moves_count = len(available_moves)
+        if moves_count <= max_moves:
+            return list(available_moves)
+
+        return random.sample(list(available_moves), max_moves)

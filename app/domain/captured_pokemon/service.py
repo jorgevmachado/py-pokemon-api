@@ -15,6 +15,7 @@ from app.domain.captured_pokemon.schema import (
     CreateCapturedPokemonSchema,
     FindCapturePokemonSchema,
 )
+from app.domain.move.business import PokemonMoveBusiness
 from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.model import Pokemon
 from app.domain.trainer.model import Trainer
@@ -63,7 +64,15 @@ class CapturedPokemonService:
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
         )
-        return await self.repository.create(create_captured_pokemon)
+        captured_pokemon = await self.repository.create(create_captured_pokemon)
+
+        pokemon_move_business = PokemonMoveBusiness()
+        selected_moves = pokemon_move_business.select_random_moves(pokemon.moves)
+        captured_pokemon.moves = selected_moves
+        await self.session.commit()
+        await self.session.refresh(captured_pokemon)
+
+        return captured_pokemon
 
     async def record_battle_win(
         self,
