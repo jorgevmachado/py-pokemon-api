@@ -1,4 +1,10 @@
+from http import HTTPStatus
+from unittest.mock import AsyncMock
+
 import pytest
+from fastapi import HTTPException
+
+from app.domain.captured_pokemon.schema import CapturedPokemonFilterPage
 
 MOCK_EXP_GAINED = 10
 MOCK_EV_AMOUNT = 10
@@ -151,3 +157,87 @@ class TestCapturedPokemonServiceRecalculateStats:
         assert result.special_attack >= 1
         assert result.special_defense >= 1
         assert result.speed >= 1
+
+
+class TestCapturedPokemonServiceFetchAll:
+    """Test scope for fetch_all method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_fetch_all_returns_entries(captured_pokemon_service, trainer):
+        """Should return captured pokemon entries when repository succeeds"""
+        expected_result = ['entry_1', 'entry_2']
+        page_filter = CapturedPokemonFilterPage(trainer_id=trainer.id)
+        captured_pokemon_service.repository.list_all = AsyncMock(return_value=expected_result)
+
+        result = await captured_pokemon_service.fetch_all(page_filter=page_filter)
+
+        assert result == expected_result
+        captured_pokemon_service.repository.list_all.assert_awaited_once_with(
+            page_filter=page_filter
+        )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_fetch_all_raises_http_exception_on_repository_error(
+        captured_pokemon_service,
+        trainer,
+    ):
+        """Should raise HTTPException when repository fails"""
+        page_filter = CapturedPokemonFilterPage(trainer_id=trainer.id)
+        captured_pokemon_service.repository.list_all = AsyncMock(side_effect=Exception('boom'))
+
+        with pytest.raises(HTTPException) as exc_info:
+            await captured_pokemon_service.fetch_all(page_filter=page_filter)
+
+        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert exc_info.value.detail == 'Error fetching captured_pokemons entries'
+
+
+class TestCapturedPokemonServiceFindByPokemon:
+    """Test scope for find_by_pokemon method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_returns_entry(
+        captured_pokemon_service,
+        trainer,
+        pokemon,
+    ):
+        """Should return captured pokemon when repository finds a match"""
+        expected_result = {'pokemon_id': pokemon.id, 'trainer_id': trainer.id}
+        captured_pokemon_service.repository.find_by_pokemon = AsyncMock(
+            return_value=expected_result
+        )
+
+        result = await captured_pokemon_service.find_by_pokemon(
+            trainer_id=trainer.id,
+            pokemon_id=pokemon.id,
+        )
+
+        assert result == expected_result
+        captured_pokemon_service.repository.find_by_pokemon.assert_awaited_once_with(
+            trainer_id=trainer.id,
+            pokemon_id=pokemon.id,
+        )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_raises_http_exception_on_repository_error(
+        captured_pokemon_service,
+        trainer,
+        pokemon,
+    ):
+        """Should raise HTTPException when repository fails"""
+        captured_pokemon_service.repository.find_by_pokemon = AsyncMock(
+            side_effect=Exception('boom')
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await captured_pokemon_service.find_by_pokemon(
+                trainer_id=trainer.id,
+                pokemon_id=pokemon.id,
+            )
+
+        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert exc_info.value.detail == 'Error find by pokemon'
