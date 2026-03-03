@@ -238,3 +238,105 @@ class TestPokedexServiceFetchAll:
             )
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         assert exc_info.value.detail == 'Error fetching pokedex entries'
+
+
+class TestPokedexServiceRefresh:
+    """Test scope for refresh method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_refresh_creates_entries_for_missing_pokemon(
+        pokedex_service, trainer, pokemon
+    ):
+        """Should create a new entry when pokemon is not present in pokedex"""
+        pokedex_service.repository.find_by_pokemon = AsyncMock(return_value=None)
+        pokedex_service.business.calculate_pokemon_stats = MagicMock(return_value=MOCK_STATS)
+        pokedex_service.repository.create = AsyncMock(
+            side_effect=lambda create_schema: DummyPokedex(**create_schema.model_dump())
+        )
+
+        result = await pokedex_service.refresh(
+            trainer_id=trainer.id,
+            pokemons=[pokemon],
+        )
+
+        assert len(result) == 1
+        assert result[0].pokemon_id == pokemon.id
+        assert result[0].trainer_id == trainer.id
+        assert result[0].discovered is False
+        pokedex_service.repository.find_by_pokemon.assert_awaited_once_with(
+            trainer_id=trainer.id,
+            pokemon_id=pokemon.id,
+        )
+        pokedex_service.business.calculate_pokemon_stats.assert_called_once_with(
+            pokemon=pokemon
+        )
+        pokedex_service.repository.create.assert_awaited_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_refresh_skips_existing_entries(
+        pokedex_service,
+        trainer,
+        pokemon,
+        pokemon_incomplete,
+    ):
+        """Should skip existing pokedex entries and create only missing ones"""
+        pokedex_service.repository.find_by_pokemon = AsyncMock(
+            side_effect=[DummyPokedex(pokemon_id=pokemon.id), None]
+        )
+        pokedex_service.business.calculate_pokemon_stats = MagicMock(return_value=MOCK_STATS)
+        pokedex_service.repository.create = AsyncMock(
+            side_effect=lambda create_schema: DummyPokedex(**create_schema.model_dump())
+        )
+
+        result = await pokedex_service.refresh(
+            trainer_id=trainer.id,
+            pokemons=[pokemon, pokemon_incomplete],
+        )
+        total_count = 2
+        assert len(result) == 1
+        assert result[0].pokemon_id == pokemon_incomplete.id
+        assert result[0].trainer_id == trainer.id
+        assert result[0].discovered is False
+        assert pokedex_service.repository.find_by_pokemon.await_count == total_count
+        pokedex_service.business.calculate_pokemon_stats.assert_called_once_with(
+            pokemon=pokemon_incomplete
+        )
+        pokedex_service.repository.create.assert_awaited_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_refresh_returns_empty_list_for_empty_input(pokedex_service, trainer):
+        """Should return an empty list when no pokemons are provided"""
+        pokedex_service.repository.find_by_pokemon = AsyncMock()
+        pokedex_service.repository.create = AsyncMock()
+        pokedex_service.business.calculate_pokemon_stats = MagicMock()
+
+        result = await pokedex_service.refresh(
+            trainer_id=trainer.id,
+            pokemons=[],
+        )
+
+        assert result == []
+        pokedex_service.repository.find_by_pokemon.assert_not_awaited()
+        pokedex_service.repository.create.assert_not_awaited()
+        pokedex_service.business.calculate_pokemon_stats.assert_not_called()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_refresh_propagates_error_when_create_fails(
+        pokedex_service,
+        trainer,
+        pokemon,
+    ):
+        """Should propagate exception when repository create fails"""
+        pokedex_service.repository.find_by_pokemon = AsyncMock(return_value=None)
+        pokedex_service.business.calculate_pokemon_stats = MagicMock(return_value=MOCK_STATS)
+        pokedex_service.repository.create = AsyncMock(side_effect=Exception('boom'))
+
+        with pytest.raises(Exception, match='boom'):
+            await pokedex_service.refresh(
+                trainer_id=trainer.id,
+                pokemons=[pokemon],
+            )
