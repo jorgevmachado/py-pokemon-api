@@ -2,28 +2,33 @@
 
 from datetime import datetime
 from http import HTTPStatus
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import Depends, HTTPException, Query
+from fastapi import Depends, HTTPException
 
-from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.captured_pokemon.repository import CapturedPokemonRepository
 from app.domain.captured_pokemon.schema import (
     CapturedPokemonFilterPage,
+    CapturePokemonHealSchema,
+    CapturePokemonSchema,
     CreateCapturedPokemonSchema,
     FindCapturePokemonSchema,
+    PartialCapturedPokemonSchema,
 )
 from app.domain.move.business import PokemonMoveBusiness
-from app.domain.pokemon.business import PokemonBusiness
+from app.domain.pokedex.service import PokemonService
 from app.domain.pokemon.model import Pokemon
+from app.domain.progression.business import PokemonProgressionBusiness
 from app.domain.trainer.model import Trainer
 
 Repository = Annotated[CapturedPokemonRepository, Depends()]
+PokemonService = Annotated[PokemonService, Depends()]
 
 
 class CapturedPokemonService:
-    def __init__(self, repository: Repository):
-        self.business = PokemonBusiness()
+    def __init__(self, repository: Repository, pokemon_service: PokemonService):
+        self.business = PokemonProgressionBusiness()
+        self.pokemon_service = pokemon_service
         self.repository = repository
 
     async def create(
@@ -32,234 +37,68 @@ class CapturedPokemonService:
         trainer: Trainer,
         nickname: str = None,
     ):
-        stats = self.business.calculate_pokemon_stats(
-            pokemon=pokemon,
-        )
-
-        create_captured_pokemon = CreateCapturedPokemonSchema(
-            hp=stats['hp'],
-            wins=stats['wins'],
-            level=stats['level'],
-            iv_hp=stats['iv_hp'],
-            ev_hp=stats['ev_hp'],
-            losses=stats['losses'],
-            max_hp=stats['max_hp'],
-            battles=stats['battles'],
-            nickname=nickname if nickname else stats['nickname'],
-            iv_speed=stats['iv_speed'],
-            ev_speed=stats['ev_speed'],
-            iv_attack=stats['iv_attack'],
-            ev_attack=stats['ev_attack'],
-            iv_defense=stats['iv_defense'],
-            ev_defense=stats['ev_defense'],
-            experience=stats['experience'],
-            iv_special_attack=stats['iv_special_attack'],
-            ev_special_attack=stats['ev_special_attack'],
-            iv_special_defense=stats['iv_special_defense'],
-            ev_special_defense=stats['ev_special_defense'],
-            captured_at=datetime.now(),
-            pokemon_id=pokemon.id,
-            trainer_id=trainer.id,
-        )
-        captured_pokemon = await self.repository.create(create_captured_pokemon)
-
-        pokemon_move_business = PokemonMoveBusiness()
-        selected_moves = pokemon_move_business.select_random_moves(pokemon.moves)
-        captured_pokemon.moves = selected_moves
-
-        return await self.repository.update(captured_pokemon)
-
-    async def record_battle_win(
-        self,
-        captured_pokemon: CapturedPokemon,
-        exp_gained: int = 0,
-    ) -> CapturedPokemon:
-        """
-        Update captured pokemon after a battle win.
-
-        Increments wins counter, adds experience points, and checks
-        for level up based on growth rate formula.
-
-        Args:
-            captured_pokemon: The pokemon that won
-            exp_gained: Experience points earned in battle
-
-        Returns:
-            Updated CapturedPokemon
-        """
-        captured_pokemon.wins += 1
-        captured_pokemon.battles += 1
-        captured_pokemon.experience += exp_gained
-
-        # Check if pokemon should level up
-        # Will need pokemon data to check growth rate formula
-        # For now, just update the record
-
-        return await self.repository.update(captured_pokemon)
-
-    async def record_battle_loss(
-        self,
-        captured_pokemon: CapturedPokemon,
-    ) -> CapturedPokemon:
-        """
-        Update captured pokemon after a battle loss.
-
-        Increments losses counter and total battles count.
-
-        Args:
-            captured_pokemon: The pokemon that lost
-
-        Returns:
-            Updated CapturedPokemon
-        """
-        captured_pokemon.losses += 1
-        captured_pokemon.battles += 1
-
-        return await self.repository.update(captured_pokemon)
-
-    async def add_effort_value(
-        self,
-        captured_pokemon: CapturedPokemon,
-        ev_type: str,
-        ev_amount: int = 1,
-    ) -> CapturedPokemon:
-        """
-        Add effort value (EV) to a specific stat.
-
-        Effort Values represent training in a specific stat.
-        Used to recalculate stats for next level up.
-
-        Args:
-            captured_pokemon: The pokemon being trained
-            ev_type: Type of stat (
-            hp, attack, defense, special_attack, special_defense, speed
+        exist_captured_pokemon = await self.find_by_pokemon(
+            FindCapturePokemonSchema(
+                trainer_id=trainer.id,
+                pokemon_id=pokemon.id,
             )
-            ev_amount: Amount of EV to add (default 1)
-
-        Returns:
-            Updated CapturedPokemon
-        """
-        ev_field = f'ev_{ev_type}'
-        if hasattr(captured_pokemon, ev_field):
-            current_ev = getattr(captured_pokemon, ev_field)
-            # Cap EVs at 252 (max useful EVs per stat in Pokemon)
-            setattr(captured_pokemon, ev_field, min(current_ev + ev_amount, 252))
-
-        return await self.repository.update(captured_pokemon)
-
-    async def recalculate_stats_for_level_up(
-        self,
-        captured_pokemon: CapturedPokemon,
-        pokemon: Pokemon,
-    ) -> CapturedPokemon:
-        """
-        Recalculate pokemon stats after level up.
-
-        Uses current IVs and EVs to calculate new stats for current level.
-
-        Args:
-            captured_pokemon: The pokemon to recalculate
-            pokemon: The pokemon species with base stats
-
-        Returns:
-            Updated CapturedPokemon with new stats
-        """
-        level = captured_pokemon.level
-
-        # Recalculate with current IVs and EVs
-        hp = max(
-            1,
-            (
-                (2 * pokemon.hp + captured_pokemon.iv_hp + captured_pokemon.ev_hp // 4)
-                * level
-                // 100
-            )
-            + level
-            + 5,
         )
-        attack = max(
-            1,
-            (
-                (
-                    2 * pokemon.attack
-                    + captured_pokemon.iv_attack
-                    + captured_pokemon.ev_attack // 4
-                )
-                * level
-                // 100
+        if not exist_captured_pokemon:
+            stats = self.business.initialize_stats(
+                pokemon=pokemon,
             )
-            + 5,
-        )
-        defense = max(
-            1,
-            (
-                (
-                    2 * pokemon.defense
-                    + captured_pokemon.iv_defense
-                    + captured_pokemon.ev_defense // 4
-                )
-                * level
-                // 100
-            )
-            + 5,
-        )
-        special_attack = max(
-            1,
-            (
-                (
-                    2 * pokemon.special_attack
-                    + captured_pokemon.iv_special_attack
-                    + captured_pokemon.ev_special_attack // 4
-                )
-                * level
-                // 100
-            )
-            + 5,
-        )
-        special_defense = max(
-            1,
-            (
-                (
-                    2 * pokemon.special_defense
-                    + captured_pokemon.iv_special_defense
-                    + captured_pokemon.ev_special_defense // 4
-                )
-                * level
-                // 100
-            )
-            + 5,
-        )
-        speed = max(
-            1,
-            (
-                (
-                    2 * pokemon.speed
-                    + captured_pokemon.iv_speed
-                    + captured_pokemon.ev_speed // 4
-                )
-                * level
-                // 100
-            )
-            + 5,
-        )
 
-        # Update stats
-        captured_pokemon.hp = hp
-        captured_pokemon.max_hp = hp
-        captured_pokemon.attack = attack
-        captured_pokemon.defense = defense
-        captured_pokemon.special_attack = special_attack
-        captured_pokemon.special_defense = special_defense
-        captured_pokemon.speed = speed
+            create_captured_pokemon = CreateCapturedPokemonSchema(
+                hp=stats.hp,
+                wins=stats.wins,
+                level=stats.level,
+                iv_hp=stats.iv_hp,
+                ev_hp=stats.ev_hp,
+                losses=stats.losses,
+                max_hp=stats.max_hp,
+                battles=stats.battles,
+                nickname=nickname if nickname else pokemon.name,
+                speed=stats.speed,
+                iv_speed=stats.iv_speed,
+                ev_speed=stats.ev_speed,
+                attack=stats.attack,
+                iv_attack=stats.iv_attack,
+                ev_attack=stats.ev_attack,
+                defense=stats.defense,
+                iv_defense=stats.iv_defense,
+                ev_defense=stats.ev_defense,
+                experience=stats.experience,
+                special_attack=stats.special_attack,
+                iv_special_attack=stats.iv_special_attack,
+                ev_special_attack=stats.ev_special_attack,
+                special_defense=stats.special_defense,
+                iv_special_defense=stats.iv_special_defense,
+                ev_special_defense=stats.ev_special_defense,
+                captured_at=datetime.now(),
+                pokemon_id=pokemon.id,
+                trainer_id=trainer.id,
+                formula=stats.formula,
+            )
 
-        return await self.repository.update(captured_pokemon)
+            captured_pokemon = await self.repository.create(create_captured_pokemon)
+
+            pokemon_move_business = PokemonMoveBusiness()
+            selected_moves = pokemon_move_business.select_random_moves(pokemon.moves)
+            captured_pokemon.moves = selected_moves
+
+            return await self.repository.update(captured_pokemon)
+
+        return exist_captured_pokemon
 
     async def fetch_all(
         self,
-        page_filter: Annotated[CapturedPokemonFilterPage, Query()],
+        trainer_id: str,
+        page_filter: Optional[CapturedPokemonFilterPage] = None,
     ):
         try:
-            return await self.repository.list_all(page_filter=page_filter)
+            return await self.repository.list_all(
+                trainer_id=trainer_id, page_filter=page_filter
+            )
         except Exception as e:
             print(f'# => captured_pokemon => service => fetch_all => error => {e}')
             raise HTTPException(
@@ -267,37 +106,42 @@ class CapturedPokemonService:
                 detail='Error fetching captured_pokemons entries',
             )
 
-    async def capture(self, trainer: Trainer, capture_pokemon: Pokemon, nickname: str = None):
+    async def capture(self, trainer: Trainer, capture_pokemon: CapturePokemonSchema):
         try:
+            pokemon = await self.pokemon_service.fetch_one(name=capture_pokemon.pokemon_name)
+
             if trainer.pokeballs == 0:
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN, detail='Not enough pokeballs'
                 )
 
-            if trainer.capture_rate < capture_pokemon.capture_rate:
+            if trainer.capture_rate < pokemon.capture_rate:
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN,
                     detail=(
                         f'You have {trainer.capture_rate} capture rate. '
                         f'To capture this Pokemon, you need '
-                        f'{capture_pokemon.capture_rate}.'
+                        f'{pokemon.capture_rate}.'
                     ),
                 )
 
-            current_nickname = capture_pokemon.name
+            current_nickname = pokemon.name
+
+            if capture_pokemon.nickname:
+                current_nickname = capture_pokemon.nickname
 
             exist_pokemon = await self.find_by_pokemon(
                 find_capture_pokemon=FindCapturePokemonSchema(
                     trainer_id=trainer.id,
-                    pokemon_id=capture_pokemon.id,
+                    pokemon_id=pokemon.id,
                 )
             )
 
-            if exist_pokemon and exist_pokemon.nickname == nickname:
-                current_nickname = f'{capture_pokemon.name}_1'
+            if exist_pokemon and exist_pokemon.nickname == current_nickname:
+                current_nickname = f'{pokemon.name}_1'
 
             return await self.create(
-                pokemon=capture_pokemon, trainer=trainer, nickname=current_nickname
+                pokemon=pokemon, trainer=trainer, nickname=current_nickname
             )
         except HTTPException:
             raise
@@ -319,3 +163,63 @@ class CapturedPokemonService:
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 detail='Error find by pokemon',
             )
+
+    async def update(
+        self, captured_pokemon_id: str, captured_pokemon_update: PartialCapturedPokemonSchema
+    ):
+        captured_pokemon = await self.repository.find_by_id(captured_pokemon_id)
+        if not captured_pokemon:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail='Captured Pokemon not found'
+            )
+
+        if captured_pokemon_update.level is not None:
+            captured_pokemon.level = captured_pokemon_update.level
+
+        if captured_pokemon_update.wins is not None:
+            captured_pokemon.wins = captured_pokemon_update.wins
+
+        if captured_pokemon_update.losses is not None:
+            captured_pokemon.losses = captured_pokemon_update.losses
+
+        if captured_pokemon_update.hp is not None:
+            captured_pokemon.hp = captured_pokemon_update.hp
+
+        if captured_pokemon_update.speed is not None:
+            captured_pokemon.speed = captured_pokemon_update.speed
+
+        if captured_pokemon_update.attack is not None:
+            captured_pokemon.attack = captured_pokemon_update.attack
+
+        if captured_pokemon_update.defense is not None:
+            captured_pokemon.defense = captured_pokemon_update.defense
+
+        if captured_pokemon_update.attack is not None:
+            captured_pokemon.attack = captured_pokemon_update.attack
+
+        if captured_pokemon_update.special_attack is not None:
+            captured_pokemon.special_attack = captured_pokemon_update.special_attack
+
+        if captured_pokemon_update.special_defense is not None:
+            captured_pokemon.special_defense = captured_pokemon_update.special_defense
+
+        if captured_pokemon_update.experience is not None:
+            captured_pokemon.experience = captured_pokemon_update.experience
+
+        return await self.repository.update(captured_pokemon)
+
+    async def heal(self, trainer_id: str, heal_pokemons: CapturePokemonHealSchema):
+        if heal_pokemons.all:
+            pokemons_to_heal = await self.repository.list_all(trainer_id=trainer_id)
+        else:
+            pokemons_to_heal = []
+            for pokemon_id in heal_pokemons.pokemons:
+                pokemon = await self.repository.find_by_id(pokemon_id)
+                if pokemon and pokemon.trainer_id == trainer_id:
+                    pokemons_to_heal.append(pokemon)
+
+        for pokemon in pokemons_to_heal:
+            pokemon.hp = pokemon.max_hp
+            await self.repository.update(pokemon)
+
+        return pokemons_to_heal

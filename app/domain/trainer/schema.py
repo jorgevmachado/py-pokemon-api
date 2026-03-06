@@ -21,7 +21,14 @@ class CreateTrainerSchema(BaseModel):
     date_of_birth: datetime
     pokeballs: int = Field(default=5)
     capture_rate: int = Field(default=45)
-    pokemon_name: str | None = None
+
+
+class InitializeTrainerSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    pokeballs: int = Field(default=5)
+    capture_rate: int = Field(default=45)
+    pokemon_name: str
 
 
 class TrainerPublicSchema(BaseModel):
@@ -50,11 +57,3 @@ class TrainerPublicSchema(BaseModel):
 class FindOneUserSchemaParams(BaseModel):
     id: str | None = None
     email: str | None = None
-
-
-class BattlePokemonSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    trainer_pokemon: str
-    trainer_pokemon_move: str
-    opponent_pokemon: str

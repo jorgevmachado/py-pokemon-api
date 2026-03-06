@@ -82,13 +82,15 @@ async def pokemon_growth_rate_service(pokemon_growth_rate_repository):
 
 
 @pytest_asyncio.fixture
-async def captured_pokemon_service(captured_pokemon_repository):
-    return CapturedPokemonService(repository=captured_pokemon_repository)
+async def captured_pokemon_service(captured_pokemon_repository, pokemon_service):
+    return CapturedPokemonService(
+        repository=captured_pokemon_repository, pokemon_service=pokemon_service
+    )
 
 
 @pytest_asyncio.fixture
-async def pokedex_service(pokedex_repository):
-    return PokedexService(repository=pokedex_repository)
+async def pokedex_service(pokedex_repository, pokemon_service):
+    return PokedexService(repository=pokedex_repository, pokemon_service=pokemon_service)
 
 
 @pytest_asyncio.fixture

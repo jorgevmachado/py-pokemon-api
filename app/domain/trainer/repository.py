@@ -9,7 +9,6 @@ from app.core.database import get_session
 from app.domain.trainer.model import Trainer
 from app.domain.trainer.schema import CreateTrainerSchema, FindOneUserSchemaParams
 from app.shared.role_enum import RoleEnum
-from app.shared.status_enum import StatusEnum
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
@@ -24,7 +23,7 @@ class TrainerRepository:
             name=create_trainer.name,
             email=create_trainer.email,
             gender=create_trainer.gender,
-            status=StatusEnum.ACTIVE,
+            status=create_trainer.status,
             password=create_trainer.password,
             pokeballs=create_trainer.pokeballs,
             capture_rate=create_trainer.capture_rate,

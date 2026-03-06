@@ -22,15 +22,20 @@ class CreateCapturedPokemonSchema(BaseModel):
     max_hp: int
     battles: int
     nickname: str
+    speed: int
     iv_speed: int
     ev_speed: int
+    attack: int
     iv_attack: int
     ev_attack: int
+    defense: int
     iv_defense: int
     ev_defense: int
     experience: int
+    special_attack: int
     iv_special_attack: int
     ev_special_attack: int
+    special_defense: int
     iv_special_defense: int
     ev_special_defense: int
     captured_at: datetime
@@ -38,6 +43,7 @@ class CreateCapturedPokemonSchema(BaseModel):
     trainer: Trainer | None = None
     pokemon_id: str
     trainer_id: str
+    formula: str
 
 
 class CapturedPokemonPublicSchema(BaseModel):
@@ -53,15 +59,20 @@ class CapturedPokemonPublicSchema(BaseModel):
     max_hp: int
     battles: int
     nickname: str
+    speed: int
     iv_speed: int
     ev_speed: int
+    attack: int
     iv_attack: int
     ev_attack: int
+    defense: int
     iv_defense: int
     ev_defense: int
     experience: int
+    special_attack: int
     iv_special_attack: int
     ev_special_attack: int
+    special_defense: int
     iv_special_defense: int
     ev_special_defense: int
     captured_at: datetime
@@ -70,7 +81,7 @@ class CapturedPokemonPublicSchema(BaseModel):
 
 
 class CapturedPokemonFilterPage(FilterPage):
-    trainer_id: str
+    model_config = ConfigDict(from_attributes=True)
     nickname: Optional[str] = None
 
 
@@ -86,3 +97,33 @@ class FindCapturePokemonSchema(BaseModel):
     name: Optional[str] = None
     nickname: Optional[str] = None
     pokemon_id: Optional[str] = None
+
+
+class CapturePokemonResult(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    error: bool
+    error_detail: Optional[str] = None
+    captured_pokemon: Optional[CapturedPokemonPublicSchema] = None
+
+
+class PartialCapturedPokemonSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    hp: Optional[int] = None
+    wins: Optional[int] = None
+    losses: Optional[int] = None
+    level: Optional[int] = None
+    attack: Optional[int] = None
+    defense: Optional[int] = None
+    experience: Optional[int] = None
+    speed: Optional[int] = None
+    special_attack: Optional[int] = None
+    special_defense: Optional[int] = None
+
+
+class CapturePokemonHealSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    all: Optional[bool] = False
+    pokemons: Optional[list[str]] = []

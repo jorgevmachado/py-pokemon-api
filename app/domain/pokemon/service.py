@@ -50,7 +50,17 @@ class PokemonService:
     async def total(self) -> int:
         return await self.repository.total()
 
-    async def fetch_all(
+    async def list_all(
+        self,
+        page_filter: Annotated[FilterPage, Query()] = None,
+    ):
+        try:
+            return await self.repository.list_all(page_filter=page_filter)
+        except Exception as e:
+            print(f'# => service => list_all => error => {e}')
+        return exception_pagination(page_filter)
+
+    async def initialize(
         self,
         page_filter: Annotated[FilterPage, Query()] = None,
     ):
@@ -233,10 +243,8 @@ class PokemonService:
 
     async def first_pokemon(self, name: str | None = None) -> FirstPokemonSchemaResult:
         try:
-            page_filter = FilterPage(limit=POKEMON_TOTAL_LIMIT, offset=0)
-            pokemons_result = await self.fetch_all(page_filter=page_filter)
+            pokemons_result = await self.list_all()
 
-            # Se retornou paginação, pega os items, senão usa a lista direto
             pokemons = (
                 list(pokemons_result.items)
                 if hasattr(pokemons_result, 'items')

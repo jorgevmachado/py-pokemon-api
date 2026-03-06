@@ -25,21 +25,27 @@ class TestPokedexRepositoryCreate:
             max_hp=MOCK_POKEDEX.max_hp,
             battles=MOCK_POKEDEX.battles,
             iv_speed=MOCK_POKEDEX.iv_speed,
+            speed=MOCK_POKEDEX.speed,
             ev_speed=MOCK_POKEDEX.ev_speed,
             iv_attack=MOCK_POKEDEX.iv_attack,
+            attack=MOCK_POKEDEX.attack,
             ev_attack=MOCK_POKEDEX.ev_attack,
             iv_defense=MOCK_POKEDEX.iv_defense,
+            defense=MOCK_POKEDEX.defense,
             ev_defense=MOCK_POKEDEX.ev_defense,
             experience=MOCK_POKEDEX.experience,
             nickname=MOCK_POKEDEX.nickname,
             iv_special_attack=MOCK_POKEDEX.iv_special_attack,
+            special_attack=MOCK_POKEDEX.special_attack,
             ev_special_attack=MOCK_POKEDEX.ev_special_attack,
             iv_special_defense=MOCK_POKEDEX.iv_special_defense,
+            special_defense=MOCK_POKEDEX.special_defense,
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
             discovered=MOCK_POKEDEX.discovered,
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
             discovered_at=datetime.now(),
+            formula=MOCK_POKEDEX.formula,
         )
         repository = PokedexRepository(session=session)
         result = await repository.create(pokedex_data)
@@ -79,21 +85,27 @@ class TestPokedexRepositoryCreate:
             max_hp=MOCK_POKEDEX.max_hp,
             battles=MOCK_POKEDEX.battles,
             iv_speed=MOCK_POKEDEX.iv_speed,
+            speed=MOCK_POKEDEX.speed,
             ev_speed=MOCK_POKEDEX.ev_speed,
             iv_attack=MOCK_POKEDEX.iv_attack,
+            attack=MOCK_POKEDEX.attack,
             ev_attack=MOCK_POKEDEX.ev_attack,
             iv_defense=MOCK_POKEDEX.iv_defense,
+            defense=MOCK_POKEDEX.defense,
             ev_defense=MOCK_POKEDEX.ev_defense,
             experience=MOCK_POKEDEX.experience,
             nickname=MOCK_POKEDEX.nickname,
             iv_special_attack=MOCK_POKEDEX.iv_special_attack,
+            special_attack=MOCK_POKEDEX.special_attack,
             ev_special_attack=MOCK_POKEDEX.ev_special_attack,
             iv_special_defense=MOCK_POKEDEX.iv_special_defense,
+            special_defense=MOCK_POKEDEX.special_defense,
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
             discovered=MOCK_POKEDEX.discovered,
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
             discovered_at=datetime.now(),
+            formula=MOCK_POKEDEX.formula,
         )
         session.commit = AsyncMock(side_effect=Exception('Database error'))
 
@@ -120,21 +132,27 @@ class TestPokedexRepositoryFindByTrainer:
             max_hp=MOCK_POKEDEX.max_hp,
             battles=MOCK_POKEDEX.battles,
             iv_speed=MOCK_POKEDEX.iv_speed,
+            speed=MOCK_POKEDEX.speed,
             ev_speed=MOCK_POKEDEX.ev_speed,
             iv_attack=MOCK_POKEDEX.iv_attack,
+            attack=MOCK_POKEDEX.attack,
             ev_attack=MOCK_POKEDEX.ev_attack,
             iv_defense=MOCK_POKEDEX.iv_defense,
+            defense=MOCK_POKEDEX.defense,
             ev_defense=MOCK_POKEDEX.ev_defense,
             experience=MOCK_POKEDEX.experience,
             nickname=MOCK_POKEDEX.nickname,
             iv_special_attack=MOCK_POKEDEX.iv_special_attack,
+            special_attack=MOCK_POKEDEX.special_attack,
             ev_special_attack=MOCK_POKEDEX.ev_special_attack,
             iv_special_defense=MOCK_POKEDEX.iv_special_defense,
+            special_defense=MOCK_POKEDEX.special_defense,
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
             discovered=MOCK_POKEDEX.discovered,
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
             discovered_at=datetime.now(),
+            formula=MOCK_POKEDEX.formula,
         )
         repository = PokedexRepository(session=session)
         await repository.create(pokedex_data)
@@ -157,21 +175,27 @@ class TestPokedexRepositoryFindByTrainer:
             max_hp=MOCK_POKEDEX.max_hp,
             battles=MOCK_POKEDEX.battles,
             iv_speed=MOCK_POKEDEX.iv_speed,
+            speed=MOCK_POKEDEX.speed,
             ev_speed=MOCK_POKEDEX.ev_speed,
             iv_attack=MOCK_POKEDEX.iv_attack,
+            attack=MOCK_POKEDEX.attack,
             ev_attack=MOCK_POKEDEX.ev_attack,
             iv_defense=MOCK_POKEDEX.iv_defense,
+            defense=MOCK_POKEDEX.defense,
             ev_defense=MOCK_POKEDEX.ev_defense,
             experience=MOCK_POKEDEX.experience,
             nickname=MOCK_POKEDEX.nickname,
             iv_special_attack=MOCK_POKEDEX.iv_special_attack,
+            special_attack=MOCK_POKEDEX.special_attack,
             ev_special_attack=MOCK_POKEDEX.ev_special_attack,
             iv_special_defense=MOCK_POKEDEX.iv_special_defense,
+            special_defense=MOCK_POKEDEX.special_defense,
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
             discovered=MOCK_POKEDEX.discovered,
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
             discovered_at=datetime.now(),
+            formula=MOCK_POKEDEX.formula,
         )
         repository = PokedexRepository(session=session)
         await repository.create(pokedex_data)
@@ -205,21 +229,27 @@ class TestPokedexRepositoryFindByTrainer:
             max_hp=MOCK_POKEDEX.max_hp,
             battles=MOCK_POKEDEX.battles,
             iv_speed=MOCK_POKEDEX.iv_speed,
+            speed=MOCK_POKEDEX.speed,
             ev_speed=MOCK_POKEDEX.ev_speed,
             iv_attack=MOCK_POKEDEX.iv_attack,
+            attack=MOCK_POKEDEX.attack,
             ev_attack=MOCK_POKEDEX.ev_attack,
             iv_defense=MOCK_POKEDEX.iv_defense,
+            defense=MOCK_POKEDEX.defense,
             ev_defense=MOCK_POKEDEX.ev_defense,
             experience=MOCK_POKEDEX.experience,
             nickname=MOCK_POKEDEX.nickname,
             iv_special_attack=MOCK_POKEDEX.iv_special_attack,
+            special_attack=MOCK_POKEDEX.special_attack,
             ev_special_attack=MOCK_POKEDEX.ev_special_attack,
             iv_special_defense=MOCK_POKEDEX.iv_special_defense,
+            special_defense=MOCK_POKEDEX.special_defense,
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
-            discovered=True,
+            discovered=MOCK_POKEDEX.discovered,
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
             discovered_at=datetime.now(),
+            formula=MOCK_POKEDEX.formula,
         )
         repository = PokedexRepository(session=session)
         await repository.create(pokedex_data)
@@ -243,21 +273,27 @@ class TestPokedexRepositoryFindByTrainer:
             max_hp=MOCK_POKEDEX.max_hp,
             battles=MOCK_POKEDEX.battles,
             iv_speed=MOCK_POKEDEX.iv_speed,
+            speed=MOCK_POKEDEX.speed,
             ev_speed=MOCK_POKEDEX.ev_speed,
             iv_attack=MOCK_POKEDEX.iv_attack,
+            attack=MOCK_POKEDEX.attack,
             ev_attack=MOCK_POKEDEX.ev_attack,
             iv_defense=MOCK_POKEDEX.iv_defense,
+            defense=MOCK_POKEDEX.defense,
             ev_defense=MOCK_POKEDEX.ev_defense,
             experience=MOCK_POKEDEX.experience,
             nickname=MOCK_POKEDEX.nickname,
             iv_special_attack=MOCK_POKEDEX.iv_special_attack,
+            special_attack=MOCK_POKEDEX.special_attack,
             ev_special_attack=MOCK_POKEDEX.ev_special_attack,
             iv_special_defense=MOCK_POKEDEX.iv_special_defense,
+            special_defense=MOCK_POKEDEX.special_defense,
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
-            discovered=True,
+            discovered=MOCK_POKEDEX.discovered,
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
             discovered_at=datetime.now(),
+            formula=MOCK_POKEDEX.formula,
         )
         repository = PokedexRepository(session=session)
         await repository.create(pokedex_data)
@@ -284,29 +320,33 @@ class TestPokedexRepositoryListByTrainer:
             max_hp=MOCK_POKEDEX.max_hp,
             battles=MOCK_POKEDEX.battles,
             iv_speed=MOCK_POKEDEX.iv_speed,
+            speed=MOCK_POKEDEX.speed,
             ev_speed=MOCK_POKEDEX.ev_speed,
             iv_attack=MOCK_POKEDEX.iv_attack,
+            attack=MOCK_POKEDEX.attack,
             ev_attack=MOCK_POKEDEX.ev_attack,
             iv_defense=MOCK_POKEDEX.iv_defense,
+            defense=MOCK_POKEDEX.defense,
             ev_defense=MOCK_POKEDEX.ev_defense,
             experience=MOCK_POKEDEX.experience,
             nickname=MOCK_POKEDEX.nickname,
             iv_special_attack=MOCK_POKEDEX.iv_special_attack,
+            special_attack=MOCK_POKEDEX.special_attack,
             ev_special_attack=MOCK_POKEDEX.ev_special_attack,
             iv_special_defense=MOCK_POKEDEX.iv_special_defense,
+            special_defense=MOCK_POKEDEX.special_defense,
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
             discovered=MOCK_POKEDEX.discovered,
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
             discovered_at=datetime.now(),
+            formula=MOCK_POKEDEX.formula,
         )
         repository = PokedexRepository(session=session)
         await repository.create(pokedex_data)
 
         result = await repository.list_all(
-            PokedexFilterPage(
-                trainer_id=trainer.id,
-            )
+            trainer_id=trainer.id,
         )
         assert isinstance(result, list)
         assert len(result) >= 1
@@ -317,9 +357,7 @@ class TestPokedexRepositoryListByTrainer:
         repository = PokedexRepository(session=session)
 
         result = await repository.list_all(
-            PokedexFilterPage(
-                trainer_id=trainer.id,
-            )
+            trainer_id=trainer.id,
         )
         assert isinstance(result, list)
         assert len(result) == 0
@@ -335,7 +373,7 @@ class TestPokedexRepositoryListByTrainer:
         repository = PokedexRepository(session=session)
 
         result = await repository.list_all(
-            PokedexFilterPage(trainer_id=trainer.id, offset=2, limit=10)
+            trainer_id=trainer.id, page_filter=PokedexFilterPage(offset=2, limit=10)
         )
         assert result is not None
         assert hasattr(result, 'items')
@@ -353,7 +391,7 @@ class TestPokedexRepositoryListByTrainer:
         repository = PokedexRepository(session=session)
 
         result = await repository.list_all(
-            PokedexFilterPage(trainer_id=trainer.id, offset=0, limit=2)
+            trainer_id=trainer.id, page_filter=PokedexFilterPage(offset=0, limit=2)
         )
         assert result is not None
         if hasattr(result, 'items'):
@@ -373,7 +411,7 @@ class TestPokedexRepositoryListByTrainer:
         repository = PokedexRepository(session=session)
 
         result = await repository.list_all(
-            PokedexFilterPage(trainer_id=trainer.id, offset=3, limit=4)
+            trainer_id=trainer.id, page_filter=PokedexFilterPage(offset=3, limit=4)
         )
         assert result is not None
         if hasattr(result, 'items'):
@@ -393,7 +431,7 @@ class TestPokedexRepositoryListByTrainer:
         repository = PokedexRepository(session=session)
 
         result = await repository.list_all(
-            PokedexFilterPage(trainer_id=trainer.id, offset=None, limit=None)
+            trainer_id=trainer.id, page_filter=PokedexFilterPage(offset=None, limit=None)
         )
         assert isinstance(result, list)
         assert len(result) == total_results
@@ -420,21 +458,27 @@ class TestPokedexRepositoryListByTrainer:
             max_hp=MOCK_POKEDEX.max_hp,
             battles=MOCK_POKEDEX.battles,
             iv_speed=MOCK_POKEDEX.iv_speed,
+            speed=MOCK_POKEDEX.speed,
             ev_speed=MOCK_POKEDEX.ev_speed,
             iv_attack=MOCK_POKEDEX.iv_attack,
+            attack=MOCK_POKEDEX.attack,
             ev_attack=MOCK_POKEDEX.ev_attack,
             iv_defense=MOCK_POKEDEX.iv_defense,
+            defense=MOCK_POKEDEX.defense,
             ev_defense=MOCK_POKEDEX.ev_defense,
             experience=MOCK_POKEDEX.experience,
             nickname=MOCK_POKEDEX.nickname,
             iv_special_attack=MOCK_POKEDEX.iv_special_attack,
+            special_attack=MOCK_POKEDEX.special_attack,
             ev_special_attack=MOCK_POKEDEX.ev_special_attack,
             iv_special_defense=MOCK_POKEDEX.iv_special_defense,
+            special_defense=MOCK_POKEDEX.special_defense,
             ev_special_defense=MOCK_POKEDEX.ev_special_defense,
             discovered=MOCK_POKEDEX.discovered,
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
             discovered_at=datetime.now(),
+            formula=MOCK_POKEDEX.formula,
         )
 
         repository = PokedexRepository(session=session)
@@ -442,13 +486,13 @@ class TestPokedexRepositoryListByTrainer:
         await repository.create(pokedex_data)
 
         result = await repository.list_all(
-            PokedexFilterPage(
-                trainer_id=trainer.id,
+            trainer_id=trainer.id,
+            page_filter=PokedexFilterPage(
                 nickname=MOCK_POKEDEX.nickname,
                 discovered=MOCK_POKEDEX.discovered,
                 offset=None,
                 limit=None,
-            )
+            ),
         )
         assert isinstance(result, list)
         assert len(result) == total_results

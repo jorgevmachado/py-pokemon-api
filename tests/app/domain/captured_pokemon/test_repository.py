@@ -1,4 +1,3 @@
-from datetime import datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -30,20 +29,26 @@ class TestCapturedPokemonRepositoryCreate:
             max_hp=MOCK_CAPTURED_POKEMON.max_hp,
             battles=MOCK_CAPTURED_POKEMON.battles,
             iv_speed=MOCK_CAPTURED_POKEMON.iv_speed,
+            speed=MOCK_CAPTURED_POKEMON.speed,
             ev_speed=MOCK_CAPTURED_POKEMON.ev_speed,
             iv_attack=MOCK_CAPTURED_POKEMON.iv_attack,
+            attack=MOCK_CAPTURED_POKEMON.attack,
             ev_attack=MOCK_CAPTURED_POKEMON.ev_attack,
             iv_defense=MOCK_CAPTURED_POKEMON.iv_defense,
+            defense=MOCK_CAPTURED_POKEMON.defense,
             ev_defense=MOCK_CAPTURED_POKEMON.ev_defense,
             experience=MOCK_CAPTURED_POKEMON.experience,
             nickname=MOCK_CAPTURED_POKEMON.nickname,
             iv_special_attack=MOCK_CAPTURED_POKEMON.iv_special_attack,
+            special_attack=MOCK_CAPTURED_POKEMON.special_attack,
             ev_special_attack=MOCK_CAPTURED_POKEMON.ev_special_attack,
             iv_special_defense=MOCK_CAPTURED_POKEMON.iv_special_defense,
+            special_defense=MOCK_CAPTURED_POKEMON.special_defense,
             ev_special_defense=MOCK_CAPTURED_POKEMON.ev_special_defense,
             captured_at=MOCK_CAPTURED_POKEMON.captured_at,
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
+            formula=MOCK_CAPTURED_POKEMON.formula,
         )
         result = await captured_pokemon_repository.create(captured_pokemon_data)
 
@@ -84,20 +89,26 @@ class TestCapturedPokemonRepositoryCreate:
             max_hp=MOCK_CAPTURED_POKEMON.max_hp,
             battles=MOCK_CAPTURED_POKEMON.battles,
             iv_speed=MOCK_CAPTURED_POKEMON.iv_speed,
+            speed=MOCK_CAPTURED_POKEMON.speed,
             ev_speed=MOCK_CAPTURED_POKEMON.ev_speed,
             iv_attack=MOCK_CAPTURED_POKEMON.iv_attack,
+            attack=MOCK_CAPTURED_POKEMON.attack,
             ev_attack=MOCK_CAPTURED_POKEMON.ev_attack,
             iv_defense=MOCK_CAPTURED_POKEMON.iv_defense,
+            defense=MOCK_CAPTURED_POKEMON.defense,
             ev_defense=MOCK_CAPTURED_POKEMON.ev_defense,
             experience=MOCK_CAPTURED_POKEMON.experience,
             nickname=MOCK_CAPTURED_POKEMON.nickname,
             iv_special_attack=MOCK_CAPTURED_POKEMON.iv_special_attack,
+            special_attack=MOCK_CAPTURED_POKEMON.special_attack,
             ev_special_attack=MOCK_CAPTURED_POKEMON.ev_special_attack,
             iv_special_defense=MOCK_CAPTURED_POKEMON.iv_special_defense,
+            special_defense=MOCK_CAPTURED_POKEMON.special_defense,
             ev_special_defense=MOCK_CAPTURED_POKEMON.ev_special_defense,
             captured_at=MOCK_CAPTURED_POKEMON.captured_at,
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
+            formula=MOCK_CAPTURED_POKEMON.formula,
         )
         session.commit = AsyncMock(side_effect=Exception('Database error'))
 
@@ -123,27 +134,31 @@ class TestCapturedPokemonRepositoryListByTrainer:
             max_hp=MOCK_CAPTURED_POKEMON.max_hp,
             battles=MOCK_CAPTURED_POKEMON.battles,
             iv_speed=MOCK_CAPTURED_POKEMON.iv_speed,
+            speed=MOCK_CAPTURED_POKEMON.speed,
             ev_speed=MOCK_CAPTURED_POKEMON.ev_speed,
             iv_attack=MOCK_CAPTURED_POKEMON.iv_attack,
+            attack=MOCK_CAPTURED_POKEMON.attack,
             ev_attack=MOCK_CAPTURED_POKEMON.ev_attack,
             iv_defense=MOCK_CAPTURED_POKEMON.iv_defense,
+            defense=MOCK_CAPTURED_POKEMON.defense,
             ev_defense=MOCK_CAPTURED_POKEMON.ev_defense,
             experience=MOCK_CAPTURED_POKEMON.experience,
             nickname=MOCK_CAPTURED_POKEMON.nickname,
             iv_special_attack=MOCK_CAPTURED_POKEMON.iv_special_attack,
+            special_attack=MOCK_CAPTURED_POKEMON.special_attack,
             ev_special_attack=MOCK_CAPTURED_POKEMON.ev_special_attack,
             iv_special_defense=MOCK_CAPTURED_POKEMON.iv_special_defense,
+            special_defense=MOCK_CAPTURED_POKEMON.special_defense,
             ev_special_defense=MOCK_CAPTURED_POKEMON.ev_special_defense,
             captured_at=MOCK_CAPTURED_POKEMON.captured_at,
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
+            formula=MOCK_CAPTURED_POKEMON.formula,
         )
         await captured_pokemon_repository.create(captured_pokemon_data)
 
         result = await captured_pokemon_repository.list_all(
-            CapturedPokemonFilterPage(
-                trainer_id=trainer.id,
-            )
+            trainer_id=trainer.id,
         )
         assert isinstance(result, list)
         assert len(result) >= 1
@@ -155,9 +170,7 @@ class TestCapturedPokemonRepositoryListByTrainer:
     ):
 
         result = await captured_pokemon_repository.list_all(
-            CapturedPokemonFilterPage(
-                trainer_id=trainer.id,
-            )
+            trainer_id=trainer.id,
         )
         assert isinstance(result, list)
         assert len(result) == 0
@@ -173,7 +186,7 @@ class TestCapturedPokemonRepositoryListByTrainer:
             await session.commit()
 
         result = await captured_pokemon_repository.list_all(
-            CapturedPokemonFilterPage(trainer_id=trainer.id, offset=2, limit=10)
+            trainer_id=trainer.id, page_filter=CapturedPokemonFilterPage(offset=2, limit=10)
         )
         assert result is not None
         assert hasattr(result, 'items')
@@ -191,7 +204,7 @@ class TestCapturedPokemonRepositoryListByTrainer:
             await session.commit()
 
         result = await captured_pokemon_repository.list_all(
-            CapturedPokemonFilterPage(trainer_id=trainer.id, offset=0, limit=2)
+            trainer_id=trainer.id, page_filter=CapturedPokemonFilterPage(offset=0, limit=2)
         )
         assert result is not None
         if hasattr(result, 'items'):
@@ -211,7 +224,7 @@ class TestCapturedPokemonRepositoryListByTrainer:
             await session.commit()
 
         result = await captured_pokemon_repository.list_all(
-            CapturedPokemonFilterPage(trainer_id=trainer.id, offset=3, limit=4)
+            trainer_id=trainer.id, page_filter=CapturedPokemonFilterPage(offset=3, limit=4)
         )
         assert result is not None
         if hasattr(result, 'items'):
@@ -231,7 +244,8 @@ class TestCapturedPokemonRepositoryListByTrainer:
             await session.commit()
 
         result = await captured_pokemon_repository.list_all(
-            CapturedPokemonFilterPage(trainer_id=trainer.id, offset=None, limit=None)
+            trainer_id=trainer.id,
+            page_filter=CapturedPokemonFilterPage(offset=None, limit=None),
         )
         assert isinstance(result, list)
         assert len(result) == total_results
@@ -259,31 +273,37 @@ class TestCapturedPokemonRepositoryListByTrainer:
             max_hp=MOCK_CAPTURED_POKEMON.max_hp,
             battles=MOCK_CAPTURED_POKEMON.battles,
             iv_speed=MOCK_CAPTURED_POKEMON.iv_speed,
+            speed=MOCK_CAPTURED_POKEMON.speed,
             ev_speed=MOCK_CAPTURED_POKEMON.ev_speed,
             iv_attack=MOCK_CAPTURED_POKEMON.iv_attack,
+            attack=MOCK_CAPTURED_POKEMON.attack,
             ev_attack=MOCK_CAPTURED_POKEMON.ev_attack,
             iv_defense=MOCK_CAPTURED_POKEMON.iv_defense,
+            defense=MOCK_CAPTURED_POKEMON.defense,
             ev_defense=MOCK_CAPTURED_POKEMON.ev_defense,
             experience=MOCK_CAPTURED_POKEMON.experience,
             nickname=MOCK_CAPTURED_POKEMON.nickname,
             iv_special_attack=MOCK_CAPTURED_POKEMON.iv_special_attack,
+            special_attack=MOCK_CAPTURED_POKEMON.special_attack,
             ev_special_attack=MOCK_CAPTURED_POKEMON.ev_special_attack,
             iv_special_defense=MOCK_CAPTURED_POKEMON.iv_special_defense,
+            special_defense=MOCK_CAPTURED_POKEMON.special_defense,
             ev_special_defense=MOCK_CAPTURED_POKEMON.ev_special_defense,
-            captured_at=datetime.now(),
+            captured_at=MOCK_CAPTURED_POKEMON.captured_at,
             pokemon_id=pokemon.id,
             trainer_id=trainer.id,
+            formula=MOCK_CAPTURED_POKEMON.formula,
         )
 
         await captured_pokemon_repository.create(captured_pokemon_data)
 
         result = await captured_pokemon_repository.list_all(
-            CapturedPokemonFilterPage(
-                trainer_id=trainer.id,
+            trainer_id=trainer.id,
+            page_filter=CapturedPokemonFilterPage(
                 nickname=MOCK_CAPTURED_POKEMON.nickname,
                 offset=None,
                 limit=None,
-            )
+            ),
         )
         assert isinstance(result, list)
         assert len(result) == total_results

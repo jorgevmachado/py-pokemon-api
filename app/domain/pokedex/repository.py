@@ -31,20 +31,26 @@ class PokedexRepository:
             max_hp=create_pokedex.max_hp,
             battles=create_pokedex.battles,
             nickname=create_pokedex.nickname,
+            speed=create_pokedex.speed,
             iv_speed=create_pokedex.iv_speed,
             ev_speed=create_pokedex.ev_speed,
+            attack=create_pokedex.attack,
             iv_attack=create_pokedex.iv_attack,
             ev_attack=create_pokedex.ev_attack,
+            defense=create_pokedex.defense,
             iv_defense=create_pokedex.iv_defense,
             ev_defense=create_pokedex.ev_defense,
             experience=create_pokedex.experience,
+            special_attack=create_pokedex.special_attack,
             iv_special_attack=create_pokedex.iv_special_attack,
             ev_special_attack=create_pokedex.ev_special_attack,
+            special_defense=create_pokedex.special_defense,
             iv_special_defense=create_pokedex.iv_special_defense,
             ev_special_defense=create_pokedex.ev_special_defense,
             discovered=create_pokedex.discovered,
             pokemon_id=create_pokedex.pokemon_id,
             trainer_id=create_pokedex.trainer_id,
+            formula=create_pokedex.formula,
         )
         if create_pokedex.discovered_at is not None:
             pokedex.discovered_at = create_pokedex.discovered_at
@@ -65,8 +71,9 @@ class PokedexRepository:
         result = await self.session.scalars(query)
         return set(result.all())
 
-    async def list_all(self, page_filter: Annotated[PokedexFilterPage, Query()]):
-        trainer_id = page_filter.trainer_id
+    async def list_all(
+        self, trainer_id: str, page_filter: Annotated[PokedexFilterPage, Query()] = None
+    ):
         query = (
             select(Pokedex)
             .options(
@@ -76,10 +83,10 @@ class PokedexRepository:
             .order_by(Pokedex.discovered_at.desc())
             .where(Pokedex.trainer_id == trainer_id)
         )
-        if page_filter.discovered is not None:
+        if page_filter and page_filter.discovered is not None:
             query = query.where(Pokedex.discovered == page_filter.discovered)
 
-        if page_filter.nickname is not None:
+        if page_filter and page_filter.nickname is not None:
             query = query.where(Pokedex.nickname.ilike(f'%{page_filter.nickname}%'))
 
         if is_paginate(page_filter):
@@ -101,7 +108,11 @@ class PokedexRepository:
 
         query = (
             select(Pokedex)
-            .options(selectinload(Pokedex.pokemon))
+            .options(
+                selectinload(Pokedex.pokemon).selectinload(Pokemon.moves),
+                selectinload(Pokedex.pokemon).selectinload(Pokemon.types),
+                selectinload(Pokedex.pokemon).selectinload(Pokemon.growth_rate),
+            )
             .order_by(Pokedex.discovered_at.desc())
             .where(Pokedex.trainer_id == find_pokedex.trainer_id)
         )
@@ -116,3 +127,23 @@ class PokedexRepository:
             query = query.where(Pokedex.nickname.ilike(f'%{find_pokedex.nickname}%'))
 
         return await self.session.scalar(query)
+
+    async def find_by_id(self, pokedex_id: str) -> Pokedex:
+        query = (
+            select(Pokedex)
+            .options(
+                selectinload(Pokedex.pokemon).selectinload(Pokemon.moves),
+                selectinload(Pokedex.pokemon).selectinload(Pokemon.types),
+                selectinload(Pokedex.pokemon).selectinload(Pokemon.growth_rate),
+            )
+            .order_by(Pokedex.discovered_at.desc())
+            .where(Pokedex.id == pokedex_id)
+        )
+
+        return await self.session.scalar(query)
+
+    async def update(self, pokedex: Pokedex) -> Pokedex:
+        await self.session.merge(pokedex)
+        await self.session.commit()
+        await self.session.refresh(pokedex)
+        return pokedex

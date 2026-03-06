@@ -383,7 +383,7 @@ class TestPokemonServiceInitializeDatabase:
         )
 
 
-class TestPokemonServiceFetchAll:
+class TestPokemonServiceInitialize:
     """Test scope for fetch_all method"""
 
     @staticmethod
@@ -410,7 +410,7 @@ class TestPokemonServiceFetchAll:
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
         page_filter = FilterPage(offset=0, limit=10)
-        result = await pokemon_service.fetch_all(page_filter=page_filter)
+        result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert len(result) == total_list
         assert result[0].name == 'Bulbasaur'
@@ -436,7 +436,7 @@ class TestPokemonServiceFetchAll:
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
         page_filter = FilterPage(offset=0, limit=10)
-        result = await pokemon_service.fetch_all(page_filter=page_filter)
+        result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert len(result) == 1
         assert result[0].name == 'Charizard'
@@ -461,7 +461,7 @@ class TestPokemonServiceFetchAll:
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
         page_filter = FilterPage(offset=10, limit=1)
-        result = await pokemon_service.fetch_all(page_filter=page_filter)
+        result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert len(result) == 1
         assert result[0].name == 'Pidgeot'
@@ -475,7 +475,7 @@ class TestPokemonServiceFetchAll:
         pokemon_service.repository.total = AsyncMock(side_effect=Exception('Database error'))
 
         page_filter = FilterPage(offset=0, limit=10)
-        result = await pokemon_service.fetch_all(page_filter=page_filter)
+        result = await pokemon_service.initialize(page_filter=page_filter)
 
         # Deve retornar LimitOffsetPage vazio com paginação
         assert hasattr(result, 'items')
@@ -491,7 +491,7 @@ class TestPokemonServiceFetchAll:
         pokemon_service.repository.list_all = AsyncMock(side_effect=Exception('Query error'))
 
         page_filter = FilterPage(offset=0, limit=10)
-        result = await pokemon_service.fetch_all(page_filter=page_filter)
+        result = await pokemon_service.initialize(page_filter=page_filter)
 
         # Deve retornar LimitOffsetPage vazio com paginação
         assert hasattr(result, 'items')
@@ -509,7 +509,7 @@ class TestPokemonServiceFetchAll:
         )
 
         page_filter = FilterPage(offset=0, limit=10)
-        result = await pokemon_service.fetch_all(page_filter=page_filter)
+        result = await pokemon_service.initialize(page_filter=page_filter)
 
         # Deve retornar LimitOffsetPage vazio com paginação
         assert hasattr(result, 'items')
@@ -525,7 +525,7 @@ class TestPokemonServiceFetchAll:
         pokemon_service.repository.list_all = AsyncMock(return_value=[])
 
         page_filter = FilterPage(offset=0, limit=10)
-        result = await pokemon_service.fetch_all(page_filter=page_filter)
+        result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert result == []
         assert isinstance(result, list)
@@ -540,7 +540,7 @@ class TestPokemonServiceFetchAll:
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
         page_filter = FilterPage(offset=1300, limit=10)
-        result = await pokemon_service.fetch_all(page_filter=page_filter)
+        result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert result == []
         pokemon_service.repository.list_all.assert_called_once_with(page_filter=page_filter)
@@ -567,7 +567,7 @@ class TestPokemonServiceFetchAll:
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
         page_filter = FilterPage(offset=0, limit=10)
-        result = await pokemon_service.fetch_all(page_filter=page_filter)
+        result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert len(result) == total_list
         assert result[0].name == 'Pikachu'
@@ -595,7 +595,7 @@ class TestPokemonServiceFetchAll:
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
         page_filter = FilterPage(offset=0, limit=10)
-        result = await pokemon_service.fetch_all(page_filter=page_filter)
+        result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert len(result) == 1
         pokemon_service.initialize_database.assert_not_called()
@@ -612,7 +612,7 @@ class TestPokemonServiceFetchAll:
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
         page_filter = FilterPage(offset=0, limit=10)
-        result = await pokemon_service.fetch_all(page_filter=page_filter)
+        result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert result == []
         pokemon_service.initialize_database.assert_called_once_with(total=500)
@@ -634,7 +634,7 @@ class TestPokemonServiceFetchAll:
         ]
 
         for page_filter in filters:
-            result = await pokemon_service.fetch_all(page_filter=page_filter)
+            result = await pokemon_service.initialize(page_filter=page_filter)
             assert len(result) == 1
 
         assert pokemon_service.repository.list_all.call_count == total_call_count
@@ -1245,7 +1245,7 @@ class TestPokemonServiceFirstPokemon:
         )
         bulbasaur.id = str(uuid4())
 
-        pokemon_service.fetch_all = AsyncMock(return_value=[bulbasaur])
+        pokemon_service.list_all = AsyncMock(return_value=[bulbasaur])
         pokemon_service.fetch_one = AsyncMock(return_value=bulbasaur)
 
         result = await pokemon_service.first_pokemon(name='bulbasaur')
@@ -1253,7 +1253,7 @@ class TestPokemonServiceFirstPokemon:
         assert result is not None
         assert result.pokemon is not None
         assert result.pokemon.name == 'bulbasaur'
-        pokemon_service.fetch_all.assert_called_once()
+        pokemon_service.list_all.assert_called_once()
         pokemon_service.fetch_one.assert_called_once_with(name='bulbasaur')
 
     @staticmethod
@@ -1278,7 +1278,7 @@ class TestPokemonServiceFirstPokemon:
         pikachu.id = str(uuid4())
         pokemons = [bulbasaur, pikachu]
 
-        pokemon_service.fetch_all = AsyncMock(return_value=pokemons)
+        pokemon_service.list_all = AsyncMock(return_value=pokemons)
         pokemon_service.fetch_one = AsyncMock(return_value=bulbasaur)
         pokemon_service.business.find_first_pokemon = MagicMock(return_value=bulbasaur)
 
@@ -1287,7 +1287,7 @@ class TestPokemonServiceFirstPokemon:
         assert result is not None
         assert result.pokemon is not None
         assert result.pokemon.name == 'bulbasaur'
-        pokemon_service.fetch_all.assert_called_once()
+        pokemon_service.list_all.assert_called_once()
         pokemon_service.fetch_one.assert_called_once_with(name='bulbasaur')
 
     @staticmethod
@@ -1312,7 +1312,7 @@ class TestPokemonServiceFirstPokemon:
         pikachu.id = str(uuid4())
         pokemons = [bulbasaur, pikachu]
 
-        pokemon_service.fetch_all = AsyncMock(return_value=pokemons)
+        pokemon_service.list_all = AsyncMock(return_value=pokemons)
         pokemon_service.fetch_one = AsyncMock(return_value=bulbasaur)
         pokemon_service.business.find_first_pokemon = MagicMock(return_value=bulbasaur)
 
@@ -1321,7 +1321,7 @@ class TestPokemonServiceFirstPokemon:
         assert result is not None
         assert result.pokemon is not None
         assert result.pokemon.name == 'bulbasaur'
-        pokemon_service.fetch_all.assert_called_once()
+        pokemon_service.list_all.assert_called_once()
         pokemon_service.fetch_one.assert_called_once_with(name='bulbasaur')
 
     @staticmethod
@@ -1346,7 +1346,7 @@ class TestPokemonServiceFirstPokemon:
         charmander.id = str(uuid4())
         pokemons = [pikachu, charmander]
 
-        pokemon_service.fetch_all = AsyncMock(return_value=pokemons)
+        pokemon_service.list_all = AsyncMock(return_value=pokemons)
         pokemon_service.business.find_first_pokemon = MagicMock(return_value=None)
 
         result = await pokemon_service.first_pokemon(name=None)
@@ -1354,21 +1354,21 @@ class TestPokemonServiceFirstPokemon:
         assert result is not None
         assert result.pokemon is None
         assert result.pokemons == pokemons
-        pokemon_service.fetch_all.assert_called_once()
+        pokemon_service.list_all.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
     async def test_first_pokemon_with_empty_list(pokemon_service):
         """Should return FirstPokemonSchemaResult with pokemon=None when list is empty"""
 
-        pokemon_service.fetch_all = AsyncMock(return_value=[])
+        pokemon_service.list_all = AsyncMock(return_value=[])
 
         result = await pokemon_service.first_pokemon(name='bulbasaur')
 
         assert result is not None
         assert result.pokemon is None
         assert result.pokemons == []
-        pokemon_service.fetch_all.assert_called_once()
+        pokemon_service.list_all.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -1400,7 +1400,7 @@ class TestPokemonServiceFirstPokemon:
         venusaur.id = str(uuid4())
         pokemons = [bulbasaur, ivysaur, venusaur]
 
-        pokemon_service.fetch_all = AsyncMock(return_value=pokemons)
+        pokemon_service.list_all = AsyncMock(return_value=pokemons)
         pokemon_service.fetch_one = AsyncMock(return_value=ivysaur)
 
         result = await pokemon_service.first_pokemon(name='ivysaur')
@@ -1415,7 +1415,7 @@ class TestPokemonServiceFirstPokemon:
     async def test_first_pokemon_raises_http_exception(pokemon_service):
         """Should raise HTTPException when fetch_all fails"""
 
-        pokemon_service.fetch_all = AsyncMock(side_effect=Exception('Database error'))
+        pokemon_service.list_all = AsyncMock(side_effect=Exception('Database error'))
 
         with pytest.raises(HTTPException) as exc_info:
             await pokemon_service.first_pokemon(name='bulbasaur')
@@ -1453,7 +1453,7 @@ class TestPokemonServiceFirstPokemon:
         )
         returned_bulbasaur.id = bulbasaur.id
 
-        pokemon_service.fetch_all = AsyncMock(return_value=pokemons)
+        pokemon_service.list_all = AsyncMock(return_value=pokemons)
         pokemon_service.fetch_one = AsyncMock(return_value=returned_bulbasaur)
 
         result = await pokemon_service.first_pokemon(name=None)

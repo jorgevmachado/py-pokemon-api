@@ -37,28 +37,37 @@ class CapturedPokemonRepository:
             max_hp=create_captured_pokemon.max_hp,
             battles=create_captured_pokemon.battles,
             nickname=create_captured_pokemon.nickname,
+            speed=create_captured_pokemon.speed,
             iv_speed=create_captured_pokemon.iv_speed,
             ev_speed=create_captured_pokemon.ev_speed,
+            attack=create_captured_pokemon.attack,
             iv_attack=create_captured_pokemon.iv_attack,
             ev_attack=create_captured_pokemon.ev_attack,
+            defense=create_captured_pokemon.defense,
             iv_defense=create_captured_pokemon.iv_defense,
             ev_defense=create_captured_pokemon.ev_defense,
             experience=create_captured_pokemon.experience,
-            ev_special_attack=create_captured_pokemon.ev_special_attack,
+            special_attack=create_captured_pokemon.special_attack,
             iv_special_attack=create_captured_pokemon.iv_special_attack,
+            ev_special_attack=create_captured_pokemon.ev_special_attack,
+            special_defense=create_captured_pokemon.special_defense,
             iv_special_defense=create_captured_pokemon.iv_special_defense,
             ev_special_defense=create_captured_pokemon.ev_special_defense,
             captured_at=create_captured_pokemon.captured_at,
             pokemon_id=create_captured_pokemon.pokemon_id,
             trainer_id=create_captured_pokemon.trainer_id,
+            formula=create_captured_pokemon.formula,
         )
         self.session.add(captured_pokemon)
         await self.session.commit()
         await self.session.refresh(captured_pokemon)
         return captured_pokemon
 
-    async def list_all(self, page_filter: Annotated[CapturedPokemonFilterPage, Query()]):
-        trainer_id = page_filter.trainer_id
+    async def list_all(
+        self,
+        trainer_id: str,
+        page_filter: Annotated[CapturedPokemonFilterPage, Query()] = None,
+    ):
         query = (
             select(CapturedPokemon)
             .options(
@@ -70,7 +79,7 @@ class CapturedPokemonRepository:
             .where(CapturedPokemon.trainer_id == trainer_id)
         )
 
-        if page_filter.nickname is not None:
+        if page_filter and page_filter.nickname is not None:
             query = query.where(CapturedPokemon.nickname.ilike(f'%{page_filter.nickname}%'))
 
         if is_paginate(page_filter):
@@ -92,7 +101,11 @@ class CapturedPokemonRepository:
 
         query = (
             select(CapturedPokemon)
-            .options(selectinload(CapturedPokemon.pokemon))
+            .options(
+                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.moves),
+                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.types),
+                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.growth_rate),
+            )
             .where(CapturedPokemon.trainer_id == find_capture_pokemon.trainer_id)
         )
 
@@ -114,3 +127,16 @@ class CapturedPokemonRepository:
         await self.session.commit()
         await self.session.refresh(captured_pokemon)
         return captured_pokemon
+
+    async def find_by_id(self, captured_pokemon_id: str) -> CapturedPokemon:
+        query = (
+            select(CapturedPokemon)
+            .options(
+                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.moves),
+                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.types),
+                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.growth_rate),
+            )
+            .where(CapturedPokemon.id == captured_pokemon_id)
+        )
+
+        return await self.session.scalar(query)

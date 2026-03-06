@@ -43,3 +43,28 @@ class PokemonFactory(factory.Factory):
     )
     evolves_from_species = factory.LazyAttribute(lambda o: f'evolves_from_species_{o.name}')
     has_gender_differences = factory.LazyAttribute(lambda o: random.choice([True, False]))
+
+
+MOCK_POKEMON_BULBASAUR = PokemonFactory.build(
+    name='bulbasaur',
+    order=1,
+    status=StatusEnum.COMPLETE,
+    hp=45,
+    speed=45,
+    attack=49,
+    defense=49,
+    special_attack=65,
+    special_defense=65,
+)
+
+MOCK_POKEMON_CHARIZARD = PokemonFactory.build(
+    name='charizard',
+    order=6,
+    status=StatusEnum.COMPLETE,
+    hp=78,
+    speed=100,
+    attack=84,
+    defense=78,
+    special_attack=109,
+    special_defense=85,
+)

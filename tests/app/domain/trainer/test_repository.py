@@ -51,7 +51,7 @@ class TestTrainerRepositoryCreate:
         assert isinstance(result, Trainer)
         assert result.name == MOCK_TRAINER.name
         assert result.role == MOCK_TRAINER.role
-        assert result.status == MOCK_TRAINER.status
+        assert result.status == StatusEnum.INCOMPLETE
         assert result.gender == MOCK_TRAINER.gender
         assert result.password == MOCK_TRAINER.password
         assert result.pokeballs == MOCK_TRAINER.pokeballs
@@ -82,7 +82,7 @@ class TestTrainerRepositoryCreate:
         assert isinstance(result, Trainer)
         assert result.name == MOCK_TRAINER.name
         assert result.role == MOCK_TRAINER.role
-        assert result.status == MOCK_TRAINER.status
+        assert result.status == StatusEnum.INCOMPLETE
         assert result.gender == MOCK_TRAINER.gender
         assert result.password == MOCK_TRAINER.password
         assert result.pokeballs == MOCK_POKEBALLS

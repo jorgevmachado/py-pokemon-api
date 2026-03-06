@@ -19,15 +19,21 @@ class CreatePokedexSchema(BaseModel):
     max_hp: int
     battles: int
     nickname: str
+    speed: int
     iv_speed: int
     ev_speed: int
+    attack: int
     iv_attack: int
     ev_attack: int
+    defense: int
+    formula: str
     iv_defense: int
     ev_defense: int
     experience: int
+    special_attack: int
     iv_special_attack: int
     ev_special_attack: int
+    special_defense: int
     iv_special_defense: int
     ev_special_defense: int
     discovered: bool = Field(default=False)
@@ -50,16 +56,21 @@ class PokedexPublicSchema(BaseModel):
     max_hp: int
     battles: int
     nickname: str
+    speed: int
     iv_speed: int
     ev_speed: int
+    attack: int
     iv_attack: int
     ev_attack: int
+    defense: int
     iv_defense: int
     ev_defense: int
     experience: int
+    special_attack: int
     iv_special_attack: int
     ev_special_attack: int
     iv_special_defense: int
+    special_defense: int
     ev_special_defense: int
     discovered: bool = Field(default=False)
     discovered_at: Optional[datetime] = None
@@ -67,7 +78,6 @@ class PokedexPublicSchema(BaseModel):
 
 
 class PokedexFilterPage(FilterPage):
-    trainer_id: str
     nickname: Optional[str] = None
     discovered: Optional[bool] = None
 
@@ -78,3 +88,15 @@ class FindPokedexSchema(BaseModel):
     name: Optional[str] = None
     nickname: Optional[str] = None
     pokemon_id: Optional[str] = None
+
+
+class PokedexDiscover(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    pokemon_name: str
+
+
+class PartialPokedexSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    hp: Optional[int] = None

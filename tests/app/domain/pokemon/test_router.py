@@ -51,7 +51,7 @@ class TestPokemonRouterList:
 
         total_results = 2
         with patch(
-            'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
+            'app.domain.pokemon.service.PokemonService.initialize', new_callable=AsyncMock
         ) as mock_fetch:
             mock_fetch.return_value = LimitOffsetPage.create(
                 pokemons_data,
@@ -75,7 +75,7 @@ class TestPokemonRouterList:
     def test_list_pokemons_empty_result(client, trainer, token):
         """Should return empty results when no pokemon exists"""
         with patch(
-            'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
+            'app.domain.pokemon.service.PokemonService.initialize', new_callable=AsyncMock
         ) as mock_fetch:
             mock_fetch.return_value = LimitOffsetPage.create(
                 [],
@@ -111,7 +111,7 @@ class TestPokemonRouterList:
         ]
 
         with patch(
-            'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
+            'app.domain.pokemon.service.PokemonService.initialize', new_callable=AsyncMock
         ) as mock_fetch:
             mock_fetch.return_value = LimitOffsetPage.create(
                 pokemons_data,
@@ -159,7 +159,7 @@ class TestPokemonRouterList:
         ]
         total_results = 2
         with patch(
-            'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
+            'app.domain.pokemon.service.PokemonService.initialize', new_callable=AsyncMock
         ) as mock_fetch:
             mock_fetch.return_value = LimitOffsetPage.create(
                 pokemons_data,
@@ -221,7 +221,7 @@ class TestPokemonRouterList:
         ]
 
         with patch(
-            'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
+            'app.domain.pokemon.service.PokemonService.initialize', new_callable=AsyncMock
         ) as mock_fetch:
             mock_fetch.return_value = LimitOffsetPage.create(
                 [pokemons_data[0]],
@@ -275,7 +275,7 @@ class TestPokemonRouterList:
             ),
         ]
         with patch(
-            'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
+            'app.domain.pokemon.service.PokemonService.initialize', new_callable=AsyncMock
         ) as mock_fetch:
             mock_fetch.return_value = pokemons_data
 
@@ -305,7 +305,7 @@ class TestPokemonRouterList:
             app.dependency_overrides[get_session] = get_session_override
 
             with patch(
-                'app.domain.pokemon.service.PokemonService.fetch_all',
+                'app.domain.pokemon.service.PokemonService.initialize',
                 new_callable=AsyncMock,
             ) as mock_fetch:
                 mock_fetch.side_effect = Exception('Database error')
@@ -341,7 +341,7 @@ class TestPokemonRouterList:
         ]
 
         with patch(
-            'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
+            'app.domain.pokemon.service.PokemonService.initialize', new_callable=AsyncMock
         ) as mock_fetch:
             mock_fetch.return_value = LimitOffsetPage.create(
                 pokemons_data,
@@ -381,7 +381,7 @@ class TestPokemonRouterList:
         ]
 
         with patch(
-            'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
+            'app.domain.pokemon.service.PokemonService.initialize', new_callable=AsyncMock
         ) as mock_fetch:
             mock_fetch.return_value = LimitOffsetPage.create(
                 pokemons_data,
@@ -409,7 +409,7 @@ class TestPokemonRouterList:
     def test_list_pokemons_large_offset(client, trainer, token):
         """Should handle large offset values"""
         with patch(
-            'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
+            'app.domain.pokemon.service.PokemonService.initialize', new_callable=AsyncMock
         ) as mock_fetch:
             mock_fetch.return_value = LimitOffsetPage.create(
                 [],
@@ -446,7 +446,7 @@ class TestPokemonRouterList:
         ]
         total_results = 5
         with patch(
-            'app.domain.pokemon.service.PokemonService.fetch_all', new_callable=AsyncMock
+            'app.domain.pokemon.service.PokemonService.initialize', new_callable=AsyncMock
         ) as mock_fetch:
             mock_fetch.return_value = LimitOffsetPage.create(
                 pokemons_data,

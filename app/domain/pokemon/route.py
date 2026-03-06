@@ -20,7 +20,7 @@ async def list_pokemons(
     trainer: CurrentTrainer,
     page_filter: Annotated[FilterPage, Depends()],
 ):
-    return await service.fetch_all(page_filter=page_filter)
+    return await service.initialize(page_filter=page_filter)
 
 
 @router.get('/{pokemon_name}', response_model=PokemonSchema)

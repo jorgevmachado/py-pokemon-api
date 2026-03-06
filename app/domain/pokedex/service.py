@@ -4,21 +4,71 @@ from typing import Annotated, Optional
 
 from fastapi import Depends, HTTPException, Query
 
-from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.pokedex.model import Pokedex
 from app.domain.pokedex.repository import PokedexRepository
-from app.domain.pokedex.schema import CreatePokedexSchema, FindPokedexSchema, PokedexFilterPage
-from app.domain.pokemon.business import PokemonBusiness
+from app.domain.pokedex.schema import (
+    CreatePokedexSchema,
+    FindPokedexSchema,
+    PartialPokedexSchema,
+    PokedexFilterPage,
+)
 from app.domain.pokemon.model import Pokemon
+from app.domain.pokemon.service import PokemonService
+from app.domain.progression.business import PokemonProgressionBusiness
 from app.domain.trainer.model import Trainer
 
 Repository = Annotated[PokedexRepository, Depends()]
+PokemonService = Annotated[PokemonService, Depends()]
 
 
 class PokedexService:
-    def __init__(self, repository: Repository):
+    def __init__(self, repository: Repository, pokemon_service: PokemonService):
         self.repository = repository
-        self.business = PokemonBusiness()
+        self.pokemon_service = pokemon_service
+        self.business = PokemonProgressionBusiness()
+
+    async def initialize_pokemon(
+        self, pokemon: Pokemon, trainer_id: str, discovered: bool = False
+    ) -> Pokedex | None:
+        try:
+            stats = self.business.initialize_stats(pokemon=pokemon)
+
+            create_pokedex = CreatePokedexSchema(
+                hp=stats.hp,
+                wins=stats.wins,
+                level=stats.level,
+                iv_hp=stats.iv_hp,
+                ev_hp=stats.ev_hp,
+                losses=stats.losses,
+                max_hp=stats.max_hp,
+                battles=stats.battles,
+                nickname=pokemon.name,
+                speed=stats.speed,
+                iv_speed=stats.iv_speed,
+                ev_speed=stats.ev_speed,
+                attack=stats.attack,
+                iv_attack=stats.iv_attack,
+                ev_attack=stats.ev_attack,
+                defense=stats.defense,
+                iv_defense=stats.iv_defense,
+                ev_defense=stats.ev_defense,
+                experience=stats.experience,
+                special_attack=stats.special_attack,
+                iv_special_attack=stats.iv_special_attack,
+                ev_special_attack=stats.ev_special_attack,
+                special_defense=stats.special_defense,
+                iv_special_defense=stats.iv_special_defense,
+                ev_special_defense=stats.ev_special_defense,
+                discovered=discovered,
+                discovered_at=None,
+                pokemon_id=pokemon.id,
+                trainer_id=trainer_id,
+                formula=stats.formula,
+            )
+            return await self.repository.create(create_pokedex)
+        except Exception as e:
+            print(f'# => pokedex => service => initialize_pokemon => error => {e}')
+        return None
 
     async def initialize(
         self,
@@ -36,210 +86,26 @@ class PokedexService:
                 if item.id in existing_pokemon_ids:
                     continue
 
-                discovered = item.name == pokemon_name
-
-                stats = self.business.calculate_pokemon_stats(pokemon=item)
-                create_pokedex = CreatePokedexSchema(
-                    hp=stats['hp'],
-                    wins=stats['wins'],
-                    level=stats['level'],
-                    iv_hp=stats['iv_hp'],
-                    ev_hp=stats['ev_hp'],
-                    losses=stats['losses'],
-                    max_hp=stats['max_hp'],
-                    battles=stats['battles'],
-                    nickname=stats['nickname'],
-                    iv_speed=stats['iv_speed'],
-                    ev_speed=stats['ev_speed'],
-                    iv_attack=stats['iv_attack'],
-                    ev_attack=stats['ev_attack'],
-                    iv_defense=stats['iv_defense'],
-                    ev_defense=stats['ev_defense'],
-                    experience=stats['experience'],
-                    iv_special_attack=stats['iv_special_attack'],
-                    ev_special_attack=stats['ev_special_attack'],
-                    iv_special_defense=stats['iv_special_defense'],
-                    ev_special_defense=stats['ev_special_defense'],
-                    discovered=discovered,
-                    discovered_at=None,
-                    pokemon_id=item.id,
-                    trainer_id=trainer.id,
+                create_pokedex = await self.initialize_pokemon(
+                    pokemon=item, trainer_id=trainer.id, discovered=item.name == pokemon_name
                 )
 
-                new_entry = await self.repository.create(create_pokedex)
-                new_entries.append(new_entry)
+                new_entries.append(create_pokedex)
 
             return new_entries
         except Exception as e:
             print(f'# => pokedex => service => initialize => error => {e}')
         return []
 
-    async def initialize_pokedex_entry(
-        self,
-        pokemon: Pokemon,
-        trainer: Trainer,
-        level: int = 1,
-    ) -> Pokedex:
-        """
-        Initialize a new pokedex entry for a trainer.
-
-        This method creates a new pokedex record with calculated stats
-        based on the pokemon's base stats and growth rate formula.
-        Each pokemon has unique IVs (Individual Values) to represent
-        genetic differences.
-
-        Args:
-            pokemon: Pokemon to add to pokedex
-            trainer: Trainer that discovered the pokemon
-            level: Initial level (default 1)
-
-        Returns:
-            Pokedex entry with calculated and unique stats
-        """
-        # Calculate stats using pokemon's base stats and growth rate formula
-        stats = self.business.calculate_pokemon_stats(
-            pokemon=pokemon,
-            level=level,
-        )
-
-        create_pokedex = CreatePokedexSchema(
-            hp=stats['hp'],
-            wins=stats['wins'],
-            level=stats['level'],
-            iv_hp=stats['iv_hp'],
-            ev_hp=stats['ev_hp'],
-            losses=stats['losses'],
-            max_hp=stats['max_hp'],
-            battles=stats['battles'],
-            nickname=stats['nickname'],
-            iv_speed=stats['iv_speed'],
-            ev_speed=stats['ev_speed'],
-            iv_attack=stats['iv_attack'],
-            ev_attack=stats['ev_attack'],
-            iv_defense=stats['iv_defense'],
-            ev_defense=stats['ev_defense'],
-            experience=stats['experience'],
-            iv_special_attack=stats['iv_special_attack'],
-            ev_special_attack=stats['ev_special_attack'],
-            iv_special_defense=stats['iv_special_defense'],
-            ev_special_defense=stats['ev_special_defense'],
-            discovered=True,
-            discovered_at=datetime.now(),
-            pokemon_id=pokemon.id,
-            trainer_id=trainer.id,
-        )
-
-        return await self.repository.create(create_pokedex)
-
-    async def capture_pokemon(
-        self,
-        pokemon: Pokemon,
-        trainer: Trainer,
-        level: int = 1,
-    ) -> CapturedPokemon:
-        """
-        Create a new captured pokemon entry for a trainer.
-
-        This method creates a captured pokemon record with calculated stats.
-        Each captured pokemon has unique stats based on its IVs (genetics),
-        making each pokemon different even if same species.
-
-        Args:
-            pokemon: Pokemon that was captured
-            trainer: Trainer that caught the pokemon
-            level: Initial level (default 1)
-
-        Returns:
-            CapturedPokemon entry with unique calculated stats
-        """
-        # Calculate stats using pokemon's base stats and growth rate formula
-        stats = self.business.calculate_pokemon_stats(
-            pokemon=pokemon,
-            level=level,
-        )
-
-        captured_pokemon = CapturedPokemon(
-            pokemon_id=pokemon.id,
-            trainer_id=trainer.id,
-            hp=stats['hp'],
-            max_hp=stats['max_hp'],
-            attack=stats['attack'],
-            defense=stats['defense'],
-            special_attack=stats['special_attack'],
-            special_defense=stats['special_defense'],
-            speed=stats['speed'],
-            level=stats['level'],
-            experience=stats['experience'],
-            iv_hp=stats['iv_hp'],
-            iv_attack=stats['iv_attack'],
-            iv_defense=stats['iv_defense'],
-            iv_special_attack=stats['iv_special_attack'],
-            iv_special_defense=stats['iv_special_defense'],
-            iv_speed=stats['iv_speed'],
-            ev_hp=stats['ev_hp'],
-            ev_attack=stats['ev_attack'],
-            ev_defense=stats['ev_defense'],
-            ev_special_attack=stats['ev_special_attack'],
-            ev_special_defense=stats['ev_special_defense'],
-            ev_speed=stats['ev_speed'],
-            wins=stats['wins'],
-            losses=stats['losses'],
-            battles=stats['battles'],
-            nickname=stats['nickname'],
-            captured_at=datetime.now(),
-        )
-
-        # self.session.add(captured_pokemon)
-        # await self.session.commit()
-        # await self.session.refresh(captured_pokemon)
-
-        return captured_pokemon
-
-    async def add_pokemon_to_pokedex_and_capture(
-        self,
-        pokemon: Pokemon,
-        trainer: Trainer,
-        level: int = 1,
-    ) -> tuple[Pokedex, CapturedPokemon]:
-        """
-        Add pokemon to both pokedex (discovered) and captured_pokemon list.
-
-        This is the main method to use when a trainer captures a pokemon.
-        It creates both:
-        - Pokedex entry: Records the discovery
-        - CapturedPokemon entry: The actual pokemon in the trainer's collection
-
-        Each pokemon receives unique IVs making them genetically different.
-
-        Args:
-            pokemon: Pokemon to add
-            trainer: Trainer that caught the pokemon
-            level: Initial level (default 1)
-
-        Returns:
-            Tuple of (Pokedex entry, CapturedPokemon entry)
-        """
-        # Create pokedex entry (discovery record)
-        pokedex_entry = await self.initialize_pokedex_entry(
-            pokemon=pokemon,
-            trainer=trainer,
-            level=level,
-        )
-
-        captured_entry = await self.capture_pokemon(
-            pokemon=pokemon,
-            trainer=trainer,
-            level=level,
-        )
-
-        return pokedex_entry, captured_entry
-
     async def fetch_all(
         self,
-        page_filter: Annotated[PokedexFilterPage, Query()],
+        trainer_id: str,
+        page_filter: Annotated[PokedexFilterPage, Query()] = None,
     ):
         try:
-            return await self.repository.list_all(page_filter=page_filter)
+            return await self.repository.list_all(
+                trainer_id=trainer_id, page_filter=page_filter
+            )
         except Exception as e:
             print(f'# => pokedex => service => fetch_all => error => {e}')
             raise HTTPException(
@@ -256,35 +122,12 @@ class PokedexService:
             )
             if not exist_pokedex:
                 total_not_exist += 1
-                stats = self.business.calculate_pokemon_stats(pokemon=pokemon)
-                create_pokedex = CreatePokedexSchema(
-                    hp=stats['hp'],
-                    wins=stats['wins'],
-                    level=stats['level'],
-                    iv_hp=stats['iv_hp'],
-                    ev_hp=stats['ev_hp'],
-                    losses=stats['losses'],
-                    max_hp=stats['max_hp'],
-                    battles=stats['battles'],
-                    nickname=stats['nickname'],
-                    iv_speed=stats['iv_speed'],
-                    ev_speed=stats['ev_speed'],
-                    iv_attack=stats['iv_attack'],
-                    ev_attack=stats['ev_attack'],
-                    iv_defense=stats['iv_defense'],
-                    ev_defense=stats['ev_defense'],
-                    experience=stats['experience'],
-                    iv_special_attack=stats['iv_special_attack'],
-                    ev_special_attack=stats['ev_special_attack'],
-                    iv_special_defense=stats['iv_special_defense'],
-                    ev_special_defense=stats['ev_special_defense'],
-                    discovered=False,
-                    discovered_at=None,
-                    pokemon_id=pokemon.id,
-                    trainer_id=trainer_id,
+
+                create_pokedex = await self.initialize_pokemon(
+                    pokemon=pokemon, trainer_id=trainer_id, discovered=False
                 )
-                new_entry = await self.repository.create(create_pokedex)
-                new_entries.append(new_entry)
+
+                new_entries.append(create_pokedex)
         print(
             f'# LOG => pokedex => service => refresh => total_not_exist => {total_not_exist}'
         )
@@ -299,3 +142,96 @@ class PokedexService:
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 detail='Error pokedex find by pokemon',
             )
+
+    async def discovered(self, trainer_id: str, pokemon: Pokemon, discovered: bool):
+        pokedex = await self.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(trainer_id=trainer_id, pokemon_id=pokemon.id)
+        )
+
+        if not pokedex.discovered:
+            pokedex.discovered = discovered
+            stats = self.business.initialize_stats(pokemon=pokemon)
+            pokedex.hp = stats.hp
+            pokedex.wins = stats.wins
+            pokedex.level = stats.level
+            pokedex.iv_hp = stats.iv_hp
+            pokedex.ev_hp = stats.ev_hp
+            pokedex.losses = stats.losses
+            pokedex.max_hp = stats.max_hp
+            pokedex.battles = stats.battles
+            pokedex.nickname = pokemon.name
+            pokedex.speed = stats.speed
+            pokedex.iv_speed = stats.iv_speed
+            pokedex.ev_speed = stats.ev_speed
+            pokedex.attack = stats.attack
+            pokedex.iv_attack = stats.iv_attack
+            pokedex.ev_attack = stats.ev_attack
+            pokedex.defense = stats.defense
+            pokedex.iv_defense = stats.iv_defense
+            pokedex.ev_defense = stats.ev_defense
+            pokedex.experience = stats.experience
+            pokedex.special_attack = stats.special_attack
+            pokedex.iv_special_attack = stats.iv_special_attack
+            pokedex.ev_special_attack = stats.ev_special_attack
+            pokedex.special_defense = stats.special_defense
+            pokedex.iv_special_defense = stats.iv_special_defense
+            pokedex.ev_special_defense = stats.ev_special_defense
+            if discovered:
+                pokedex.discovered_at = datetime.now()
+            pokedex.formula = stats.formula
+            await self.repository.update(pokedex)
+            return pokedex
+
+        return pokedex
+
+    async def discover(self, trainer_id: str, pokemon_name: str):
+        pokemon = await self.pokemon_service.fetch_one(name=pokemon_name)
+
+        pokedex = await self.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(trainer_id=trainer_id, pokemon_id=pokemon.id)
+        )
+
+        if not pokedex.discovered:
+            pokedex.discovered = True
+            stats = self.business.initialize_stats(pokemon=pokemon)
+            pokedex.hp = stats.hp
+            pokedex.wins = stats.wins
+            pokedex.level = stats.level
+            pokedex.iv_hp = stats.iv_hp
+            pokedex.ev_hp = stats.ev_hp
+            pokedex.losses = stats.losses
+            pokedex.max_hp = stats.max_hp
+            pokedex.battles = stats.battles
+            pokedex.nickname = pokemon.name
+            pokedex.speed = stats.speed
+            pokedex.iv_speed = stats.iv_speed
+            pokedex.ev_speed = stats.ev_speed
+            pokedex.attack = stats.attack
+            pokedex.iv_attack = stats.iv_attack
+            pokedex.ev_attack = stats.ev_attack
+            pokedex.defense = stats.defense
+            pokedex.iv_defense = stats.iv_defense
+            pokedex.ev_defense = stats.ev_defense
+            pokedex.experience = stats.experience
+            pokedex.special_attack = stats.special_attack
+            pokedex.iv_special_attack = stats.iv_special_attack
+            pokedex.ev_special_attack = stats.ev_special_attack
+            pokedex.special_defense = stats.special_defense
+            pokedex.iv_special_defense = stats.iv_special_defense
+            pokedex.ev_special_defense = stats.ev_special_defense
+            pokedex.discovered_at = datetime.now()
+            pokedex.formula = stats.formula
+            await self.repository.update(pokedex)
+            return pokedex
+
+        return pokedex
+
+    async def update(self, pokedex_id: str, pokedex_update: PartialPokedexSchema):
+        pokedex = await self.repository.find_by_id(pokedex_id)
+        if not pokedex:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='Pokedex not found')
+
+        for key, value in pokedex_update.model_dump().items():
+            setattr(pokedex, key, value)
+
+        return await self.repository.update(pokedex)
