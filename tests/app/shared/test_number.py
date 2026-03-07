@@ -1,5 +1,7 @@
 import ast
 
+import pytest
+
 from app.shared.number import (
     calculate_by_formula,
     convert_latex_to_python,
@@ -457,3 +459,50 @@ class TestNumberEvalPt2:
         node = ast.parse('x - 100', mode='eval')
         result = eval_expression(node.body, 10)
         assert result == result_value
+
+
+class TestNumberEvalErrors:
+    """Test scope for eval function error handling"""
+
+    @staticmethod
+    def test_eval_invalid_variable_raises_error():
+        """Should raise ValueError for invalid variable names"""
+        node = ast.parse('y + 5', mode='eval')
+        with pytest.raises(ValueError, match='Invalid variable'):
+            eval_expression(node.body, 10)
+
+    @staticmethod
+    def test_eval_invalid_variable_z_raises_error():
+        """Should raise ValueError for undefined variable z"""
+        node = ast.parse('z * 2', mode='eval')
+        with pytest.raises(ValueError, match='Invalid variable'):
+            eval_expression(node.body, 5)
+
+    @staticmethod
+    def test_eval_invalid_variable_in_expression():
+        """Should raise ValueError when invalid variable appears in expression"""
+        node = ast.parse('x + y', mode='eval')
+        with pytest.raises(ValueError, match='Invalid variable'):
+            eval_expression(node.body, 10)
+
+    @staticmethod
+    def test_eval_invalid_variable_in_complex_expression():
+        """Should raise ValueError for invalid variable in complex formula"""
+        node = ast.parse('(x ** 2) + (a * 3)', mode='eval')
+        with pytest.raises(ValueError, match='Invalid variable'):
+            eval_expression(node.body, 5)
+
+    @staticmethod
+    def test_eval_unsupported_expression_raises_error():
+        """Should raise TypeError for unsupported expression types"""
+        # ast.List is not supported in eval
+        node = ast.parse('[1, 2, 3]', mode='eval')
+        with pytest.raises(TypeError, match='Unsupported expression'):
+            eval_expression(node.body, 0)
+
+    @staticmethod
+    def test_eval_unsupported_dict_expression_raises_error():
+        """Should raise TypeError for dict expressions"""
+        node = ast.parse('{"key": 1}', mode='eval')
+        with pytest.raises(TypeError, match='Unsupported expression'):
+            eval_expression(node.body, 0)
