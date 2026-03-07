@@ -1,8 +1,8 @@
 from http import HTTPStatus
+from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import ValidationError
-from unittest.mock import AsyncMock
 
 from app.core.security import get_current_user
 from app.domain.battle.route import CurrentTrainer, Service, router

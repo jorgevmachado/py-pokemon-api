@@ -583,3 +583,125 @@ class TestPokemonBattleServiceBattle:
         assert result.fainted is False
         pokedex_service.update.assert_awaited()
         captured_service.update.assert_awaited()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_battle_not_fainted_sets_losses_and_winner():
+        """Should update losses and set winner when attacker faints in counterattack"""
+        captured_service = AsyncMock()
+        pokedex_service = AsyncMock()
+        pokemon_service = AsyncMock()
+
+        service = PokemonBattleService(
+            captured_pokemon_service=captured_service,
+            pokedex_service=pokedex_service,
+            pokemon_service=pokemon_service,
+        )
+
+        defender_schema = MOCK_BATTLE_SCHEMA.model_copy(update={'nickname': 'defender'})
+
+        mock_trainer_result = GetBattlePokemonSchema(
+            pokemon=MOCK_BATTLE_SCHEMA,
+            pokemon_move=MOCK_MOVE,
+        )
+        mock_opponent_result = GetBattlePokemonSchema(
+            pokemon=defender_schema,
+            pokemon_move=MOCK_MOVE,
+        )
+
+        service.get_trainer_pokemon = AsyncMock(return_value=mock_trainer_result)
+        service.get_opponent_pokemon = AsyncMock(return_value=mock_opponent_result)
+
+        attack_result = BattleResult(
+            winner='IN BATTLE',
+            fainted=False,
+            level_up=False,
+            missed=False,
+            critical=False,
+            stab=False,
+            attack_damage=20,
+            defense_damage=0,
+            remaining_hp=30,
+            previous_stats=StatBlock(
+                hp=50,
+                attack=50,
+                defense=49,
+                speed=45,
+                special_attack=65,
+                special_defense=65,
+            ),
+            previous_level=10,
+            previous_experience=100,
+            current_stats=StatBlock(
+                hp=50,
+                attack=50,
+                defense=49,
+                speed=45,
+                special_attack=65,
+                special_defense=65,
+            ),
+            current_level=10,
+            current_experience=120,
+            applied_status=None,
+        )
+
+        defender_attack_result = BattleResult(
+            winner='IN BATTLE',
+            fainted=False,
+            level_up=False,
+            missed=False,
+            critical=False,
+            stab=False,
+            attack_damage=30,
+            defense_damage=0,
+            remaining_hp=0,
+            previous_stats=StatBlock(
+                hp=30,
+                attack=50,
+                defense=49,
+                speed=45,
+                special_attack=65,
+                special_defense=65,
+            ),
+            previous_level=10,
+            previous_experience=100,
+            current_stats=StatBlock(
+                hp=30,
+                attack=50,
+                defense=49,
+                speed=45,
+                special_attack=65,
+                special_defense=65,
+            ),
+            current_level=10,
+            current_experience=120,
+            applied_status=None,
+        )
+
+        service.battle_attack = MagicMock(side_effect=[attack_result, defender_attack_result])
+        service.business.convert_pokedex_to_pokemon_stats = MagicMock(
+            return_value=defender_schema
+        )
+
+        mock_pokedex = MagicMock()
+        pokedex_service.update = AsyncMock(return_value=mock_pokedex)
+
+        captured_pokemon = MagicMock()
+        captured_pokemon.hp = 0
+        captured_service.update = AsyncMock(return_value=captured_pokemon)
+
+        battle_schema = BattlePokemonSchema(
+            trainer_pokemon='bulbasaur',
+            trainer_pokemon_move='vine-whip',
+            opponent_pokemon='charizard',
+            opponent_pokemon_move='flare-blitz',
+        )
+
+        result = await service.battle(
+            trainer=MagicMock(id='trainer-id'),
+            battle_pokemon=battle_schema,
+        )
+
+        assert result.winner == 'defender'
+        assert result.defense_damage == defender_attack_result.attack_damage
+        captured_service.update.assert_awaited()

@@ -574,55 +574,42 @@ class TestPokemonBattleBusinessCalculateDamageWithZeroEffectiveness:
 
     @staticmethod
     def test_calculate_damage_zero_effectiveness_returns_zero():
-        """Should return 0 damage and false critical with effectiveness 0"""
+        """Should return zero damage when effectiveness is zero"""
         business = PokemonBattleBusiness()
 
-        # Create move with type that has no effectiveness against defender
-        # Using a type not in TYPE_CHART for defender types to get effectiveness 1.0
-        # Let's use 'electric' move against grass/water (not in chart = 1.0 * 1.0)
-        # Actually, to get 0 effectiveness we need types that multiply to 0
-        # Current TYPE_CHART doesn't have 0 values, only 0.5 and 2.0
-        # So effectiveness can never be 0 with current TYPE_CHART
-        # Let's test the early return by checking the condition still works
-        electric_move = replace(MOCK_POKEMON_MOVE_MEGA_DRAIN, type='electric')
-        damage, critical, effectiveness, stab = business._calculate_damage(
-            MOCK_ATTACKER_BATTLE_SCHEMA,
-            MOCK_DEFENDER_BATTLE_SCHEMA,
-            electric_move,
-        )
+        class DummyType:
+            def __init__(self, name):
+                self.name = name
 
-        # With current TYPE_CHART, electric vs bulbasaur (grass/poison) = 1.0 * 1.0
-        assert damage >= 0
+        class DummyPokemon:
+            def __init__(self, types):
+                self.types = types
+
+        zero_type = 'ghost'
+        original_chart = PokemonBattleBusiness.TYPE_CHART.copy()
+        PokemonBattleBusiness.TYPE_CHART[(zero_type, zero_type)] = 0.0
+
+        attacker = MOCK_ATTACKER_BATTLE_SCHEMA.model_copy(
+            update={'pokemon': DummyPokemon(types=[zero_type])}
+        )
+        defender = MOCK_DEFENDER_BATTLE_SCHEMA.model_copy(
+            update={'pokemon': DummyPokemon(types=[DummyType(zero_type)])}
+        )
+        move = replace(MOCK_POKEMON_MOVE_MEGA_DRAIN, type=zero_type)
+
+        try:
+            damage, critical, effectiveness, stab = business._calculate_damage(
+                attacker,
+                defender,
+                move,
+            )
+        finally:
+            PokemonBattleBusiness.TYPE_CHART = original_chart
+
+        assert damage == 0
         assert critical is False
-        assert effectiveness >= 0.0
+        assert effectiveness == 0.0
         assert isinstance(stab, bool)
-
-    @staticmethod
-    def test_calculate_damage_effectiveness_zero_validation():
-        """Should validate that zero effectiveness returns correct values"""
-        business = PokemonBattleBusiness()
-
-        # Test that the effectiveness calculation respects the TYPE_CHART
-        # The code path "return 0, False, 0.0, stab" is executed when effectiveness == 0
-        # Validate by checking the code implements the condition correctly
-
-        # Test with fire vs water which has 0.5 effectiveness
-        fire_move = replace(MOCK_POKEMON_MOVE_MEGA_DRAIN, type='fire')
-
-        damage, critical, effectiveness, stab = business._calculate_damage(
-            MOCK_ATTACKER_BATTLE_SCHEMA,
-            MOCK_DEFENDER_BATTLE_SCHEMA,
-            fire_move,
-        )
-
-        # The implementation correctly handles effectiveness calculations
-        # If effectiveness were 0 (which is handled at line: if effectiveness == 0)
-        # it would return (0, False, 0.0, stab)
-        assert isinstance(damage, int), 'damage must be int'
-        assert isinstance(critical, bool), 'critical must be bool'
-        assert isinstance(effectiveness, float), 'effectiveness must be float'
-        assert isinstance(stab, bool), 'stab must be bool'
-        assert effectiveness >= 0.0, 'effectiveness cannot be negative'
 
 
 class TestPokemonBattleBusinessMissedChance:
