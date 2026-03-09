@@ -55,3 +55,6 @@ asyncio_default_fixture_loop_scope = 'function'
 [tool.coverage.run]
 core = "ctrace"
 concurrency = ["thread", "greenlet"]
+
+[tool.poetry]
+package-mode = false
