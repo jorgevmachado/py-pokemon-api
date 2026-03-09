@@ -2,14 +2,13 @@ from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_session
-from app.domain.pokemon.ability.service import PokemonAbilityService
+from app.domain.ability.service import PokemonAbilityService
+from app.domain.growth_rate.service import PokemonGrowthRateService
+from app.domain.move.service import PokemonMoveService
 from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.external.service import PokemonExternalService
-from app.domain.pokemon.growth_rate.service import PokemonGrowthRateService
-from app.domain.pokemon.move.service import PokemonMoveService
+from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.repository import PokemonRepository
 from app.domain.pokemon.schema import (
     CreatePokemonSchema,
@@ -18,37 +17,63 @@ from app.domain.pokemon.schema import (
     GeneratePokemonRelationshipSchemaResult,
     PokemonSchema,
 )
-from app.domain.pokemon.type.service import PokemonTypeService
-from app.models import Pokemon
+from app.domain.type.service import PokemonTypeService
+from app.shared.pagination import exception_pagination
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
 
 POKEMON_TOTAL_LIMIT = 1302
-Session = Annotated[AsyncSession, Depends(get_session)]
+Repository = Annotated[PokemonRepository, Depends()]
+PokemonMoveService = Annotated[PokemonMoveService, Depends()]
+PokemonTypeService = Annotated[PokemonTypeService, Depends()]
+PokemonAbilityService = Annotated[PokemonAbilityService, Depends()]
+PokemonGrowthRateService = Annotated[PokemonGrowthRateService, Depends()]
 
 
 class PokemonService:
-    def __init__(self, session: Session):
-        self.repository = PokemonRepository(session)
-        self.pokemon_move_service = PokemonMoveService(session)
-        self.pokemon_type_service = PokemonTypeService(session)
-        self.pokemon_ability_service = PokemonAbilityService(session)
-        self.pokemon_growth_rate_service = PokemonGrowthRateService(session)
+    def __init__(
+        self,
+        repository: Repository,
+        pokemon_move_service: PokemonMoveService,
+        pokemon_type_service: PokemonTypeService,
+        pokemon_ability_service: PokemonAbilityService,
+        pokemon_growth_rate_service: PokemonGrowthRateService,
+    ):
+        self.repository = repository
+        self.pokemon_move_service = pokemon_move_service
+        self.pokemon_type_service = pokemon_type_service
+        self.pokemon_ability_service = pokemon_ability_service
+        self.pokemon_growth_rate_service = pokemon_growth_rate_service
         self.external_service = PokemonExternalService()
         self.business = PokemonBusiness()
 
-    async def fetch_all(self, pokemon_filter: Annotated[FilterPage, Query()]) -> list[Pokemon]:
+    async def total(self) -> int:
+        return await self.repository.total()
+
+    async def list_all(
+        self,
+        page_filter: Annotated[FilterPage, Query()] = None,
+    ):
+        try:
+            return await self.repository.list_all(page_filter=page_filter)
+        except Exception as e:
+            print(f'# => service => list_all => error => {e}')
+        return exception_pagination(page_filter)
+
+    async def initialize(
+        self,
+        page_filter: Annotated[FilterPage, Query()] = None,
+    ):
         try:
             total = await self.repository.total()
             if total != POKEMON_TOTAL_LIMIT:
                 await self.initialize_database(total=total)
 
-            pokemons = await self.repository.list(pokemon_filter=pokemon_filter)
-            return pokemons
+            return await self.repository.list_all(page_filter=page_filter)
 
         except Exception as e:
             print(f'# => service => fetch_all => error => {e}')
-        return []
+        return exception_pagination(page_filter)
 
     async def initialize_database(self, total: int = 0) -> list[Pokemon]:
         try:
@@ -72,7 +97,7 @@ class PokemonService:
                     result_initial.append(pokemon_created)
                 return result_initial
 
-            entities = await self.repository.list()
+            entities = await self.repository.list_all()
 
             existing_names = {entity.name for entity in entities}
             save_list = [item for item in external_data if item.name not in existing_names]
@@ -218,8 +243,12 @@ class PokemonService:
 
     async def first_pokemon(self, name: str | None = None) -> FirstPokemonSchemaResult:
         try:
-            pokemons = await self.fetch_all(
-                pokemon_filter=FilterPage(limit=POKEMON_TOTAL_LIMIT)
+            pokemons_result = await self.list_all()
+
+            pokemons = (
+                list(pokemons_result.items)
+                if hasattr(pokemons_result, 'items')
+                else pokemons_result
             )
 
             first_pokemon = self.business.find_first_pokemon(

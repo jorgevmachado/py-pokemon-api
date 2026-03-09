@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime
 
-import factory
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
@@ -9,14 +8,11 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
-from app.database import get_session
+from app.core.base import table_registry
+from app.core.database import get_session
+from app.core.security import get_password_hash
 from app.main import app
-from app.models import Pokemon, User
-from app.models.base import table_registry
-from app.security import get_password_hash
-from app.shared.gender_enum import GenderEnum
-from app.shared.role_enum import RoleEnum
-from app.shared.status_enum import StatusEnum
+from tests.factories.trainer import TrainerFactory
 
 
 @pytest.fixture
@@ -71,88 +67,37 @@ def mock_db_time():
 
 
 @pytest_asyncio.fixture
-async def user(session: AsyncSession):
+async def trainer(session: AsyncSession):
     password = 'testtest'
-    user = UserFactory(password=get_password_hash(password))
-    user.id = 'a6770ba6-2b19-4b6e-af76-9c11ca5ad9fd'
-    user.email = 'john@doe.com'
-    session.add(user)
+    trainer = TrainerFactory(password=get_password_hash(password))
+    trainer.id = 'a6770ba6-2b19-4b6e-af76-9c11ca5ad9fd'
+    trainer.email = 'john@doe.com'
+    session.add(trainer)
     await session.commit()
-    await session.refresh(user)
+    await session.refresh(trainer)
 
-    user.clean_password = password
+    trainer.clean_password = password
 
-    return user
+    return trainer
 
 
 @pytest_asyncio.fixture
-async def pokemon(session: AsyncSession):
-    pokemon = PokemonFactory()
-    session.add(pokemon)
-    await session.commit()
-    await session.refresh(pokemon)
-
-    return pokemon
-
-
-@pytest_asyncio.fixture
-async def pokemon_incomplete(session: AsyncSession):
-    pokemon = PokemonFactory(status=StatusEnum.INCOMPLETE)
-    session.add(pokemon)
-    await session.commit()
-    await session.refresh(pokemon)
-
-    return pokemon
-
-
-@pytest_asyncio.fixture
-async def other_user(session: AsyncSession):
+async def other_trainer(session: AsyncSession):
     password = 'testtest'
-    user = UserFactory(password=get_password_hash(password))
-    session.add(user)
+    trainer = TrainerFactory(password=get_password_hash(password))
+    session.add(trainer)
     await session.commit()
-    await session.refresh(user)
+    await session.refresh(trainer)
 
-    user.clean_password = password
+    trainer.clean_password = password
 
-    return user
+    return trainer
 
 
 @pytest.fixture
-def token(client, user):
+def token(client, trainer):
     response = client.post(
         '/auth/token',
-        json={'email': user.email, 'password': user.clean_password},
+        json={'email': trainer.email, 'password': trainer.clean_password},
     )
     return response.json()['access_token']
-
-
-class UserFactory(factory.Factory):
-    class Meta:
-        model = User
-
-    name = factory.Faker('name')
-    email = factory.Sequence(lambda n: f'test{n}@test.com')
-    password = 'hashed_password'
-    gender = GenderEnum.MALE
-    role = RoleEnum.USER
-    status = StatusEnum.ACTIVE
-    date_of_birth = '1990-07-20T00:00:00'
-    pokeballs = 5
-    capture_rate = 45
-    total_authentications = 0
-    authentication_success = 0
-    authentication_failures = 0
-
-
-class PokemonFactory(factory.Factory):
-    class Meta:
-        model = Pokemon
-
-    name = factory.Sequence(lambda n: f'pokemon_{n}')
-    order = factory.Sequence(lambda n: n)
-    url = factory.Sequence(lambda n: f'https://pokeapi.co/api/v2/pokemon/{n}')
-    external_image = factory.Sequence(
-        lambda n: f'https://raw.githubusercontent.com/PokeAPI/sprites/{n}.png'
-    )
-    status = StatusEnum.COMPLETE

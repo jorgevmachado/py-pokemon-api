@@ -3,10 +3,10 @@ from http import HTTPStatus
 from freezegun import freeze_time
 
 
-def test_get_token(client, user):
+def test_get_token(client, trainer):
     response = client.post(
         '/auth/token',
-        json={'email': user.email, 'password': user.clean_password},
+        json={'email': trainer.email, 'password': trainer.clean_password},
     )
     token = response.json()
 
@@ -15,20 +15,20 @@ def test_get_token(client, user):
     assert 'token_type' in token
 
 
-def test_get_token_should_unauthorized_when_not_user_found(client, user):
+def test_get_token_should_unauthorized_when_not_user_found(client, trainer):
     response = client.post(
         '/auth/token',
-        json={'email': 'not-user@mail.com', 'password': user.clean_password},
+        json={'email': 'not-trainer@mail.com', 'password': trainer.clean_password},
     )
 
     assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json() == {'detail': 'Incorrect email or password'}
 
 
-def test_get_token_should_unauthorized_when_password_invalid(client, user):
+def test_get_token_should_unauthorized_when_password_invalid(client, trainer):
     response = client.post(
         '/auth/token',
-        json={'email': user.email, 'password': 'password-weak'},
+        json={'email': trainer.email, 'password': 'password-weak'},
     )
 
     assert response.status_code == HTTPStatus.UNAUTHORIZED
@@ -49,11 +49,11 @@ def test_refresh_token(client, token):
     assert data['token_type'] == 'bearer'
 
 
-def test_token_expired_dont_refresh(client, user):
+def test_token_expired_dont_refresh(client, trainer):
     with freeze_time('2023-07-14 12:00:00'):
         response = client.post(
             '/auth/token',
-            json={'email': user.email, 'password': user.clean_password},
+            json={'email': trainer.email, 'password': trainer.clean_password},
         )
         assert response.status_code == HTTPStatus.OK
         token = response.json()['access_token']

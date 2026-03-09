@@ -1,8 +1,11 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from http import HTTPStatus
+from unittest.mock import AsyncMock
 
 import pytest
+from fastapi import HTTPException
 
-from app.domain.pokedex.service import PokedexService
+from app.domain.pokedex.schema import FindPokedexSchema
+from tests.factories.pokedex import PokedexFactory
 
 MOCK_STATS = {
     'hp': 10,
@@ -45,147 +48,408 @@ class TestPokedexServiceInitialize:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_initialize_creates_missing_entries(session, user, pokemon):
+    async def test_initialize_creates_missing_entries(pokedex_service, trainer, pokemon):
         """Should create pokedex entries when missing"""
-        service = PokedexService(session=session)
-
-        result = await service.initialize(user=user, pokemon=pokemon, pokemons=[pokemon])
+        result = await pokedex_service.initialize(
+            trainer=trainer, pokemon=pokemon, pokemons=[pokemon]
+        )
 
         assert len(result) == 1
         assert result[0].pokemon_id == pokemon.id
-        assert result[0].trainer_id == user.id
+        assert result[0].trainer_id == trainer.id
         assert result[0].discovered is True
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_initialize_skips_existing_entries(session, user, pokemon):
+    async def test_initialize_skips_existing_entries(pokedex_service, trainer, pokemon):
         """Should skip pokedex entries that already exist"""
-        service = PokedexService(session=session)
-
-        await service.initialize(user=user, pokemon=pokemon, pokemons=[pokemon])
-        result = await service.initialize(user=user, pokemon=pokemon, pokemons=[pokemon])
+        await pokedex_service.initialize(trainer=trainer, pokemon=pokemon, pokemons=[pokemon])
+        result = await pokedex_service.initialize(
+            trainer=trainer, pokemon=pokemon, pokemons=[pokemon]
+        )
 
         assert result == []
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_initialize_marks_discovered_false_when_no_pokemon(session, user, pokemon):
+    async def test_initialize_marks_discovered_false_when_no_pokemon(
+        pokedex_service, trainer, pokemon
+    ):
         """Should mark discovered as false when pokemon is None"""
-        service = PokedexService(session=session)
-
-        result = await service.initialize(user=user, pokemon=None, pokemons=[pokemon])
+        result = await pokedex_service.initialize(
+            trainer=trainer, pokemon=None, pokemons=[pokemon]
+        )
 
         assert len(result) == 1
         assert result[0].discovered is False
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_initialize_returns_empty_list_on_error(session, user, pokemon):
+    async def test_initialize_returns_empty_list_on_error(pokedex_service, trainer, pokemon):
         """Should return empty list when an exception occurs"""
-        service = PokedexService(session=session)
-        service.repository.find_by_trainer = AsyncMock(side_effect=Exception('boom'))
 
-        result = await service.initialize(user=user, pokemon=pokemon, pokemons=[pokemon])
+        pokedex_service.repository.find_by_trainer = AsyncMock(side_effect=Exception('boom'))
+
+        result = await pokedex_service.initialize(
+            trainer=trainer, pokemon=pokemon, pokemons=[pokemon]
+        )
 
         assert result == []
 
 
-class TestPokedexServiceInitializeEntry:
-    """Test scope for initialize_pokedex_entry method"""
+class TestPokedexServiceFetchAll:
+    """Test scope for fetch_all method"""
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_initialize_pokedex_entry_raises_type_error(session, user, pokemon):
-        """Should raise TypeError with current model signature"""
-        service = PokedexService(session=session)
+    async def test_pokedex_fetch_all_returns_list(
+        session, pokedex_service, trainer, pokemon, pokemon_incomplete
+    ):
+        """Should return a list of pokedex entries"""
+        pokedex_1 = PokedexFactory(trainer_id=trainer.id, pokemon_id=pokemon.id)
+        session.add(pokedex_1)
+        await session.commit()
+        pokedex_2 = PokedexFactory(trainer_id=trainer.id, pokemon_id=pokemon_incomplete.id)
+        session.add(pokedex_2)
+        await session.commit()
 
-        with pytest.raises(TypeError):
-            await service.initialize_pokedex_entry(pokemon=pokemon, user=user)
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_initialize_pokedex_entry_persists(session, user, pokemon):
-        """Should add, commit, and refresh a pokedex entry"""
-        service = PokedexService(session=session)
-        service.business.calculate_pokemon_stats = MagicMock(return_value=MOCK_STATS)
-        service.session = AsyncMock()
-
-        with patch('app.domain.pokedex.service.Pokedex', DummyPokedex):
-            result = await service.initialize_pokedex_entry(pokemon=pokemon, user=user)
-
-        assert result.pokemon_id == pokemon.id
-        assert result.trainer_id == user.id
-        service.session.add.assert_called_once_with(result)
-        service.session.commit.assert_called_once()
-        service.session.refresh.assert_called_once_with(result)
-
-
-class TestPokedexServiceCapturePokemon:
-    """Test scope for capture_pokemon method"""
+        result = await pokedex_service.fetch_all(trainer_id=trainer.id)
+        assert isinstance(result, list)
+        assert len(result) >= 1
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_capture_pokemon_raises_type_error(session, user, pokemon):
-        """Should raise TypeError with current model signature"""
-        service = PokedexService(session=session)
+    async def test_pokedex_fetch_all_returns_error(pokedex_service, trainer):
+        """Should raise HTTPException when repository fails"""
+        pokedex_service.repository.list_all = AsyncMock(side_effect=Exception('boom'))
 
-        with pytest.raises(TypeError):
-            await service.capture_pokemon(pokemon=pokemon, user=user)
+        with pytest.raises(HTTPException) as exc_info:
+            await pokedex_service.fetch_all(trainer_id=trainer.id)
+        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert exc_info.value.detail == 'Error fetching pokedex entries'
+
+
+class TestPokedexServiceRefresh:
+    """Test scope for refresh method"""
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_capture_pokemon_persists(session, user, pokemon):
-        """Should add, commit, and refresh a captured pokemon"""
-        service = PokedexService(session=session)
-        service.business.calculate_pokemon_stats = MagicMock(
-            return_value={
-                **MOCK_STATS,
-                'attack': 1,
-                'defense': 1,
-                'special_attack': 1,
-                'special_defense': 1,
-                'speed': 1,
+    async def test_refresh_creates_entries_for_missing_pokemon(
+        pokedex_service, trainer, pokemon
+    ):
+        """Should create a new entry when pokemon is not present in pokedex"""
+        pokedex_service.repository.find_by_pokemon = AsyncMock(return_value=None)
+        pokedex_service.initialize_pokemon = AsyncMock(
+            return_value=DummyPokedex(
+                pokemon_id=pokemon.id,
+                trainer_id=trainer.id,
+                discovered=False,
+            )
+        )
+
+        result = await pokedex_service.refresh(
+            trainer_id=trainer.id,
+            pokemons=[pokemon],
+        )
+
+        assert len(result) == 1
+        assert result[0].pokemon_id == pokemon.id
+        assert result[0].trainer_id == trainer.id
+        assert result[0].discovered is False
+        pokedex_service.repository.find_by_pokemon.assert_awaited_once_with(
+            FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=pokemon.id,
+                name=None,
+                nickname=None,
+            )
+        )
+        pokedex_service.initialize_pokemon.assert_awaited_once_with(
+            pokemon=pokemon,
+            trainer_id=trainer.id,
+            discovered=False,
+        )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_refresh_skips_existing_entries(
+        pokedex_service,
+        trainer,
+        pokemon,
+        pokemon_incomplete,
+    ):
+        """Should skip existing pokedex entries and create only missing ones"""
+        pokedex_service.repository.find_by_pokemon = AsyncMock(
+            side_effect=[DummyPokedex(pokemon_id=pokemon.id), None]
+        )
+        pokedex_service.initialize_pokemon = AsyncMock(
+            return_value=DummyPokedex(
+                pokemon_id=pokemon_incomplete.id,
+                trainer_id=trainer.id,
+                discovered=False,
+            )
+        )
+
+        result = await pokedex_service.refresh(
+            trainer_id=trainer.id,
+            pokemons=[pokemon, pokemon_incomplete],
+        )
+        total_count = 2
+        assert len(result) == 1
+        assert result[0].pokemon_id == pokemon_incomplete.id
+        assert result[0].trainer_id == trainer.id
+        assert result[0].discovered is False
+        assert pokedex_service.repository.find_by_pokemon.await_count == total_count
+        pokedex_service.initialize_pokemon.assert_awaited_once_with(
+            pokemon=pokemon_incomplete,
+            trainer_id=trainer.id,
+            discovered=False,
+        )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_refresh_returns_empty_list_for_empty_input(pokedex_service, trainer):
+        """Should return an empty list when no pokemons are provided"""
+        pokedex_service.repository.find_by_pokemon = AsyncMock()
+        pokedex_service.initialize_pokemon = AsyncMock()
+
+        result = await pokedex_service.refresh(
+            trainer_id=trainer.id,
+            pokemons=[],
+        )
+
+        assert result == []
+        pokedex_service.repository.find_by_pokemon.assert_not_awaited()
+        pokedex_service.initialize_pokemon.assert_not_awaited()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_refresh_returns_none_entry_when_initialize_fails(
+        pokedex_service,
+        trainer,
+        pokemon,
+    ):
+        """Should return a None entry when initialize fails internally"""
+        pokedex_service.repository.find_by_pokemon = AsyncMock(return_value=None)
+        pokedex_service.initialize_pokemon = AsyncMock(return_value=None)
+
+        result = await pokedex_service.refresh(
+            trainer_id=trainer.id,
+            pokemons=[pokemon],
+        )
+
+        assert result == [None]
+        pokedex_service.initialize_pokemon.assert_awaited_once_with(
+            pokemon=pokemon,
+            trainer_id=trainer.id,
+            discovered=False,
+        )
+
+
+class TestPokedexServiceFindByPokemon:
+    """Test scope for find_by_pokemon method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_returns_entry(
+        pokedex_service,
+        trainer,
+        pokemon,
+    ):
+        """Should return pokedex entry when found"""
+        expected_result = {'pokemon_id': pokemon.id, 'trainer_id': trainer.id}
+        pokedex_service.repository.find_by_pokemon = AsyncMock(return_value=expected_result)
+
+        result = await pokedex_service.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=pokemon.id,
+            )
+        )
+
+        assert result == expected_result
+        pokedex_service.repository.find_by_pokemon.assert_awaited_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_returns_none_when_empty_params(
+        pokedex_service,
+        trainer,
+    ):
+        """Should return None when all parameters are empty"""
+
+        result = await pokedex_service.find_by_pokemon(
+            find_pokedex=FindPokedexSchema(
+                trainer_id=trainer.id,
+                pokemon_id=None,
+                name=None,
+                nickname=None,
+            )
+        )
+
+        assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_pokemon_raises_http_exception_on_error(
+        pokedex_service,
+        trainer,
+        pokemon,
+    ):
+        """Should raise HTTPException when repository fails"""
+        pokedex_service.repository.find_by_pokemon = AsyncMock(side_effect=Exception('boom'))
+
+        with pytest.raises(HTTPException) as exc_info:
+            await pokedex_service.find_by_pokemon(
+                find_pokedex=FindPokedexSchema(
+                    trainer_id=trainer.id,
+                    pokemon_id=pokemon.id,
+                )
+            )
+
+        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert exc_info.value.detail == 'Error pokedex find by pokemon'
+
+
+class TestPokedexServiceDiscovered:
+    """Test scope for discovered method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_discovered_updates_when_not_discovered(pokedex_service, trainer, pokemon):
+        """Should initialize and persist stats when entry is not discovered"""
+        pokedex = DummyPokedex(discovered=False)
+        pokedex_service.find_by_pokemon = AsyncMock(return_value=pokedex)
+        pokedex_service.repository.update = AsyncMock(return_value=pokedex)
+
+        result = await pokedex_service.discovered(
+            trainer_id=trainer.id,
+            pokemon=pokemon,
+            discovered=True,
+        )
+
+        assert result is pokedex
+        assert pokedex.discovered is True
+        pokedex_service.repository.update.assert_awaited_once_with(pokedex)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_discovered_keeps_existing_discovered(pokedex_service, trainer, pokemon):
+        """Should not update repository when already discovered"""
+        pokedex = DummyPokedex(discovered=True)
+        pokedex_service.find_by_pokemon = AsyncMock(return_value=pokedex)
+        pokedex_service.repository.update = AsyncMock()
+
+        result = await pokedex_service.discovered(
+            trainer_id=trainer.id,
+            pokemon=pokemon,
+            discovered=True,
+        )
+
+        assert result is pokedex
+        pokedex_service.repository.update.assert_not_awaited()
+
+
+class TestPokedexServiceDiscover:
+    """Test scope for discover method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_discover_updates_when_not_discovered(pokedex_service, trainer, pokemon):
+        """Should discover pokemon and persist stats"""
+        pokedex = DummyPokedex(discovered=False)
+        pokedex_service.pokemon_service.fetch_one = AsyncMock(return_value=pokemon)
+        pokedex_service.find_by_pokemon = AsyncMock(return_value=pokedex)
+        pokedex_service.repository.update = AsyncMock(return_value=pokedex)
+
+        result = await pokedex_service.discover(
+            trainer_id=trainer.id,
+            pokemon_name=pokemon.name,
+        )
+
+        assert result is pokedex
+        assert pokedex.discovered is True
+        pokedex_service.repository.update.assert_awaited_once_with(pokedex)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_discover_returns_same_when_already_discovered(
+        pokedex_service, trainer, pokemon
+    ):
+        """Should return pokedex without updating when already discovered"""
+        pokedex = DummyPokedex(discovered=True)
+        pokedex_service.pokemon_service.fetch_one = AsyncMock(return_value=pokemon)
+        pokedex_service.find_by_pokemon = AsyncMock(return_value=pokedex)
+        pokedex_service.repository.update = AsyncMock()
+
+        result = await pokedex_service.discover(
+            trainer_id=trainer.id,
+            pokemon_name=pokemon.name,
+        )
+
+        assert result is pokedex
+        pokedex_service.repository.update.assert_not_awaited()
+
+
+class TestPokedexServiceUpdate:
+    """Test scope for update method"""
+
+    EXPECTED_HP = 30
+    EXPECTED_LEVEL = 2
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_update_raises_not_found_when_missing(pokedex_service):
+        """Should raise not found when pokedex entry does not exist"""
+        pokedex_service.repository.find_by_id = AsyncMock(return_value=None)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await pokedex_service.update(
+                pokedex_id='missing-id',
+                pokedex_update=DummyPokedex(model_dump=lambda: {'hp': 1}),
+            )
+
+        assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
+        assert exc_info.value.detail == 'Pokedex not found'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_update_applies_partial_values(pokedex_service):
+        """Should apply partial values and persist"""
+        pokedex = DummyPokedex(hp=10, level=1)
+        pokedex_service.repository.find_by_id = AsyncMock(return_value=pokedex)
+        pokedex_service.repository.update = AsyncMock(return_value=pokedex)
+
+        update_schema = DummyPokedex(
+            model_dump=lambda: {
+                'hp': TestPokedexServiceUpdate.EXPECTED_HP,
+                'level': TestPokedexServiceUpdate.EXPECTED_LEVEL,
             }
         )
-        service.session = AsyncMock()
 
-        with patch('app.domain.pokedex.service.CapturedPokemon', DummyCapturedPokemon):
-            result = await service.capture_pokemon(pokemon=pokemon, user=user)
+        result = await pokedex_service.update(
+            pokedex_id='pokedex-id',
+            pokedex_update=update_schema,
+        )
 
-        assert result.pokemon_id == pokemon.id
-        assert result.trainer_id == user.id
-        service.session.add.assert_called_once_with(result)
-        service.session.commit.assert_called_once()
-        service.session.refresh.assert_called_once_with(result)
+        assert result.hp == TestPokedexServiceUpdate.EXPECTED_HP
+        assert result.level == TestPokedexServiceUpdate.EXPECTED_LEVEL
+        pokedex_service.repository.update.assert_awaited_once_with(pokedex)
 
 
-class TestPokedexServiceAddPokemonToPokedexAndCapture:
-    """Test scope for add_pokemon_to_pokedex_and_capture method"""
+class TestPokedexServiceInitializePokemon:
+    """Test scope for initialize_pokemon method"""
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_add_pokemon_to_pokedex_and_capture_returns_tuple(session, user, pokemon):
-        """Should return pokedex and captured entries"""
-        service = PokedexService(session=session)
-        pokedex_entry = DummyPokedex(pokemon_id=pokemon.id, trainer_id=user.id)
-        captured_entry = DummyCapturedPokemon(pokemon_id=pokemon.id, trainer_id=user.id)
-        service.initialize_pokedex_entry = AsyncMock(return_value=pokedex_entry)
-        service.capture_pokemon = AsyncMock(return_value=captured_entry)
+    async def test_initialize_pokemon_returns_none_on_error(pokedex_service, pokemon):
+        """Should return None when repository create fails"""
+        pokedex_service.repository.create = AsyncMock(side_effect=Exception('boom'))
 
-        result_pokedex, result_captured = await service.add_pokemon_to_pokedex_and_capture(
+        result = await pokedex_service.initialize_pokemon(
             pokemon=pokemon,
-            user=user,
+            trainer_id='trainer-id',
+            discovered=False,
         )
 
-        assert result_pokedex == pokedex_entry
-        assert result_captured == captured_entry
-        service.initialize_pokedex_entry.assert_called_once_with(
-            pokemon=pokemon,
-            user=user,
-            level=1,
-        )
-        service.capture_pokemon.assert_called_once_with(
-            pokemon=pokemon,
-            user=user,
-            level=1,
-        )
+        assert result is None

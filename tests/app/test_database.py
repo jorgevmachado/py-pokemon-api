@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy import select
 
-from app.models import User
+from app.domain.trainer.model import Trainer
 from app.shared.gender_enum import GenderEnum
 from app.shared.role_enum import RoleEnum
 from app.shared.status_enum import StatusEnum
@@ -12,8 +12,8 @@ async def test_create_user_db(session, mock_db_time):
     total = 0
     pokeballs = 5
     capture_rate = 45
-    with mock_db_time(model=User) as time:
-        new_user = User(
+    with mock_db_time(model=Trainer) as time:
+        new_user = Trainer(
             role=RoleEnum.USER,
             name='john Doe',
             email='john@doe.com',
@@ -30,7 +30,7 @@ async def test_create_user_db(session, mock_db_time):
         session.add(new_user)
         await session.commit()
 
-    user = await session.scalar(select(User).where(User.email == 'john@doe.com'))
+    user = await session.scalar(select(Trainer).where(Trainer.email == 'john@doe.com'))
     assert user.name == 'john Doe'
     assert user.email == 'john@doe.com'
     assert user.gender == GenderEnum.MALE

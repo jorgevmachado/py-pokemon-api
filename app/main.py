@@ -1,15 +1,35 @@
+import logging
+import sys
 from http import HTTPStatus
 
 from fastapi import FastAPI
+from fastapi_pagination import add_pagination
 
-from app.domain import auth, pokemon, user
+from app.domain.auth.route import router as auth_router
+from app.domain.battle.route import router as battle_router
+from app.domain.captured_pokemon.route import router as captured_pokemon_router
+from app.domain.pokedex.route import router as pokedex_router
+from app.domain.pokemon.route import router as pokemon_router
+from app.domain.trainer.route import router as trainer_router
 from app.shared.schemas import Message
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+
+logger = logging.getLogger(__name__)
 app = FastAPI()
 
-app.include_router(user.router)
-app.include_router(auth.router)
-app.include_router(pokemon.router)
+app.include_router(trainer_router)
+app.include_router(auth_router)
+app.include_router(pokemon_router)
+app.include_router(pokedex_router)
+app.include_router(captured_pokemon_router)
+app.include_router(battle_router)
+
+add_pagination(app)
 
 
 @app.get('/', status_code=HTTPStatus.OK, response_model=Message)

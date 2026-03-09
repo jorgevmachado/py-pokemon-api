@@ -113,5 +113,7 @@
    alembic downgrade -1
    // Cria uma migração versão vazia, sem autogenerate
    alembic revision -m "create seeds"
+   // Reverter tudo (limpar banco)
+   alembic downgrade base
    
 ```
