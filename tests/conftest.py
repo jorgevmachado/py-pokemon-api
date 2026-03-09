@@ -68,7 +68,7 @@ def mock_db_time():
 
 @pytest_asyncio.fixture
 async def trainer(session: AsyncSession):
-    password = 'testtest'
+    password: str = 'testtest'
     trainer = TrainerFactory(password=get_password_hash(password))
     trainer.id = 'a6770ba6-2b19-4b6e-af76-9c11ca5ad9fd'
     trainer.email = 'john@doe.com'
@@ -83,7 +83,7 @@ async def trainer(session: AsyncSession):
 
 @pytest_asyncio.fixture
 async def other_trainer(session: AsyncSession):
-    password = 'testtest'
+    password: str = 'testtest'
     trainer = TrainerFactory(password=get_password_hash(password))
     session.add(trainer)
     await session.commit()
