@@ -10,110 +10,88 @@
     </p>
 </div>
 
-## 📚 Visão Geral
+## 📚 Visao Geral
+API REST para gerenciamento de pokedex, treinadores, batalhas e captura de pokemons.
+O projeto foi construido com FastAPI, SQLAlchemy async e estrutura por dominio, mantendo
+responsabilidades claras entre rotas, servicos, repositorios e schemas.
 
-## Projeto
-```bash
-   poetry env use 3.13
-   poetry env activate
-   source /home/jorge.machado/.cache/pypoetry/virtualenvs/fast-zero-dVL4rHQI-py3.13/bin/activate
+## 🧱 Como o projeto foi feito
+- **Entrada da aplicacao**: `app/main.py` registra os routers e configura paginacao.
+- **Arquitetura por dominio**: cada feature vive em `app/domain/<feature>` com camadas
+  de `route`, `service`, `repository` e `schema`.
+- **Persistencia async**: SQLAlchemy async com engine configurado em `app/core/database.py`.
+- **Configuracoes**: variaveis de ambiente via Pydantic Settings em `app/core/settings.py`.
+- **Autenticacao**: JWT com hashing de senha usando `pwdlib[argon2]`.
+- **Migracoes**: Alembic para versionamento do banco em `migrations/`.
+
+## 📦 Bibliotecas principais
+- **fastapi[standard]**: framework web e servidor de desenvolvimento.
+- **sqlalchemy[asyncio]**: ORM async para persistencia.
+- **alembic**: migracoes de banco.
+- **pydantic-settings**: configuracoes via `.env`.
+- **pwdlib[argon2]**: hashing de senha.
+- **pyjwt**: tokens JWT.
+- **fastapi-pagination**: paginacao nativa.
+- **aiosqlite** / **psycopg[binary]**: drivers para SQLite e PostgreSQL.
+- **tzdata**: suporte de timezone.
+
+### Ferramentas de desenvolvimento
+- **pytest**, **pytest-asyncio**, **pytest-cov**: testes.
+- **factory-boy**, **freezegun**: fixtures e datas controladas.
+- **testcontainers**: bancos efemeros para testes.
+- **ruff**: lint e format.
+
+## 🗂️ Estrutura de pastas
+- `app/`: codigo da aplicacao.
+- `app/core/`: configuracoes e banco.
+- `app/domain/`: features e regras de negocio.
+- `app/shared/`: schemas e utilitarios compartilhados.
+- `migrations/`: versoes do banco.
+- `tests/`: testes automatizados.
+
+## ⚙️ Configuracao
+Crie um arquivo `.env` na raiz com as variaveis abaixo:
+```env
+ALGORITHM=HS256
+SECRET_KEY=change-me
+DATABASE_URL=sqlite+aiosqlite:///./dev.db
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
-## 🚀 Tecnologias Utilizadas
-### FastAPI
-#### Ferramenta para criar APIs
-```bash
-   poetry add fastapi[standard]
-   fastapi dev app/main.py
-   pytest tests/app/domain/pokemon/external/test_external_service.py -v
-   pytest tests/app/domain/pokemon/external/test_external_business.py -v
-   pytest tests/app/domain/pokemon/test_repository.py -v
-   pytest tests/app/domain/pokemon/external/test_external_service.py::TestPokemonExternalServiceFetchByName::test_pokemon_external_fetch_by_name_not_pokemon_specie -v
-   pytest tests/app/domain/pokemon/external/test_external_service.py::TestPokemonExternalServiceByName::test_pokemon_external_by_name_success -v
-   pytest tests/app/domain/pokemon/test_router.py::TestPokemonRouterList::test_list_pokemons_success -v
-   
-   pytest tests/app/domain/pokemon/external/test_external_service.py::TestPokemonExternalServiceFetchByName::test_pokemon_external_fetch_by_name_not_pokemon_specie  -v
+Se preferir PostgreSQL, use uma URL semelhante:
+```env
+DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/pokemon
 ```
-### sqlalchemy
-#### Ferramenta para gerenciamento de banco de dados
+
+## ▶️ Como usar
+### 1) Instalar dependencias
 ```bash
-   poetry add sqlalchemy
+poetry env use 3.13
+poetry install
+poetry shell
 ```
-### sqlalchemy[asyncio]
-#### Ferramenta para gerenciamento de banco de dados com async
+
+### 2) Rodar migracoes
 ```bash
-   poetry add "sqlalchemy[asyncio]"
+alembic upgrade head
 ```
-### aiosqlite
-#### Ferramenta para gerenciamento de banco de dados sqlite com async
+
+### 3) Iniciar a API
 ```bash
-   poetry add aiosqlite
+fastapi dev app/main.py
 ```
-### pydantic-settings
-#### Ferramenta para gerenciamento de configurações usando Pydantic
+
+A API fica disponivel em `http://localhost:8000` e a documentacao em:
+- `http://localhost:8000/docs`
+- `http://localhost:8000/redoc`
+
+## ✅ Testes
 ```bash
-   poetry add pydantic-settings
+pytest -v
 ```
-### Pytest
-#### Ferramenta para testes automatizados
+
+## 🧹 Lint e formatacao
 ```bash
-   poetry add --group dev pytest pytest-cov
-```
-### pwdlib
-#### Ferramenta para gerenciamento de senhas
-```bash
-   poetry add "pwdlib[argon2]"
-```
-### JWT
-#### Ferramenta para gerar tokens JWT
-```bash
-   poetry add pyjwt
-```
-### tzdata
-#### Ferramenta para gerenciamento de fuso horário
-```bash
-   poetry add tzdata
-```
-### pytest-asyncio
-#### Ferramenta para testes assíncronos
-```bash
-   poetry add --group dev pytest-asyncio
-```
-### factory-boy
-#### Ferramenta para gerar dados falsos
-```bash
-   poetry add --group dev factory-boy
-```
-### freezegun
-#### Ferramenta para gerar datas falsas
-```bash
-   poetry add --group dev freezegun
-```
-### psycopg[binary]
-#### Ferramenta para gerenciamento de banco de dados postgresql
-```bash
-   poetry add "psycopg[binary]"
-```
-### testcontainers
-#### Ferramenta para gerenciamento de banco de dados docker
-```bash
-   poetry add --group dev testcontainers
-```
-### alembic
-#### Ferramenta para gerenciamento de migrações de dados de banco de dados
-```bash
-   poetry add alembic
-   // Cria a estrutura de pastas de migração.
-   alembic init migrations
-   // cria uma versão de dados.
-   alembic revision --autogenerate -m "create users table"
-   // Atualiza para a ultima versão.
-   alembic upgrade head
-   // Volta uma versão.
-   alembic downgrade -1
-   // Cria uma migração versão vazia, sem autogenerate
-   alembic revision -m "create seeds"
-   // Reverter tudo (limpar banco)
-   alembic downgrade base
-   
+ruff check .
+ruff format .
 ```
