@@ -90,20 +90,10 @@ class TestPokemonAbilityRepositoryFindOneByOrder:
     @staticmethod
     @pytest.mark.asyncio
     async def test_pokemon_ability_repository_find_one_by_order_success(
-        pokemon_ability_repository, session
+        pokemon_ability_repository, pokemon_ability
     ):
         """Should return pokemon ability when found by order"""
         result_order = 1
-
-        pokemon_ability = PokemonAbility(
-            url='https://pokeapi.co/api/v2/ability/1/',
-            name='stench',
-            order=result_order,
-            slot=MOCK_POKEMON_ABILITY_SLOT,
-            is_hidden=MOCK_POKEMON_ABILITY_IS_HIDDEN,
-        )
-        session.add(pokemon_ability)
-        await session.commit()
 
         result = await pokemon_ability_repository.find_one_by_order(result_order)
 

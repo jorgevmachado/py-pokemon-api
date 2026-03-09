@@ -1,4 +1,42 @@
+from datetime import datetime
 from http import HTTPStatus
+from unittest.mock import AsyncMock
+from uuid import uuid4
+
+import pytest
+
+from app.core.security import get_current_user
+from app.domain.trainer.service import TrainerService
+from app.main import app
+from app.shared.gender_enum import GenderEnum
+from app.shared.role_enum import RoleEnum
+from app.shared.status_enum import StatusEnum
+from tests.factories.trainer import TrainerFactory
+
+CAPTURE_RATE = 45
+POKEBALLS = 5
+
+
+def build_trainer_response():
+    now = datetime.now()
+    trainer = TrainerFactory()
+    trainer.id = str(uuid4())
+    trainer.role = RoleEnum.USER
+    trainer.status = StatusEnum.ACTIVE
+    trainer.gender = GenderEnum.MALE
+    trainer.date_of_birth = datetime(1990, 7, 20)
+    trainer.pokeballs = POKEBALLS
+    trainer.capture_rate = CAPTURE_RATE
+    trainer.total_authentications = 0
+    trainer.authentication_success = 0
+    trainer.authentication_failures = 0
+    trainer.last_authentication_at = None
+    trainer.created_at = now
+    trainer.updated_at = now
+    trainer.deleted_at = None
+    trainer.pokedex = []
+    trainer.captured_pokemons = []
+    return trainer
 
 
 def test_create_trainer(client, pokemon):
@@ -88,3 +126,40 @@ def test_get_trainer_should_return_not_found(client, token):
     )
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {'detail': 'Trainer not found'}
+
+
+@pytest.mark.asyncio
+async def test_initialize_trainer_calls_service(client, token):
+    trainer = build_trainer_response()
+
+    mock_service = TrainerService(
+        repository=None,
+        pokemon_service=None,
+        pokedex_service=None,
+        captured_pokemon_service=None,
+    )
+    mock_service.initialize = AsyncMock(return_value=trainer)
+
+    def override_service():
+        return mock_service
+
+    def override_user():
+        return trainer
+
+    app.dependency_overrides[TrainerService] = override_service
+    app.dependency_overrides[get_current_user] = override_user
+
+    response = client.post(
+        '/trainers/initialize',
+        json={
+            'pokemon_name': 'bulbasaur',
+            'pokeballs': POKEBALLS,
+            'capture_rate': CAPTURE_RATE,
+        },
+        headers={'Authorization': f'Bearer {token}'},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == HTTPStatus.OK
+    mock_service.initialize.assert_awaited_once()

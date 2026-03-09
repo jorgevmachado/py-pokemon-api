@@ -7,11 +7,18 @@ import pytest
 from fastapi import HTTPException
 
 from app.core.security import verify_password
+from app.domain.pokemon.schema import FirstPokemonSchemaResult
 from app.domain.trainer.model import Trainer
-from app.domain.trainer.schema import CreateTrainerSchema
+from app.domain.trainer.schema import CreateTrainerSchema, InitializeTrainerSchema
 from app.shared.gender_enum import GenderEnum
 from app.shared.role_enum import RoleEnum
 from app.shared.status_enum import StatusEnum
+from tests.factories.pokemon import PokemonFactory
+
+CAPTURE_RATE_HIGH = 80
+CAPTURE_RATE_LOW = 10
+POKEMON_CAPTURE_RATE = 60
+POKEBALLS = 5
 
 
 class TestTrainerServiceCreate:
@@ -60,6 +67,28 @@ class TestTrainerServiceCreate:
 
         assert exc_info.value.status_code == HTTPStatus.CONFLICT
         assert exc_info.value.detail == 'Email already exists'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_trainer_create_service_handles_repository_error(trainer_service):
+        """Should raise HTTPException when repository fails"""
+        trainer_data = CreateTrainerSchema(
+            name='Jane Doe',
+            email='jane.doe@example.com',
+            gender=GenderEnum.FEMALE,
+            password='secret123',
+            date_of_birth=datetime(1995, 5, 15),
+        )
+
+        trainer_service.find_one_by_email = AsyncMock(return_value=None)
+        trainer_service.repository.create = AsyncMock(side_effect=Exception('boom'))
+        trainer_service.pokemon_service.initialize = AsyncMock()
+
+        with pytest.raises(HTTPException) as exc_info:
+            await trainer_service.create(create_trainer=trainer_data)
+
+        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert exc_info.value.detail == 'Error creating trainer'
 
 
 class TestTrainerServiceFindOne:
@@ -139,3 +168,98 @@ class TestTrainerServiceUpdate:
 
         assert result == trainer
         trainer_service.repository.update.assert_called_once_with(trainer=trainer)
+
+
+class TestTrainerServiceInitialize:
+    """Test scope for initialize method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_initialize_updates_capture_rate_when_lower(trainer_service, trainer):
+        """Should update capture rate when trainer has lower rate"""
+        trainer.status = StatusEnum.INCOMPLETE
+        pokemon = PokemonFactory(capture_rate=POKEMON_CAPTURE_RATE)
+
+        first_pokemon = FirstPokemonSchemaResult(
+            pokemon=pokemon,
+            pokemons=[pokemon],
+        )
+
+        trainer_service.find_one = AsyncMock(return_value=trainer)
+        trainer_service.pokemon_service.first_pokemon = AsyncMock(return_value=first_pokemon)
+        trainer_service.pokedex_service.initialize = AsyncMock()
+        trainer_service.captured_pokemon_service.create = AsyncMock()
+        trainer_service.repository.update = AsyncMock(return_value=trainer)
+
+        initialize_schema = InitializeTrainerSchema(
+            pokemon_name=pokemon.name,
+            capture_rate=CAPTURE_RATE_LOW,
+            pokeballs=POKEBALLS,
+        )
+
+        result = await trainer_service.initialize(
+            trainer=trainer,
+            initialize_trainer=initialize_schema,
+        )
+
+        assert result.status == StatusEnum.ACTIVE
+        assert result.capture_rate == POKEMON_CAPTURE_RATE
+        trainer_service.repository.update.assert_awaited_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_initialize_keeps_capture_rate_when_higher(trainer_service, trainer):
+        """Should keep capture rate when trainer already has higher rate"""
+        trainer.status = StatusEnum.INCOMPLETE
+        trainer.capture_rate = CAPTURE_RATE_HIGH
+        pokemon = PokemonFactory(capture_rate=POKEMON_CAPTURE_RATE)
+
+        first_pokemon = FirstPokemonSchemaResult(
+            pokemon=pokemon,
+            pokemons=[pokemon],
+        )
+
+        trainer_service.find_one = AsyncMock(return_value=trainer)
+        trainer_service.pokemon_service.first_pokemon = AsyncMock(return_value=first_pokemon)
+        trainer_service.pokedex_service.initialize = AsyncMock()
+        trainer_service.captured_pokemon_service.create = AsyncMock()
+        trainer_service.repository.update = AsyncMock(return_value=trainer)
+
+        initialize_schema = InitializeTrainerSchema(
+            pokemon_name=pokemon.name,
+            capture_rate=CAPTURE_RATE_HIGH,
+            pokeballs=POKEBALLS,
+        )
+
+        result = await trainer_service.initialize(
+            trainer=trainer,
+            initialize_trainer=initialize_schema,
+        )
+
+        assert result.status == StatusEnum.ACTIVE
+        assert result.capture_rate == CAPTURE_RATE_HIGH
+        trainer_service.repository.update.assert_awaited_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_initialize_returns_trainer_when_active(trainer_service, trainer):
+        """Should return trainer unchanged when already active"""
+        trainer.status = StatusEnum.ACTIVE
+        current_trainer = trainer
+
+        trainer_service.find_one = AsyncMock(return_value=trainer)
+        trainer_service.pokemon_service.first_pokemon = AsyncMock()
+
+        initialize_schema = InitializeTrainerSchema(
+            pokemon_name='bulbasaur',
+            capture_rate=CAPTURE_RATE_LOW,
+            pokeballs=POKEBALLS,
+        )
+
+        result = await trainer_service.initialize(
+            trainer=current_trainer,
+            initialize_trainer=initialize_schema,
+        )
+
+        assert result == current_trainer
+        trainer_service.pokemon_service.first_pokemon.assert_not_called()

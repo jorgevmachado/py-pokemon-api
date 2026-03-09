@@ -20,6 +20,7 @@ from app.domain.type.service import PokemonTypeService
 from app.shared.status_enum import StatusEnum
 from tests.factories.pokedex import PokedexFactory
 from tests.factories.pokemon import PokemonFactory
+from tests.factories.pokemon_ability import PokemonAbilityFactory
 
 
 @pytest_asyncio.fixture
@@ -151,3 +152,15 @@ async def pokedex(session: AsyncSession, pokemon, trainer):
     await session.refresh(pokedex)
 
     return pokedex
+
+
+@pytest_asyncio.fixture
+async def pokemon_ability(session: AsyncSession):
+    pokemon_ability = PokemonAbilityFactory(
+        order=1,
+        name='stench',
+        slot=1,
+    )
+    session.add(pokemon_ability)
+    await session.commit()
+    await session.refresh(pokemon_ability)

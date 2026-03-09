@@ -79,6 +79,10 @@ MOCK_RELATIONSHIPS = GeneratePokemonRelationshipSchema(
     ),
 )
 
+LIST_LIMIT = 10
+LIST_OFFSET = 0
+TOTAL_COUNT = 3
+
 
 class TestPokemonServiceInitializeDatabase:
     """Test scope for initialize_database method"""
@@ -1461,3 +1465,60 @@ class TestPokemonServiceFirstPokemon:
         assert result is not None
         assert result.pokemon is not None
         pokemon_service.fetch_one.assert_called_once_with(name='bulbasaur')
+
+
+class TestPokemonServiceListAll:
+    """Test scope for list_all method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_list_all_returns_repository_results(pokemon_service):
+        """Should return repository list when no error occurs"""
+        pokemon_list = [SimpleNamespace(name='Bulbasaur')]
+        pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
+
+        page_filter = FilterPage(offset=LIST_OFFSET, limit=LIST_LIMIT)
+        result = await pokemon_service.list_all(page_filter=page_filter)
+
+        assert result == pokemon_list
+        pokemon_service.repository.list_all.assert_called_once_with(page_filter=page_filter)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_list_all_returns_empty_page_on_error_with_pagination(pokemon_service):
+        """Should return empty page when repository raises and pagination is set"""
+        pokemon_service.repository.list_all = AsyncMock(side_effect=Exception('boom'))
+
+        page_filter = FilterPage(offset=LIST_OFFSET, limit=LIST_LIMIT)
+        result = await pokemon_service.list_all(page_filter=page_filter)
+
+        assert hasattr(result, 'items')
+        assert len(result.items) == 0
+        assert result.total == 0
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_list_all_returns_empty_list_on_error_without_pagination(
+        pokemon_service,
+    ):
+        """Should return empty list when repository raises without pagination"""
+        pokemon_service.repository.list_all = AsyncMock(side_effect=Exception('boom'))
+
+        result = await pokemon_service.list_all(page_filter=None)
+
+        assert result == []
+
+
+class TestPokemonServiceTotal:
+    """Test scope for total method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_total_returns_repository_total(pokemon_service):
+        """Should return repository total"""
+        pokemon_service.repository.total = AsyncMock(return_value=TOTAL_COUNT)
+
+        result = await pokemon_service.total()
+
+        assert result == TOTAL_COUNT
+        pokemon_service.repository.total.assert_awaited_once()
