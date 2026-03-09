@@ -27,7 +27,7 @@ jobs:
         run: poetry install
 
       - name: Executar Linter
-        run: poetry run task lint
+        run: poetry run make lint
 
       - name: Executar testes
-        run: poetry run task test
+        run: poetry run make test
