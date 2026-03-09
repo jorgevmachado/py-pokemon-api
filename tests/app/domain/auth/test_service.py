@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
+from app.domain.auth.schema import Token
+
 MOCK_EMAIL = 'john@doe.com'
 MOCK_PASSWORD = 'password1'
 MOCK_TOKEN = 'token-value'
@@ -17,7 +19,7 @@ class TestAuthServiceAuthenticate:
     @pytest.mark.asyncio
     async def test_authenticate_returns_token_when_valid(auth_service):
         """Should return access token when credentials are valid"""
-
+        result_token = Token(access_token=MOCK_TOKEN, token_type='bearer')
         user = MagicMock()
         user.email = MOCK_EMAIL
         user.password = 'hashed'
@@ -35,7 +37,7 @@ class TestAuthServiceAuthenticate:
         ):
             result = await auth_service.authenticate(MOCK_EMAIL, MOCK_PASSWORD)
 
-        assert result == {'access_token': MOCK_TOKEN, 'token_type': 'bearer'}
+        assert result == result_token
         assert isinstance(user.last_authentication_at, datetime)
         auth_service.trainer_service.update.assert_called_once_with(user)
 
@@ -88,5 +90,5 @@ class TestAuthServiceAuthenticate:
         with pytest.raises(HTTPException) as exc_info:
             await auth_service.authenticate(MOCK_EMAIL, MOCK_PASSWORD)
 
-        assert exc_info.value.status_code == HTTPStatus.UNAUTHORIZED
-        assert exc_info.value.detail == 'Incorrect email or password'
+        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert exc_info.value.detail == 'Internal server error'

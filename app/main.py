@@ -1,10 +1,9 @@
-import logging
-import sys
 from http import HTTPStatus
 
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 
+from app.core.logging import configure_logging
 from app.domain.auth.route import router as auth_router
 from app.domain.battle.route import router as battle_router
 from app.domain.captured_pokemon.route import router as captured_pokemon_router
@@ -13,13 +12,8 @@ from app.domain.pokemon.route import router as pokemon_router
 from app.domain.trainer.route import router as trainer_router
 from app.shared.schemas import Message
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
+configure_logging()
 
-logger = logging.getLogger(__name__)
 app = FastAPI()
 
 app.include_router(trainer_router)

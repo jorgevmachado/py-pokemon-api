@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import Depends
@@ -10,9 +11,11 @@ from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseMoveSchemaResponse,
 )
 from app.domain.pokemon.external.service import PokemonExternalService
+from app.shared.exceptions import log_service_exception
 from app.shared.number import ensure_order_number
 
 Repository = Annotated[PokemonMoveRepository, Depends()]
+logger = logging.getLogger(__name__)
 
 
 class PokemonMoveService:
@@ -66,6 +69,11 @@ class PokemonMoveService:
                 result_pokemon_moves.append(pokemon_move)
 
             return result_pokemon_moves
-        except Exception as e:
-            print(f'# => PokemonMoveService => verify_pokemon_move => error => {e}')
+        except Exception as exception:
+            log_service_exception(
+                exception,
+                logger=logger,
+                service='move',
+                operation='verify_pokemon_move',
+            )
             return []

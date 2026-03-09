@@ -1,0 +1,87 @@
+import logging
+from http import HTTPStatus
+
+from fastapi import HTTPException
+from sqlalchemy.exc import SQLAlchemyError
+
+STATUS_MESSAGE_MAP: dict[HTTPStatus, str] = {
+    HTTPStatus.UNAUTHORIZED: 'Incorrect email or password',
+    HTTPStatus.INTERNAL_SERVER_ERROR: 'Internal server error',
+}
+
+
+class AppHTTPException(HTTPException):
+    def __init__(self, status_code: HTTPStatus, detail: str):
+        super().__init__(status_code=status_code, detail=detail)
+
+
+class UnauthorizedException(AppHTTPException):
+    def __init__(self, message: str = STATUS_MESSAGE_MAP[HTTPStatus.UNAUTHORIZED]):
+        super().__init__(status_code=HTTPStatus.UNAUTHORIZED, detail=message)
+
+
+def _resolve_status_code(exception: Exception) -> HTTPStatus:
+    if isinstance(exception, HTTPException):
+        try:
+            return HTTPStatus(exception.status_code)
+        except ValueError:
+            return HTTPStatus.INTERNAL_SERVER_ERROR
+
+    if isinstance(exception, SQLAlchemyError):
+        return HTTPStatus.INTERNAL_SERVER_ERROR
+
+    return HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+def _build_error_message(exception: Exception, status_code: HTTPStatus) -> str:
+    if isinstance(exception, HTTPException):
+        detail = exception.detail
+        if isinstance(detail, str) and detail:
+            return detail
+
+    return STATUS_MESSAGE_MAP.get(status_code, status_code.phrase)
+
+
+def log_service_exception(
+    exception: Exception,
+    *,
+    logger: logging.Logger,
+    service: str,
+    operation: str,
+) -> None:
+    status_code = _resolve_status_code(exception)
+    error_message = _build_error_message(exception, status_code)
+
+    logger_message = f'{service}.{operation}'
+    logger.exception(
+        logger_message,
+        extra={
+            'service': service,
+            'operation': operation,
+            'status_code': status_code,
+            'error_message': error_message,
+        },
+    )
+
+
+def handle_service_exception(
+    exception: Exception,
+    *,
+    logger: logging.Logger,
+    service: str,
+    operation: str,
+) -> None:
+    log_service_exception(
+        exception,
+        logger=logger,
+        service=service,
+        operation=operation,
+    )
+
+    status_code = _resolve_status_code(exception)
+    error_message = _build_error_message(exception, status_code)
+
+    raise AppHTTPException(
+        status_code=status_code,
+        detail=error_message,
+    ) from exception

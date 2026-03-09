@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import Depends
@@ -14,9 +15,11 @@ from app.domain.type.schema import (
     CreatePokemonTypeSchema,
     ValidatePokemonTypeDamageRelationSchema,
 )
+from app.shared.exceptions import log_service_exception
 from app.shared.number import ensure_order_number
 
 Repository = Annotated[PokemonTypeRepository, Depends()]
+logger = logging.getLogger(__name__)
 
 
 class PokemonTypeService:
@@ -27,9 +30,8 @@ class PokemonTypeService:
     async def verify_pokemon_type(
         self, types: list[PokemonExternalBaseTypeSchemaResponse]
     ) -> list[PokemonType]:
-        result_pokemon_type = []
-
         try:
+            result_pokemon_type = []
             for type_response in types:
                 url = type_response.type.url
                 order = ensure_order_number(url)
@@ -42,9 +44,14 @@ class PokemonTypeService:
                 result_pokemon_type.append(pokemon_type)
 
             return result_pokemon_type
-        except Exception as e:
-            print(f'# => PokemonTypeService => verify_pokemon_type => error => {e}')
-            return result_pokemon_type
+        except Exception as exception:
+            log_service_exception(
+                exception,
+                logger=logger,
+                service='type',
+                operation='verify_pokemon_type',
+            )
+            return []
 
     async def validate_damage_relations(
         self, url: str

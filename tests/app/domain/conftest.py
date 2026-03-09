@@ -160,7 +160,10 @@ async def pokemon_ability(session: AsyncSession):
         order=1,
         name='stench',
         slot=1,
+        is_hidden=False,
     )
     session.add(pokemon_ability)
     await session.commit()
     await session.refresh(pokemon_ability)
+
+    return pokemon_ability

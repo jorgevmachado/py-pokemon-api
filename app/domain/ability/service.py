@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import Depends
@@ -8,9 +9,11 @@ from app.domain.ability.schema import CreatePokemonAbilitySchema
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseAbilitySchemaResponse,
 )
+from app.shared.exceptions import log_service_exception
 from app.shared.number import ensure_order_number
 
 Repository = Annotated[PokemonAbilityRepository, Depends()]
+logger = logging.getLogger(__name__)
 
 
 class PokemonAbilityService:
@@ -20,8 +23,8 @@ class PokemonAbilityService:
     async def verify_pokemon_abilities(
         self, abilities: list[PokemonExternalBaseAbilitySchemaResponse]
     ) -> list[PokemonAbility]:
-        result_pokemon_abilities = []
         try:
+            result_pokemon_abilities = []
             for ability_response in abilities:
                 url = ability_response.ability.url
                 name = ability_response.ability.name
@@ -43,6 +46,11 @@ class PokemonAbilityService:
                 result_pokemon_abilities.append(pokemon_ability)
 
             return result_pokemon_abilities
-        except Exception as e:
-            print(f'# => PokemonAbilityService => verify_pokemon_abilities => error => {e}')
-            return result_pokemon_abilities
+        except Exception as exception:
+            log_service_exception(
+                exception,
+                logger=logger,
+                service='ability',
+                operation='verify_pokemon_abilities',
+            )
+            return []
