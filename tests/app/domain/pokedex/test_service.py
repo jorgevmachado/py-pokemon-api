@@ -5,7 +5,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.domain.pokedex.schema import FindPokedexSchema
-from tests.app.domain.pokedex.conftest import PokedexFactory
+from tests.factories.pokedex import PokedexFactory
 
 MOCK_STATS = {
     'hp': 10,

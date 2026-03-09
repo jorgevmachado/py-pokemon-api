@@ -18,6 +18,7 @@ from app.domain.trainer.service import TrainerService
 from app.domain.type.repository import PokemonTypeRepository
 from app.domain.type.service import PokemonTypeService
 from app.shared.status_enum import StatusEnum
+from tests.factories.pokedex import PokedexFactory
 from tests.factories.pokemon import PokemonFactory
 
 
@@ -140,3 +141,13 @@ async def pokemon_incomplete(session: AsyncSession):
     await session.refresh(pokemon)
 
     return pokemon
+
+
+@pytest_asyncio.fixture
+async def pokedex(session: AsyncSession, pokemon, trainer):
+    pokedex = PokedexFactory(pokemon_id=pokemon.id, trainer_id=trainer.id)
+    session.add(pokedex)
+    await session.commit()
+    await session.refresh(pokedex)
+
+    return pokedex
