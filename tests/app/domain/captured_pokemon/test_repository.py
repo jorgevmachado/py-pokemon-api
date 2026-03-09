@@ -534,3 +534,59 @@ class TestCapturedPokemonRepositoryFindByPokemon:
         )
 
         assert result is None
+
+
+class TestCapturedPokemonRepositoryFindById:
+    """Test scope for find_by_id method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_id_returns_entity(captured_pokemon_repository, trainer, pokemon):
+        """Should return captured pokemon when id exists"""
+        created = await captured_pokemon_repository.create(
+            CreateCapturedPokemonSchema(
+                hp=MOCK_CAPTURED_POKEMON.hp,
+                wins=MOCK_CAPTURED_POKEMON.wins,
+                level=MOCK_CAPTURED_POKEMON.level,
+                iv_hp=MOCK_CAPTURED_POKEMON.iv_hp,
+                ev_hp=MOCK_CAPTURED_POKEMON.ev_hp,
+                losses=MOCK_CAPTURED_POKEMON.losses,
+                max_hp=MOCK_CAPTURED_POKEMON.max_hp,
+                battles=MOCK_CAPTURED_POKEMON.battles,
+                iv_speed=MOCK_CAPTURED_POKEMON.iv_speed,
+                speed=MOCK_CAPTURED_POKEMON.speed,
+                ev_speed=MOCK_CAPTURED_POKEMON.ev_speed,
+                iv_attack=MOCK_CAPTURED_POKEMON.iv_attack,
+                attack=MOCK_CAPTURED_POKEMON.attack,
+                ev_attack=MOCK_CAPTURED_POKEMON.ev_attack,
+                iv_defense=MOCK_CAPTURED_POKEMON.iv_defense,
+                defense=MOCK_CAPTURED_POKEMON.defense,
+                ev_defense=MOCK_CAPTURED_POKEMON.ev_defense,
+                experience=MOCK_CAPTURED_POKEMON.experience,
+                nickname=MOCK_CAPTURED_POKEMON.nickname,
+                iv_special_attack=MOCK_CAPTURED_POKEMON.iv_special_attack,
+                special_attack=MOCK_CAPTURED_POKEMON.special_attack,
+                ev_special_attack=MOCK_CAPTURED_POKEMON.ev_special_attack,
+                iv_special_defense=MOCK_CAPTURED_POKEMON.iv_special_defense,
+                special_defense=MOCK_CAPTURED_POKEMON.special_defense,
+                ev_special_defense=MOCK_CAPTURED_POKEMON.ev_special_defense,
+                captured_at=MOCK_CAPTURED_POKEMON.captured_at,
+                pokemon_id=pokemon.id,
+                trainer_id=trainer.id,
+                formula=MOCK_CAPTURED_POKEMON.formula,
+            )
+        )
+
+        result = await captured_pokemon_repository.find_by_id(created.id)
+
+        assert result is not None
+        assert result.id == created.id
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_id_returns_none_when_missing(captured_pokemon_repository):
+        """Should return None when captured pokemon id does not exist"""
+        non_existent_id = '00000000-0000-0000-0000-000000000000'
+        result = await captured_pokemon_repository.find_by_id(non_existent_id)
+
+        assert result is None

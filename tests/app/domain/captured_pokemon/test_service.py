@@ -6,8 +6,10 @@ from fastapi import HTTPException
 
 from app.domain.captured_pokemon.schema import (
     CapturedPokemonFilterPage,
+    CapturePokemonHealSchema,
     CapturePokemonSchema,
     FindCapturePokemonSchema,
+    PartialCapturedPokemonSchema,
 )
 
 MOCK_EXP_GAINED = 10
@@ -303,3 +305,170 @@ class TestCapturedPokemonServiceCapture:
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         assert exc_info.value.detail == 'Error capture pokemons'
+
+
+class TestCapturedPokemonServiceUpdate:
+    """Test scope for update method"""
+
+    EXPECTED_LEVEL = 2
+    EXPECTED_WINS = 1
+    EXPECTED_LOSSES = 1
+    EXPECTED_HP = 15
+    EXPECTED_SPEED = 6
+    EXPECTED_ATTACK = 7
+    EXPECTED_DEFENSE = 8
+    EXPECTED_SPECIAL_ATTACK = 9
+    EXPECTED_SPECIAL_DEFENSE = 10
+    EXPECTED_EXPERIENCE = 25
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_update_raises_not_found_when_missing(captured_pokemon_service):
+        """Should raise not found when captured pokemon does not exist"""
+        captured_pokemon_service.repository.find_by_id = AsyncMock(return_value=None)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await captured_pokemon_service.update(
+                captured_pokemon_id='missing-id',
+                captured_pokemon_update=PartialCapturedPokemonSchema(hp=10),
+            )
+
+        assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
+        assert exc_info.value.detail == 'Captured Pokemon not found'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_update_applies_partial_fields(captured_pokemon_service):
+        """Should update only informed fields and persist"""
+        captured = type(
+            'Captured',
+            (),
+            {
+                'level': 1,
+                'wins': 0,
+                'losses': 0,
+                'hp': 10,
+                'speed': 5,
+                'attack': 6,
+                'defense': 7,
+                'special_attack': 8,
+                'special_defense': 9,
+                'experience': 0,
+            },
+        )()
+
+        captured_pokemon_service.repository.find_by_id = AsyncMock(return_value=captured)
+        captured_pokemon_service.repository.update = AsyncMock(return_value=captured)
+
+        update_schema = PartialCapturedPokemonSchema(
+            level=TestCapturedPokemonServiceUpdate.EXPECTED_LEVEL,
+            wins=TestCapturedPokemonServiceUpdate.EXPECTED_WINS,
+            losses=TestCapturedPokemonServiceUpdate.EXPECTED_LOSSES,
+            hp=TestCapturedPokemonServiceUpdate.EXPECTED_HP,
+            speed=TestCapturedPokemonServiceUpdate.EXPECTED_SPEED,
+            attack=TestCapturedPokemonServiceUpdate.EXPECTED_ATTACK,
+            defense=TestCapturedPokemonServiceUpdate.EXPECTED_DEFENSE,
+            special_attack=TestCapturedPokemonServiceUpdate.EXPECTED_SPECIAL_ATTACK,
+            special_defense=TestCapturedPokemonServiceUpdate.EXPECTED_SPECIAL_DEFENSE,
+            experience=TestCapturedPokemonServiceUpdate.EXPECTED_EXPERIENCE,
+        )
+
+        result = await captured_pokemon_service.update(
+            captured_pokemon_id='captured-id',
+            captured_pokemon_update=update_schema,
+        )
+
+        assert result.level == TestCapturedPokemonServiceUpdate.EXPECTED_LEVEL
+        assert result.wins == TestCapturedPokemonServiceUpdate.EXPECTED_WINS
+        assert result.losses == TestCapturedPokemonServiceUpdate.EXPECTED_LOSSES
+        assert result.hp == TestCapturedPokemonServiceUpdate.EXPECTED_HP
+        assert result.speed == TestCapturedPokemonServiceUpdate.EXPECTED_SPEED
+        assert result.attack == TestCapturedPokemonServiceUpdate.EXPECTED_ATTACK
+        assert result.defense == TestCapturedPokemonServiceUpdate.EXPECTED_DEFENSE
+        assert (
+            result.special_attack == TestCapturedPokemonServiceUpdate.EXPECTED_SPECIAL_ATTACK
+        )
+        assert (
+            result.special_defense == TestCapturedPokemonServiceUpdate.EXPECTED_SPECIAL_DEFENSE
+        )
+        assert result.experience == TestCapturedPokemonServiceUpdate.EXPECTED_EXPERIENCE
+        captured_pokemon_service.repository.update.assert_awaited_once()
+
+
+class TestCapturedPokemonServiceHeal:
+    """Test scope for heal method"""
+
+    POKEMON_A_INITIAL_HP = 10
+    POKEMON_A_MAX_HP = 30
+    POKEMON_B_INITIAL_HP = 5
+    POKEMON_B_MAX_HP = 20
+    EXPECTED_POKEMON_COUNT = 2
+    EXPECTED_UPDATE_COUNT = 2
+    POKEMON_OWN_INITIAL_HP = 1
+    POKEMON_OWN_MAX_HP = 40
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_heal_all_heals_every_pokemon(captured_pokemon_service, trainer):
+        """Should heal all trainer pokemons when all=true"""
+        pokemon_a = type(
+            'P',
+            (),
+            {
+                'hp': TestCapturedPokemonServiceHeal.POKEMON_A_INITIAL_HP,
+                'max_hp': TestCapturedPokemonServiceHeal.POKEMON_A_MAX_HP,
+            },
+        )()
+        pokemon_b = type(
+            'P',
+            (),
+            {
+                'hp': TestCapturedPokemonServiceHeal.POKEMON_B_INITIAL_HP,
+                'max_hp': TestCapturedPokemonServiceHeal.POKEMON_B_MAX_HP,
+            },
+        )()
+
+        captured_pokemon_service.repository.list_all = AsyncMock(
+            return_value=[pokemon_a, pokemon_b]
+        )
+        captured_pokemon_service.repository.update = AsyncMock()
+
+        result = await captured_pokemon_service.heal(
+            trainer_id=trainer.id,
+            heal_pokemons=CapturePokemonHealSchema(all=True, pokemons=[]),
+        )
+
+        assert len(result) == TestCapturedPokemonServiceHeal.EXPECTED_POKEMON_COUNT
+        assert pokemon_a.hp == TestCapturedPokemonServiceHeal.POKEMON_A_MAX_HP
+        assert pokemon_b.hp == TestCapturedPokemonServiceHeal.POKEMON_B_MAX_HP
+        assert (
+            captured_pokemon_service.repository.update.await_count
+            == TestCapturedPokemonServiceHeal.EXPECTED_UPDATE_COUNT
+        )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_heal_specific_filters_by_trainer(captured_pokemon_service, trainer):
+        """Should heal only selected pokemons that belong to trainer"""
+        own = type(
+            'P',
+            (),
+            {
+                'trainer_id': trainer.id,
+                'hp': TestCapturedPokemonServiceHeal.POKEMON_OWN_INITIAL_HP,
+                'max_hp': TestCapturedPokemonServiceHeal.POKEMON_OWN_MAX_HP,
+            },
+        )()
+        other = type('P', (), {'trainer_id': 'other', 'hp': 2, 'max_hp': 50})()
+
+        captured_pokemon_service.repository.find_by_id = AsyncMock(side_effect=[own, other])
+        captured_pokemon_service.repository.update = AsyncMock()
+
+        result = await captured_pokemon_service.heal(
+            trainer_id=trainer.id,
+            heal_pokemons=CapturePokemonHealSchema(all=False, pokemons=['a', 'b']),
+        )
+
+        assert result == [own]
+        assert own.hp == TestCapturedPokemonServiceHeal.POKEMON_OWN_MAX_HP
+        captured_pokemon_service.repository.update.assert_awaited_once_with(own)
