@@ -3,6 +3,7 @@ from typing import Annotated, Optional
 
 from fastapi import Depends
 
+from app.core.logging import LoggingParams
 from app.domain.growth_rate.business import PokemonGrowthRateBusiness
 from app.domain.growth_rate.model import PokemonGrowthRate
 from app.domain.growth_rate.repository import PokemonGrowthRateRepository
@@ -22,6 +23,7 @@ class PokemonGrowthRateService:
     def __init__(self, repository: Repository):
         self.repository = repository
         self.external_service = PokemonExternalService()
+        self.logger_params = LoggingParams(logger=logger, service='growth_rate', operation='')
 
     async def verify_pokemon_growth_rate(
         self, growth_rate: Optional[PokemonExternalBase] = None
@@ -59,8 +61,8 @@ class PokemonGrowthRateService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='growth_rate',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='verify_pokemon_growth_rate',
                 raise_exception=False,
             )

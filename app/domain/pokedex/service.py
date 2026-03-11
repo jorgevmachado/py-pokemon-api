@@ -5,6 +5,7 @@ from typing import Annotated, Optional
 
 from fastapi import Depends, HTTPException, Query
 
+from app.core.logging import LoggingParams
 from app.domain.pokedex.model import Pokedex
 from app.domain.pokedex.repository import PokedexRepository
 from app.domain.pokedex.schema import (
@@ -29,6 +30,7 @@ class PokedexService:
         self.repository = repository
         self.pokemon_service = pokemon_service
         self.business = PokemonProgressionBusiness()
+        self.logger_params = LoggingParams(logger=logger, service='pokedex', operation='')
 
     async def initialize_pokemon(
         self, pokemon: Pokemon, trainer_id: str, discovered: bool = False
@@ -72,8 +74,8 @@ class PokedexService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokedex',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='initialize_pokemon',
                 raise_exception=False,
             )
@@ -105,8 +107,8 @@ class PokedexService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokedex',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='initialize',
                 raise_exception=False,
             )
@@ -124,8 +126,8 @@ class PokedexService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokedex',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='fetch_all',
             )
 
@@ -155,8 +157,8 @@ class PokedexService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokedex',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='find_by_pokemon',
             )
 

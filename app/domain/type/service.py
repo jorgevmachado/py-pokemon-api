@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from app.core.logging import LoggingParams
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
     PokemonExternalBaseTypeSchemaResponse,
@@ -26,6 +27,7 @@ class PokemonTypeService:
     def __init__(self, repository: Repository):
         self.repository = repository
         self.external_service = PokemonExternalService()
+        self.logger_params = LoggingParams(logger=logger, service='type', operation='')
 
     async def verify_pokemon_type(
         self, types: list[PokemonExternalBaseTypeSchemaResponse]
@@ -47,8 +49,8 @@ class PokemonTypeService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='type',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='verify_pokemon_type',
                 raise_exception=False,
             )

@@ -4,6 +4,7 @@ from http import HTTPStatus
 import httpx
 from fastapi import HTTPException
 
+from app.core.logging import LoggingParams
 from app.domain.pokemon.external.business import PokemonExternalBusiness
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseSchemaResponse,
@@ -32,6 +33,9 @@ logger = logging.getLogger(__name__)
 
 class PokemonExternalService:
     BASE_URL = 'https://pokeapi.co/api/v2'
+    LOGGING_PARAMS = LoggingParams(
+        logger=logger, service='pokemon_external_service', operation=''
+    )
 
     @staticmethod
     async def pokemon_external_list(
@@ -70,8 +74,8 @@ class PokemonExternalService:
         except httpx.HTTPError as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon_external_service',
+                logger=PokemonExternalService.LOGGING_PARAMS.logger,
+                service=PokemonExternalService.LOGGING_PARAMS.service,
                 operation='pokemon_external_list',
             )
 
@@ -95,8 +99,8 @@ class PokemonExternalService:
         except httpx.HTTPError as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon_external_service',
+                logger=PokemonExternalService.LOGGING_PARAMS.logger,
+                service=PokemonExternalService.LOGGING_PARAMS.service,
                 operation='pokemon_external_by_name',
             )
 
@@ -120,8 +124,8 @@ class PokemonExternalService:
         except httpx.HTTPError as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon_external_service',
+                logger=PokemonExternalService.LOGGING_PARAMS.logger,
+                service=PokemonExternalService.LOGGING_PARAMS.service,
                 operation='pokemon_external_specie_by_name',
             )
 
@@ -145,8 +149,8 @@ class PokemonExternalService:
         except httpx.HTTPError as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon_external_service',
+                logger=PokemonExternalService.LOGGING_PARAMS.logger,
+                service=PokemonExternalService.LOGGING_PARAMS.service,
                 operation='pokemon_external_move_by_name',
             )
 
@@ -168,8 +172,8 @@ class PokemonExternalService:
         except httpx.HTTPError as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon_external_service',
+                logger=PokemonExternalService.LOGGING_PARAMS.logger,
+                service=PokemonExternalService.LOGGING_PARAMS.service,
                 operation='pokemon_external_growth_rate_by_order',
             )
 
@@ -192,8 +196,8 @@ class PokemonExternalService:
         except httpx.HTTPError as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon_external_service',
+                logger=PokemonExternalService.LOGGING_PARAMS.logger,
+                service=PokemonExternalService.LOGGING_PARAMS.service,
                 operation='pokemon_external_evolution_by_url',
             )
 
@@ -216,8 +220,8 @@ class PokemonExternalService:
         except httpx.HTTPError as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon_external_service',
+                logger=PokemonExternalService.LOGGING_PARAMS.logger,
+                service=PokemonExternalService.LOGGING_PARAMS.service,
                 operation='pokemon_external_type_by_url',
             )
 
@@ -336,7 +340,7 @@ class PokemonExternalService:
         except httpx.HTTPError as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon_external_service',
+                logger=PokemonExternalService.LOGGING_PARAMS.logger,
+                service=PokemonExternalService.LOGGING_PARAMS.service,
                 operation='fetch_by_name',
             )

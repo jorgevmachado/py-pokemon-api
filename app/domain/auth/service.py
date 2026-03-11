@@ -48,7 +48,7 @@ class AuthService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='auth',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='authenticate',
             )

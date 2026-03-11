@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from app.core.logging import LoggingParams
 from app.domain.move.business import PokemonMoveBusiness
 from app.domain.move.model import PokemonMove
 from app.domain.move.repository import PokemonMoveRepository
@@ -22,6 +23,7 @@ class PokemonMoveService:
     def __init__(self, repository: Repository):
         self.repository = repository
         self.external_service = PokemonExternalService()
+        self.logger_params = LoggingParams(logger=logger, service='move', operation='')
 
     async def verify_pokemon_move(
         self, moves: list[PokemonExternalBaseMoveSchemaResponse]
@@ -72,8 +74,8 @@ class PokemonMoveService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='move',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='verify_pokemon_move',
                 raise_exception=False,
             )

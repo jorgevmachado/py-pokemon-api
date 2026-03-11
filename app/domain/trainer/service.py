@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException
 
+from app.core.logging import LoggingParams
 from app.core.security import get_password_hash
 from app.domain.battle.business import PokemonBattleBusiness
 from app.domain.captured_pokemon.service import CapturedPokemonService
@@ -39,6 +40,7 @@ class TrainerService:
         self.pokedex_service = pokedex_service
         self.captured_pokemon_service = captured_pokemon_service
         self.battle_business = PokemonBattleBusiness()
+        self.logger_params = LoggingParams(logger=logger, service='trainer', operation='')
 
     async def create(self, create_trainer: CreateTrainerSchema) -> Trainer:
         try:
@@ -60,8 +62,8 @@ class TrainerService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='trainer',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='create',
             )
 

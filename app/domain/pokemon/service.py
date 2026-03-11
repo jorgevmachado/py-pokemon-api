@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query
 
+from app.core.logging import LoggingParams
 from app.domain.ability.service import PokemonAbilityService
 from app.domain.growth_rate.service import PokemonGrowthRateService
 from app.domain.move.service import PokemonMoveService
@@ -49,6 +50,7 @@ class PokemonService:
         self.pokemon_growth_rate_service = pokemon_growth_rate_service
         self.external_service = PokemonExternalService()
         self.business = PokemonBusiness()
+        self.logger_params = LoggingParams(logger=logger, service='pokemon', operation='')
 
     async def total(self) -> int:
         return await self.repository.total()
@@ -62,8 +64,8 @@ class PokemonService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='list_all',
                 raise_exception=False,
             )
@@ -83,8 +85,8 @@ class PokemonService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='initialize',
                 raise_exception=False,
             )
@@ -131,8 +133,8 @@ class PokemonService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='initialize_database',
                 raise_exception=False,
             )
@@ -202,8 +204,8 @@ class PokemonService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='complete_pokemon_data',
             )
 
@@ -234,8 +236,8 @@ class PokemonService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='add_evolutions',
                 raise_exception=False,
             )
@@ -294,7 +296,7 @@ class PokemonService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='pokemon',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='first_pokemon',
             )

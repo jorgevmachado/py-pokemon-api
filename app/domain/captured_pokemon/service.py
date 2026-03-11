@@ -7,6 +7,7 @@ from typing import Annotated, Optional
 
 from fastapi import Depends, HTTPException
 
+from app.core.logging import LoggingParams
 from app.domain.captured_pokemon.repository import CapturedPokemonRepository
 from app.domain.captured_pokemon.schema import (
     CapturedPokemonFilterPage,
@@ -33,6 +34,9 @@ class CapturedPokemonService:
         self.business = PokemonProgressionBusiness()
         self.pokemon_service = pokemon_service
         self.repository = repository
+        self.logger_params = LoggingParams(
+            logger=logger, service='captured_pokemon', operation=''
+        )
 
     async def create(
         self,
@@ -105,8 +109,8 @@ class CapturedPokemonService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='captured-pokemon',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='create',
             )
 
@@ -150,8 +154,8 @@ class CapturedPokemonService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='captured-pokemon',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='capture',
             )
 
@@ -163,8 +167,8 @@ class CapturedPokemonService:
         except Exception as exception:
             handle_service_exception(
                 exception,
-                logger=logger,
-                service='captured-pokemon',
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
                 operation='find_by_pokemon',
             )
 
