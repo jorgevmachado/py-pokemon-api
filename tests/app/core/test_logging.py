@@ -3,8 +3,6 @@ from http import HTTPStatus
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
-from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.logging import (
     ErrorHighlightFormatter,
@@ -78,13 +76,13 @@ class TestServiceLogging:
     def test_log_service_exception_with_http_exception():
         """Should log exception payload with mapped HTTP status"""
         logger = MagicMock()
-        error = HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail='Bad request')
 
         log_service_exception(
-            error,
             logger=logger,
             service='auth',
             operation='authenticate',
+            status_code=HTTPStatus.BAD_REQUEST,
+            error_message='Bad request',
         )
 
         logger.exception.assert_called_once()
@@ -94,44 +92,6 @@ class TestServiceLogging:
         assert message == 'auth.authenticate'
         assert payload['status_code'] == HTTPStatus.BAD_REQUEST
         assert payload['error_message'] == 'Bad request'
-
-    @staticmethod
-    def test_log_service_exception_with_invalid_http_status():
-        """Should fallback to internal server error for invalid HTTP status code"""
-        logger = MagicMock()
-        error = HTTPException(status_code=999, detail='Invalid')
-
-        log_service_exception(
-            error,
-            logger=logger,
-            service='auth',
-            operation='authenticate',
-        )
-
-        logger.exception.assert_called_once()
-        payload = logger.exception.call_args.kwargs['extra']
-
-        assert payload['status_code'] == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert payload['error_message'] == 'Invalid'
-
-    @staticmethod
-    def test_log_service_exception_with_sqlalchemy_error():
-        """Should use internal server error for SQLAlchemy failures"""
-        logger = MagicMock()
-        error = SQLAlchemyError('boom')
-
-        log_service_exception(
-            error,
-            logger=logger,
-            service='auth',
-            operation='authenticate',
-        )
-
-        logger.exception.assert_called_once()
-        payload = logger.exception.call_args.kwargs['extra']
-
-        assert payload['status_code'] == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert payload['error_message'] == 'Internal server error'
 
     @staticmethod
     def test_log_service_success_with_defaults():
