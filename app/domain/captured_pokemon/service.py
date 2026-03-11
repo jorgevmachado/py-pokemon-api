@@ -1,5 +1,6 @@
 """Captured Pokemon Service - Manages trainer's caught pokemon collection."""
 
+import logging
 from datetime import datetime
 from http import HTTPStatus
 from typing import Annotated, Optional
@@ -20,9 +21,11 @@ from app.domain.pokedex.service import PokemonService
 from app.domain.pokemon.model import Pokemon
 from app.domain.progression.business import PokemonProgressionBusiness
 from app.domain.trainer.model import Trainer
+from app.shared.exceptions import handle_service_exception
 
 Repository = Annotated[CapturedPokemonRepository, Depends()]
 PokemonService = Annotated[PokemonService, Depends()]
+logger = logging.getLogger(__name__)
 
 
 class CapturedPokemonService:
@@ -99,11 +102,12 @@ class CapturedPokemonService:
             return await self.repository.list_all(
                 trainer_id=trainer_id, page_filter=page_filter
             )
-        except Exception as e:
-            print(f'# => captured_pokemon => service => fetch_all => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail='Error fetching captured_pokemons entries',
+        except Exception as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='captured-pokemon',
+                operation='create',
             )
 
     async def capture(self, trainer: Trainer, capture_pokemon: CapturePokemonSchema):
@@ -143,13 +147,12 @@ class CapturedPokemonService:
             return await self.create(
                 pokemon=pokemon, trainer=trainer, nickname=current_nickname
             )
-        except HTTPException:
-            raise
-        except Exception as e:
-            print(f'# => captured_pokemon => service => capture => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail='Error capture pokemons',
+        except Exception as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='captured-pokemon',
+                operation='capture',
             )
 
     async def find_by_pokemon(self, find_capture_pokemon: FindCapturePokemonSchema):
@@ -157,11 +160,12 @@ class CapturedPokemonService:
             return await self.repository.find_by_pokemon(
                 find_capture_pokemon=find_capture_pokemon
             )
-        except Exception as e:
-            print(f'# => captured_pokemon => service => find by pokemon => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail='Error find by pokemon',
+        except Exception as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='captured-pokemon',
+                operation='find_by_pokemon',
             )
 
     async def update(

@@ -1,3 +1,4 @@
+import logging
 from http import HTTPStatus
 from typing import Annotated
 
@@ -18,6 +19,7 @@ from app.domain.pokemon.schema import (
     PokemonSchema,
 )
 from app.domain.type.service import PokemonTypeService
+from app.shared.exceptions import handle_service_exception, log_service_exception
 from app.shared.pagination import exception_pagination
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
@@ -28,6 +30,7 @@ PokemonMoveService = Annotated[PokemonMoveService, Depends()]
 PokemonTypeService = Annotated[PokemonTypeService, Depends()]
 PokemonAbilityService = Annotated[PokemonAbilityService, Depends()]
 PokemonGrowthRateService = Annotated[PokemonGrowthRateService, Depends()]
+logger = logging.getLogger(__name__)
 
 
 class PokemonService:
@@ -56,8 +59,13 @@ class PokemonService:
     ):
         try:
             return await self.repository.list_all(page_filter=page_filter)
-        except Exception as e:
-            print(f'# => service => list_all => error => {e}')
+        except Exception as exception:
+            log_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon',
+                operation='list_all',
+            )
         return exception_pagination(page_filter)
 
     async def initialize(
@@ -71,8 +79,13 @@ class PokemonService:
 
             return await self.repository.list_all(page_filter=page_filter)
 
-        except Exception as e:
-            print(f'# => service => fetch_all => error => {e}')
+        except Exception as exception:
+            log_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon',
+                operation='initialize',
+            )
         return exception_pagination(page_filter)
 
     async def initialize_database(self, total: int = 0) -> list[Pokemon]:
@@ -113,8 +126,13 @@ class PokemonService:
                 result_final.append(pokemon_added)
             return result_final
 
-        except Exception as e:
-            print(f'# => service => initialize_database => error => {e}')
+        except Exception as exception:
+            log_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon',
+                operation='initialize_database',
+            )
             return []
 
     async def fetch_one(self, name: str) -> Pokemon | None:
@@ -178,13 +196,12 @@ class PokemonService:
 
             await self.repository.update(pokemon_updated)
             return await self.repository.find_one(name=pokemon.name)
-        except HTTPException:
-            raise
-        except Exception as e:
-            print(f'# => service => complete_pokemon_data => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail='Error completing pokemon data',
+        except Exception as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon',
+                operation='complete_pokemon_data',
             )
 
     async def add_evolutions(
@@ -211,8 +228,13 @@ class PokemonService:
                 evolutions.append(pokemon_evolution)
 
             return evolutions
-        except Exception as e:
-            print(f'# => service => add_evolutions => error => {e}')
+        except Exception as exception:
+            log_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon',
+                operation='add_evolutions',
+            )
             return evolutions
 
     async def generate_relationships(
@@ -265,9 +287,10 @@ class PokemonService:
                 pokemon=pokemon,
                 pokemons=pokemons,
             )
-        except Exception as e:
-            print(f'# => service => first_pokemon => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail='Error completing pokemon data',
+        except Exception as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon',
+                operation='first_pokemon',
             )

@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated, Optional
 
 from fastapi import Depends
@@ -10,9 +11,11 @@ from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
 )
 from app.domain.pokemon.external.service import PokemonExternalService
+from app.shared.exceptions import log_service_exception
 from app.shared.number import ensure_order_number
 
 Repository = Annotated[PokemonGrowthRateRepository, Depends()]
+logger = logging.getLogger(__name__)
 
 
 class PokemonGrowthRateService:
@@ -53,8 +56,11 @@ class PokemonGrowthRateService:
             )
 
             return await self.repository.create(pokemon_growth_rate_data)
-        except Exception as e:
-            print(
-                f'# => PokemonGrowthRateService => verify_pokemon_growth_rate => error => {e}'
+        except Exception as exception:
+            log_service_exception(
+                exception,
+                logger=logger,
+                service='growth_rate',
+                operation='verify_pokemon_growth_rate',
             )
             return None

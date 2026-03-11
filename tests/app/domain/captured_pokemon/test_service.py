@@ -99,7 +99,7 @@ class TestCapturedPokemonServiceFetchAll:
             await captured_pokemon_service.fetch_all(trainer_id=trainer.id)
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert exc_info.value.detail == 'Error fetching captured_pokemons entries'
+        assert exc_info.value.detail == 'Internal server error'
 
 
 class TestCapturedPokemonServiceFindByPokemon:
@@ -170,7 +170,7 @@ class TestCapturedPokemonServiceFindByPokemon:
             )
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert exc_info.value.detail == 'Error find by pokemon'
+        assert exc_info.value.detail == 'Internal server error'
 
 
 class TestCapturedPokemonServiceCapture:
@@ -304,7 +304,7 @@ class TestCapturedPokemonServiceCapture:
             )
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert exc_info.value.detail == 'Error capture pokemons'
+        assert exc_info.value.detail == 'Internal server error'
 
 
 class TestCapturedPokemonServiceUpdate:

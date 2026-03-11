@@ -58,7 +58,7 @@ class TestLogServiceException:
 
     @staticmethod
     def test_log_service_exception_with_invalid_http_status():
-        """Should log exception with invalid status code"""
+        """Should fallback to internal server error when HTTPException status is invalid"""
         logger = MagicMock()
         error = HTTPException(status_code=999, detail='Invalid')
 
@@ -71,7 +71,12 @@ class TestLogServiceException:
 
         logger.exception.assert_called_once()
         (message,) = logger.exception.call_args.args
+        result_status_code = logger.exception.call_args.kwargs['extra']['status_code']
+        result_error_message = logger.exception.call_args.kwargs['extra']['error_message']
+
         assert message == 'test.test_op'
+        assert result_status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert result_error_message == 'Invalid'
 
 
 class TestHandleServiceException:
@@ -99,7 +104,7 @@ class TestHandleServiceException:
 
     @staticmethod
     def test_handle_service_exception_with_invalid_http_status():
-        """Should return internal server error when HTTPException has invalid status code"""
+        """Should fallback to internal server error when HTTPException status is invalid"""
         logger = MagicMock()
         error = HTTPException(status_code=999, detail='Invalid')
 
@@ -111,8 +116,11 @@ class TestHandleServiceException:
                 operation='authenticate',
             )
 
+        result_status_code = logger.exception.call_args.kwargs['extra']['status_code']
+
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         assert exc_info.value.detail == 'Invalid'
+        assert result_status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         logger.exception.assert_called_once()
 
     @staticmethod

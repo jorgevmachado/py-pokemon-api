@@ -140,7 +140,7 @@ class TestPokemonExternalServiceList:
         mock_response = MagicMock()
         mock_response.json.return_value = {}
         mock_response.raise_for_status.return_value = None
-        text_detail = 'Failed to execute external request:(list)'
+        text_detail = 'Failed to execute external request'
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
@@ -165,7 +165,7 @@ class TestPokemonExternalServiceList:
         mock_response = MagicMock()
         mock_response.json.return_value = {}
         mock_response.raise_for_status.return_value = None
-        text_detail = 'Failed to execute external request:(list)'
+        text_detail = 'Failed to execute external request'
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
@@ -244,7 +244,7 @@ class TestPokemonExternalServiceByName:
     @pytest.mark.asyncio
     async def test_pokemon_external_by_name_http_error():
         """Should raise HTTPException when HTTP request fails"""
-        text_detail = 'Failed to execute external request:(name)'
+        text_detail = 'Failed to execute external request'
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
@@ -318,7 +318,7 @@ class TestPokemonExternalServiceBySpecie:
     @pytest.mark.asyncio
     async def test_pokemon_external_by_specie_http_error():
         """Should raise HTTPException when HTTP request fails"""
-        text_detail = 'Failed to execute external request:(specie)'
+        text_detail = 'Failed to execute external request'
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
@@ -400,7 +400,7 @@ class TestPokemonExternalServiceByMoveName:
     @pytest.mark.asyncio
     async def test_pokemon_external_by_move_http_error():
         """Should raise HTTPException when HTTP request fails"""
-        text_detail = 'Failed to execute external request:(move)'
+        text_detail = 'Failed to execute external request'
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
@@ -473,7 +473,7 @@ class TestPokemonExternalServiceByGrowthRateOrder:
     @pytest.mark.asyncio
     async def test_pokemon_external_by_growth_rate_order_http_error():
         """Should raise HTTPException when HTTP request fails"""
-        text_detail = 'Failed to execute external request:(growth_rate)'
+        text_detail = 'Failed to execute external request'
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
@@ -555,7 +555,7 @@ class TestPokemonExternalServiceByEvolutionUrl:
     @pytest.mark.asyncio
     async def test_pokemon_external_by_evolution_url_http_error():
         """Should raise HTTPException when HTTP request fails"""
-        text_detail = 'Failed to execute external request:(evolution_chain)'
+        text_detail = 'Failed to execute external request'
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
@@ -643,7 +643,7 @@ class TestPokemonExternalServiceByTypeUrl:
     @pytest.mark.asyncio
     async def test_pokemon_external_by_type_url_http_error():
         """Should raise HTTPException when HTTP request fails"""
-        text_detail = 'Failed to execute external request:(type)'
+        text_detail = 'Failed to execute external request'
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
@@ -876,7 +876,7 @@ class TestPokemonExternalServiceFetchByName:
     @pytest.mark.asyncio
     async def test_pokemon_external_fetch_by_name_http_error():
         """Should raise HTTPException when HTTP request fails"""
-        text_detail = 'Failed to execute external request:(fetch_by_name).'
+        text_detail = 'Failed to execute external request'
         with patch.object(
             PokemonExternalService,
             'pokemon_external_by_name',

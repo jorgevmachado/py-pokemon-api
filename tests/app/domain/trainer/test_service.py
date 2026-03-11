@@ -88,7 +88,7 @@ class TestTrainerServiceCreate:
             await trainer_service.create(create_trainer=trainer_data)
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert exc_info.value.detail == 'Error creating trainer'
+        assert exc_info.value.detail == 'Internal server error'
 
 
 class TestTrainerServiceFindOne:

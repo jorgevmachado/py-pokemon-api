@@ -1,6 +1,26 @@
 import logging
+from unittest.mock import patch
+
+import pytest
 
 from app.core.logging import ErrorHighlightFormatter, configure_logging
+
+
+@pytest.fixture(autouse=True)
+def reset_logging_configuration_state():
+    """Reset shared logging state between tests to avoid cross-test side effects"""
+    if hasattr(configure_logging, '_configured'):
+        delattr(configure_logging, '_configured')
+
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+
+    yield
+
+    if hasattr(configure_logging, '_configured'):
+        delattr(configure_logging, '_configured')
+
+    root_logger.handlers.clear()
 
 
 class TestErrorHighlightFormatter:
@@ -49,12 +69,6 @@ class TestConfigureLogging:
     @staticmethod
     def test_configure_logging_sets_app_logger_propagation():
         """Should disable propagation for app logger"""
-        if hasattr(configure_logging, '_configured'):
-            delattr(configure_logging, '_configured')
-
-        root_logger = logging.getLogger()
-        root_logger.handlers.clear()
-
         configure_logging()
 
         app_logger = logging.getLogger('app')
@@ -63,12 +77,6 @@ class TestConfigureLogging:
     @staticmethod
     def test_configure_logging_idempotent():
         """Should not reconfigure when called multiple times"""
-        if hasattr(configure_logging, '_configured'):
-            delattr(configure_logging, '_configured')
-
-        root_logger = logging.getLogger()
-        root_logger.handlers.clear()
-
         configure_logging()
         first_handlers_count = len(logging.getLogger('app').handlers)
 
@@ -78,19 +86,28 @@ class TestConfigureLogging:
         assert first_handlers_count == second_handlers_count
 
     @staticmethod
+    def test_configure_logging_returns_early_when_already_configured():
+        """Should return early when logger has already been configured"""
+        setattr(configure_logging, '_configured', True)
+
+        with patch('app.core.logging.logging.config.dictConfig') as mock_dict_config:
+            configure_logging()
+
+        mock_dict_config.assert_not_called()
+
+    @staticmethod
     def test_configure_logging_clears_existing_handlers():
         """Should clear existing root logger handlers before configuration"""
-        if hasattr(configure_logging, '_configured'):
-            delattr(configure_logging, '_configured')
-
         root_logger = logging.getLogger()
-        root_logger.handlers.clear()
-
         existing_handler = logging.StreamHandler()
         root_logger.addHandler(existing_handler)
 
-        assert len(root_logger.handlers) > 0
+        handlers_cleared_before_dict_config = {'value': False}
 
-        configure_logging()
+        def fake_dict_config(_: dict) -> None:
+            handlers_cleared_before_dict_config['value'] = len(root_logger.handlers) == 0
 
-        assert existing_handler not in root_logger.handlers
+        with patch('app.core.logging.logging.config.dictConfig', side_effect=fake_dict_config):
+            configure_logging()
+
+        assert handlers_cleared_before_dict_config['value'] is True

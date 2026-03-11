@@ -126,7 +126,7 @@ class TestPokedexServiceFetchAll:
         with pytest.raises(HTTPException) as exc_info:
             await pokedex_service.fetch_all(trainer_id=trainer.id)
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert exc_info.value.detail == 'Error fetching pokedex entries'
+        assert exc_info.value.detail == 'Internal server error'
 
 
 class TestPokedexServiceRefresh:
@@ -308,7 +308,7 @@ class TestPokedexServiceFindByPokemon:
             )
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert exc_info.value.detail == 'Error pokedex find by pokemon'
+        assert exc_info.value.detail == 'Internal server error'
 
 
 class TestPokedexServiceDiscovered:

@@ -1,3 +1,4 @@
+import logging
 from http import HTTPStatus
 from typing import Annotated
 
@@ -15,12 +16,14 @@ from app.domain.trainer.schema import (
     FindOneUserSchemaParams,
     InitializeTrainerSchema,
 )
+from app.shared.exceptions import handle_service_exception
 from app.shared.status_enum import StatusEnum
 
 Repository = Annotated[TrainerRepository, Depends()]
 PokemonService = Annotated[PokemonService, Depends()]
 PokedexService = Annotated[PokedexService, Depends()]
 CapturedPokemonService = Annotated[CapturedPokemonService, Depends()]
+logger = logging.getLogger(__name__)
 
 
 class TrainerService:
@@ -54,11 +57,12 @@ class TrainerService:
             return trainer
         except HTTPException:
             raise
-        except Exception as e:
-            print(f'# => TrainerService => create => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail='Error creating trainer',
+        except Exception as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='trainer',
+                operation='create',
             )
 
     async def initialize(

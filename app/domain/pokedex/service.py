@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from http import HTTPStatus
 from typing import Annotated, Optional
@@ -16,9 +17,11 @@ from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.service import PokemonService
 from app.domain.progression.business import PokemonProgressionBusiness
 from app.domain.trainer.model import Trainer
+from app.shared.exceptions import handle_service_exception, log_service_exception
 
 Repository = Annotated[PokedexRepository, Depends()]
 PokemonService = Annotated[PokemonService, Depends()]
+logger = logging.getLogger(__name__)
 
 
 class PokedexService:
@@ -66,8 +69,13 @@ class PokedexService:
                 formula=stats.formula,
             )
             return await self.repository.create(create_pokedex)
-        except Exception as e:
-            print(f'# => pokedex => service => initialize_pokemon => error => {e}')
+        except Exception as exception:
+            log_service_exception(
+                exception,
+                logger=logger,
+                service='pokedex',
+                operation='initialize_pokemon',
+            )
         return None
 
     async def initialize(
@@ -93,8 +101,13 @@ class PokedexService:
                 new_entries.append(create_pokedex)
 
             return new_entries
-        except Exception as e:
-            print(f'# => pokedex => service => initialize => error => {e}')
+        except Exception as exception:
+            log_service_exception(
+                exception,
+                logger=logger,
+                service='pokedex',
+                operation='initialize',
+            )
         return []
 
     async def fetch_all(
@@ -106,11 +119,12 @@ class PokedexService:
             return await self.repository.list_all(
                 trainer_id=trainer_id, page_filter=page_filter
             )
-        except Exception as e:
-            print(f'# => pokedex => service => fetch_all => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail='Error fetching pokedex entries',
+        except Exception as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='pokedex',
+                operation='fetch_all',
             )
 
     async def refresh(self, trainer_id: str, pokemons: list[Pokemon]):
@@ -136,11 +150,12 @@ class PokedexService:
     async def find_by_pokemon(self, find_pokedex: FindPokedexSchema):
         try:
             return await self.repository.find_by_pokemon(find_pokedex=find_pokedex)
-        except Exception as e:
-            print(f'# => pokedex => service => find by pokemon => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail='Error pokedex find by pokemon',
+        except Exception as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='pokedex',
+                operation='find_by_pokemon',
             )
 
     async def discovered(self, trainer_id: str, pokemon: Pokemon, discovered: bool):

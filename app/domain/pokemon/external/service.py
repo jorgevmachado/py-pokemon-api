@@ -1,3 +1,4 @@
+import logging
 from http import HTTPStatus
 
 import httpx
@@ -21,9 +22,12 @@ from app.domain.pokemon.external.schemas.specie import (
     PokemonExternalSpecieSchemaResponse,
 )
 from app.domain.pokemon.schema import PokemonSchema
+from app.shared.exceptions import handle_service_exception
 from app.shared.image import ensure_external_image
 from app.shared.number import ensure_order_number
 from app.shared.status_enum import StatusEnum
+
+logger = logging.getLogger(__name__)
 
 
 class PokemonExternalService:
@@ -63,11 +67,12 @@ class PokemonExternalService:
                 return [PokemonExternalBaseSchemaResponse(**item) for item in new_results]
         except HTTPException:
             raise
-        except httpx.HTTPError as e:
-            print(f'# => pokemon_external_list => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                detail='Failed to execute external request:(list).',
+        except httpx.HTTPError as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon_external_service',
+                operation='pokemon_external_list',
             )
 
     @staticmethod
@@ -87,11 +92,12 @@ class PokemonExternalService:
                     return None
 
                 return PokemonExternalByNameSchemaResponse(**response_data)
-        except httpx.HTTPError as e:
-            print(f'# => pokemon_external_by_name => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                detail='Failed to execute external request:(name).',
+        except httpx.HTTPError as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon_external_service',
+                operation='pokemon_external_by_name',
             )
 
     @staticmethod
@@ -111,11 +117,12 @@ class PokemonExternalService:
                     return None
 
                 return PokemonExternalSpecieSchemaResponse(**response_data)
-        except httpx.HTTPError as e:
-            print(f'# => pokemon_external_specie_by_name => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                detail='Failed to execute external request:(specie).',
+        except httpx.HTTPError as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon_external_service',
+                operation='pokemon_external_specie_by_name',
             )
 
     @staticmethod
@@ -135,11 +142,12 @@ class PokemonExternalService:
                     return None
 
                 return PokemonExternalMoveSchemaResponse(**response_data)
-        except httpx.HTTPError as e:
-            print(f'# => pokemon_external_move_by_name => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                detail='Failed to execute external request:(move).',
+        except httpx.HTTPError as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon_external_service',
+                operation='pokemon_external_move_by_name',
             )
 
     @staticmethod
@@ -157,11 +165,12 @@ class PokemonExternalService:
                 if not response_data or 'name' not in response_data:
                     return None
                 return PokemonExternalGrowthRateSchemaResponse(**response_data)
-        except httpx.HTTPError as e:
-            print(f'# => pokemon_external_growth_rate_by_order => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                detail='Failed to execute external request:(growth_rate).',
+        except httpx.HTTPError as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon_external_service',
+                operation='pokemon_external_growth_rate_by_order',
             )
 
     @staticmethod
@@ -180,11 +189,12 @@ class PokemonExternalService:
                     return None
 
                 return PokemonExternalEvolutionSchemaResponse(**response_data)
-        except httpx.HTTPError as e:
-            print(f'# => pokemon_external_evolution_by_order => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                detail='Failed to execute external request:(evolution_chain).',
+        except httpx.HTTPError as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon_external_service',
+                operation='pokemon_external_evolution_by_url',
             )
 
     @staticmethod
@@ -203,11 +213,12 @@ class PokemonExternalService:
                     return None
 
                 return PokemonExternalTypeSchemaResponse(**response_data)
-        except httpx.HTTPError as e:
-            print(f'# => pokemon_external_type_by_url => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                detail='Failed to execute external request:(type).',
+        except httpx.HTTPError as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon_external_service',
+                operation='pokemon_external_type_by_url',
             )
 
     @staticmethod
@@ -322,9 +333,10 @@ class PokemonExternalService:
                 growth_rate=pokemon_specie_response.growth_rate,
             )
 
-        except httpx.HTTPError as e:
-            print(f'# => fetch_by_name => error => {e}')
-            raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                detail='Failed to execute external request:(fetch_by_name).',
+        except httpx.HTTPError as exception:
+            handle_service_exception(
+                exception,
+                logger=logger,
+                service='pokemon_external_service',
+                operation='fetch_by_name',
             )

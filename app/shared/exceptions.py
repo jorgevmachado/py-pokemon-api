@@ -1,12 +1,14 @@
 import logging
 from http import HTTPStatus
 
+import httpx
 from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 
 STATUS_MESSAGE_MAP: dict[HTTPStatus, str] = {
     HTTPStatus.UNAUTHORIZED: 'Incorrect email or password',
     HTTPStatus.INTERNAL_SERVER_ERROR: 'Internal server error',
+    HTTPStatus.SERVICE_UNAVAILABLE: 'Failed to execute external request',
 }
 
 
@@ -29,6 +31,9 @@ def _resolve_status_code(exception: Exception) -> HTTPStatus:
 
     if isinstance(exception, SQLAlchemyError):
         return HTTPStatus.INTERNAL_SERVER_ERROR
+
+    if isinstance(exception, httpx.HTTPError):
+        return HTTPStatus.SERVICE_UNAVAILABLE
 
     return HTTPStatus.INTERNAL_SERVER_ERROR
 

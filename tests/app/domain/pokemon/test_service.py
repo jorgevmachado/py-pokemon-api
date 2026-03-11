@@ -1230,7 +1230,7 @@ class TestPokemonServiceCompletePokemonData:
             await pokemon_service.complete_pokemon_data(pokemon=pokemon, with_evolutions=True)
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert exc_info.value.detail == 'Error completing pokemon data'
+        assert exc_info.value.detail == 'Internal server error'
 
 
 class TestPokemonServiceFirstPokemon:
@@ -1425,7 +1425,7 @@ class TestPokemonServiceFirstPokemon:
             await pokemon_service.first_pokemon(name='bulbasaur')
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert exc_info.value.detail == 'Error completing pokemon data'
+        assert exc_info.value.detail == 'Internal server error'
 
     @staticmethod
     @pytest.mark.asyncio
