@@ -6,6 +6,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
+from app.core.logging import LoggingParams, log_service_success
 from app.core.security import create_access_token, verify_password
 from app.domain.auth.schema import Token
 from app.domain.trainer.service import TrainerService
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 class AuthService:
     def __init__(self, service: Service):
         self.trainer_service = service
+        self.logger_params = LoggingParams(logger=logger, service='auth', operation='')
 
     async def authenticate(self, email: str, password: str) -> Token | None:
         try:
@@ -37,6 +39,10 @@ class AuthService:
             trainer.last_authentication_at = datetime.now()
             trainer.authentication_success += 1
             await self.trainer_service.update(trainer)
+
+            log_service_success(
+                self.logger_params, operation='authenticate', message='User authenticated'
+            )
             return Token(access_token=access_token, token_type='bearer')
 
         except Exception as exception:

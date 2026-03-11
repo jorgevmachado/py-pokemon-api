@@ -66,7 +66,7 @@ def handle_service_exception(
         service=service,
         operation=operation,
         status_code=status_code,
-        error_message=error_message,
+        message=error_message,
     )
 
     if not raise_exception:
