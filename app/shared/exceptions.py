@@ -5,6 +5,8 @@ import httpx
 from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.core.logging import log_service_exception
+
 STATUS_MESSAGE_MAP: dict[HTTPStatus, str] = {
     HTTPStatus.UNAUTHORIZED: 'Incorrect email or password',
     HTTPStatus.INTERNAL_SERVER_ERROR: 'Internal server error',
@@ -47,35 +49,14 @@ def _build_error_message(exception: Exception, status_code: HTTPStatus) -> str:
     return STATUS_MESSAGE_MAP.get(status_code, status_code.phrase)
 
 
-def log_service_exception(
-    exception: Exception,
-    *,
-    logger: logging.Logger,
-    service: str,
-    operation: str,
-) -> None:
-    status_code = _resolve_status_code(exception)
-    error_message = _build_error_message(exception, status_code)
-
-    logger_message = f'{service}.{operation}'
-    logger.exception(
-        logger_message,
-        extra={
-            'service': service,
-            'operation': operation,
-            'status_code': status_code,
-            'error_message': error_message,
-        },
-    )
-
-
 def handle_service_exception(
     exception: Exception,
     *,
     logger: logging.Logger,
     service: str,
     operation: str,
-) -> None:
+    raise_exception: bool = True,
+) -> tuple[HTTPStatus, str] | None:
     log_service_exception(
         exception,
         logger=logger,
@@ -85,6 +66,9 @@ def handle_service_exception(
 
     status_code = _resolve_status_code(exception)
     error_message = _build_error_message(exception, status_code)
+
+    if not raise_exception:
+        return status_code, error_message
 
     raise AppHTTPException(
         status_code=status_code,

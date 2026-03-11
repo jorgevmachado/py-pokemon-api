@@ -19,7 +19,7 @@ from app.domain.pokemon.schema import (
     PokemonSchema,
 )
 from app.domain.type.service import PokemonTypeService
-from app.shared.exceptions import handle_service_exception, log_service_exception
+from app.shared.exceptions import handle_service_exception
 from app.shared.pagination import exception_pagination
 from app.shared.schemas import FilterPage
 from app.shared.status_enum import StatusEnum
@@ -60,11 +60,12 @@ class PokemonService:
         try:
             return await self.repository.list_all(page_filter=page_filter)
         except Exception as exception:
-            log_service_exception(
+            handle_service_exception(
                 exception,
                 logger=logger,
                 service='pokemon',
                 operation='list_all',
+                raise_exception=False,
             )
         return exception_pagination(page_filter)
 
@@ -80,11 +81,12 @@ class PokemonService:
             return await self.repository.list_all(page_filter=page_filter)
 
         except Exception as exception:
-            log_service_exception(
+            handle_service_exception(
                 exception,
                 logger=logger,
                 service='pokemon',
                 operation='initialize',
+                raise_exception=False,
             )
         return exception_pagination(page_filter)
 
@@ -127,11 +129,12 @@ class PokemonService:
             return result_final
 
         except Exception as exception:
-            log_service_exception(
+            handle_service_exception(
                 exception,
                 logger=logger,
                 service='pokemon',
                 operation='initialize_database',
+                raise_exception=False,
             )
             return []
 
@@ -229,11 +232,12 @@ class PokemonService:
 
             return evolutions
         except Exception as exception:
-            log_service_exception(
+            handle_service_exception(
                 exception,
                 logger=logger,
                 service='pokemon',
                 operation='add_evolutions',
+                raise_exception=False,
             )
             return evolutions
 

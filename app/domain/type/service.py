@@ -15,7 +15,7 @@ from app.domain.type.schema import (
     CreatePokemonTypeSchema,
     ValidatePokemonTypeDamageRelationSchema,
 )
-from app.shared.exceptions import log_service_exception
+from app.shared.exceptions import handle_service_exception
 from app.shared.number import ensure_order_number
 
 Repository = Annotated[PokemonTypeRepository, Depends()]
@@ -45,11 +45,12 @@ class PokemonTypeService:
 
             return result_pokemon_type
         except Exception as exception:
-            log_service_exception(
+            handle_service_exception(
                 exception,
                 logger=logger,
                 service='type',
                 operation='verify_pokemon_type',
+                raise_exception=False,
             )
             return []
 

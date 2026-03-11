@@ -9,7 +9,7 @@ from app.domain.ability.schema import CreatePokemonAbilitySchema
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseAbilitySchemaResponse,
 )
-from app.shared.exceptions import log_service_exception
+from app.shared.exceptions import handle_service_exception
 from app.shared.number import ensure_order_number
 
 Repository = Annotated[PokemonAbilityRepository, Depends()]
@@ -47,10 +47,11 @@ class PokemonAbilityService:
 
             return result_pokemon_abilities
         except Exception as exception:
-            log_service_exception(
+            handle_service_exception(
                 exception,
                 logger=logger,
                 service='ability',
                 operation='verify_pokemon_abilities',
+                raise_exception=False,
             )
             return []

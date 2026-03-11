@@ -11,7 +11,7 @@ from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
 )
 from app.domain.pokemon.external.service import PokemonExternalService
-from app.shared.exceptions import log_service_exception
+from app.shared.exceptions import handle_service_exception
 from app.shared.number import ensure_order_number
 
 Repository = Annotated[PokemonGrowthRateRepository, Depends()]
@@ -57,10 +57,11 @@ class PokemonGrowthRateService:
 
             return await self.repository.create(pokemon_growth_rate_data)
         except Exception as exception:
-            log_service_exception(
+            handle_service_exception(
                 exception,
                 logger=logger,
                 service='growth_rate',
                 operation='verify_pokemon_growth_rate',
+                raise_exception=False,
             )
             return None

@@ -9,7 +9,6 @@ from app.shared.exceptions import (
     AppHTTPException,
     UnauthorizedException,
     handle_service_exception,
-    log_service_exception,
 )
 
 
@@ -23,63 +22,24 @@ class TestUnauthorizedException:
         assert exception.detail == 'Incorrect email or password'
 
 
-class TestLogServiceException:
+class TestHandleServiceException:
     @staticmethod
-    def test_log_service_exception_with_http_exception():
-        """Should log exception without raising it"""
+    def test_handle_service_exception_returns_context_when_raise_disabled():
+        """Should return status and message without raising when raise_exception is false"""
         logger = MagicMock()
         error = HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail='Bad request')
 
-        log_service_exception(
+        result = handle_service_exception(
             error,
             logger=logger,
-            service='test',
-            operation='test_op',
+            service='auth',
+            operation='authenticate',
+            raise_exception=False,
         )
 
-        logger.exception.assert_called_once()
-        (message,) = logger.exception.call_args.args
-        assert message == 'test.test_op'
-
-    @staticmethod
-    def test_log_service_exception_with_sqlalchemy_error():
-        """Should log SQLAlchemy error without raising it"""
-        logger = MagicMock()
-        error = SQLAlchemyError('boom')
-
-        log_service_exception(
-            error,
-            logger=logger,
-            service='test',
-            operation='test_op',
-        )
-
+        assert result == (HTTPStatus.BAD_REQUEST, 'Bad request')
         logger.exception.assert_called_once()
 
-    @staticmethod
-    def test_log_service_exception_with_invalid_http_status():
-        """Should fallback to internal server error when HTTPException status is invalid"""
-        logger = MagicMock()
-        error = HTTPException(status_code=999, detail='Invalid')
-
-        log_service_exception(
-            error,
-            logger=logger,
-            service='test',
-            operation='test_op',
-        )
-
-        logger.exception.assert_called_once()
-        (message,) = logger.exception.call_args.args
-        result_status_code = logger.exception.call_args.kwargs['extra']['status_code']
-        result_error_message = logger.exception.call_args.kwargs['extra']['error_message']
-
-        assert message == 'test.test_op'
-        assert result_status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert result_error_message == 'Invalid'
-
-
-class TestHandleServiceException:
     @staticmethod
     def test_handle_service_exception_with_http_exception():
         """Should preserve status code and detail from HTTPException"""

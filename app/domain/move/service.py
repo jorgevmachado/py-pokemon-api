@@ -11,7 +11,7 @@ from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseMoveSchemaResponse,
 )
 from app.domain.pokemon.external.service import PokemonExternalService
-from app.shared.exceptions import log_service_exception
+from app.shared.exceptions import handle_service_exception
 from app.shared.number import ensure_order_number
 
 Repository = Annotated[PokemonMoveRepository, Depends()]
@@ -70,10 +70,11 @@ class PokemonMoveService:
 
             return result_pokemon_moves
         except Exception as exception:
-            log_service_exception(
+            handle_service_exception(
                 exception,
                 logger=logger,
                 service='move',
                 operation='verify_pokemon_move',
+                raise_exception=False,
             )
             return []

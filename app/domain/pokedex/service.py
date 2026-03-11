@@ -17,7 +17,7 @@ from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.service import PokemonService
 from app.domain.progression.business import PokemonProgressionBusiness
 from app.domain.trainer.model import Trainer
-from app.shared.exceptions import handle_service_exception, log_service_exception
+from app.shared.exceptions import handle_service_exception
 
 Repository = Annotated[PokedexRepository, Depends()]
 PokemonService = Annotated[PokemonService, Depends()]
@@ -70,11 +70,12 @@ class PokedexService:
             )
             return await self.repository.create(create_pokedex)
         except Exception as exception:
-            log_service_exception(
+            handle_service_exception(
                 exception,
                 logger=logger,
                 service='pokedex',
                 operation='initialize_pokemon',
+                raise_exception=False,
             )
         return None
 
@@ -102,11 +103,12 @@ class PokedexService:
 
             return new_entries
         except Exception as exception:
-            log_service_exception(
+            handle_service_exception(
                 exception,
                 logger=logger,
                 service='pokedex',
                 operation='initialize',
+                raise_exception=False,
             )
         return []
 
