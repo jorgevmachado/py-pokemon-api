@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from app.core.logging import LoggingParams
+from app.core.logging import LoggingParams, log_service_success
 from app.domain.ability.model import PokemonAbility
 from app.domain.ability.repository import PokemonAbilityRepository
 from app.domain.ability.schema import CreatePokemonAbilitySchema
@@ -20,7 +20,9 @@ logger = logging.getLogger(__name__)
 class PokemonAbilityService:
     def __init__(self, repository: Repository):
         self.repository = repository
-        self.logger_params = LoggingParams(logger=logger, service='ability', operation='')
+        self.logger_params = LoggingParams(
+            logger=logger, service='ability', operation='verify_pokemon_abilities'
+        )
 
     async def verify_pokemon_abilities(
         self, abilities: list[PokemonExternalBaseAbilitySchemaResponse]
@@ -46,14 +48,16 @@ class PokemonAbilityService:
                 )
                 pokemon_ability = await self.repository.create(pokemon_ability_data)
                 result_pokemon_abilities.append(pokemon_ability)
-
+            log_service_success(
+                self.logger_params, message='Verify Pokemon Abilities successfully'
+            )
             return result_pokemon_abilities
         except Exception as exception:
             handle_service_exception(
                 exception,
                 logger=self.logger_params.logger,
                 service=self.logger_params.service,
-                operation='verify_pokemon_abilities',
+                operation=self.logger_params.operation,
                 raise_exception=False,
             )
             return []

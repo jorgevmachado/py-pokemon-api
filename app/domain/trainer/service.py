@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException
 
-from app.core.logging import LoggingParams
+from app.core.logging import LoggingParams, log_service_success
 from app.core.security import get_password_hash
 from app.domain.battle.business import PokemonBattleBusiness
 from app.domain.captured_pokemon.service import CapturedPokemonService
@@ -56,6 +56,9 @@ class TrainerService:
             trainer = await self.repository.create(create_trainer)
 
             await self.pokemon_service.initialize()
+            log_service_success(
+                self.logger_params, operation='create', message='Trainer created successfully'
+            )
             return trainer
         except HTTPException:
             raise
@@ -93,8 +96,15 @@ class TrainerService:
             if initialize_trainer.capture_rate < pokemon_capture_rate:
                 db_user.capture_rate = pokemon_capture_rate
 
+            log_service_success(
+                self.logger_params,
+                operation='initialize',
+                message='Trainer initialize successfully',
+            )
             return await self.repository.update(db_user)
-
+        log_service_success(
+            self.logger_params, operation='initialize', message='Trainer already initialized'
+        )
         return trainer
 
     async def find_one(self, trainer_id: str, trainer: Trainer) -> Trainer:
@@ -107,11 +117,21 @@ class TrainerService:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
             )
-
+        log_service_success(
+            self.logger_params, operation='find_one', message='Find One Trainer successfully'
+        )
         return db_user
 
     async def find_one_by_email(self, email: str) -> Trainer:
+        log_service_success(
+            self.logger_params,
+            operation='find_one_by_email',
+            message='Find One Trainer by email successfully',
+        )
         return await self.repository.find_one(params=FindOneUserSchemaParams(email=email))
 
     async def update(self, trainer: Trainer):
+        log_service_success(
+            self.logger_params, operation='update', message='Update Trainer successfully'
+        )
         return await self.repository.update(trainer=trainer)

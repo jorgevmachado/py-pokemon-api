@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 
 from fastapi import Depends
 
-from app.core.logging import LoggingParams
+from app.core.logging import LoggingParams, log_service_success
 from app.domain.growth_rate.business import PokemonGrowthRateBusiness
 from app.domain.growth_rate.model import PokemonGrowthRate
 from app.domain.growth_rate.repository import PokemonGrowthRateRepository
@@ -23,7 +23,9 @@ class PokemonGrowthRateService:
     def __init__(self, repository: Repository):
         self.repository = repository
         self.external_service = PokemonExternalService()
-        self.logger_params = LoggingParams(logger=logger, service='growth_rate', operation='')
+        self.logger_params = LoggingParams(
+            logger=logger, service='growth_rate', operation='verify_pokemon_growth_rate'
+        )
 
     async def verify_pokemon_growth_rate(
         self, growth_rate: Optional[PokemonExternalBase] = None
@@ -36,6 +38,9 @@ class PokemonGrowthRateService:
 
             db_pokemon_growth_rate = await self.repository.find_one_by_order(order=order)
             if db_pokemon_growth_rate:
+                log_service_success(
+                    self.logger_params, message='Pokemon Growth Rate exist in database!'
+                )
                 return db_pokemon_growth_rate
 
             external_growth_rate_data = await (
@@ -43,6 +48,10 @@ class PokemonGrowthRateService:
             )
 
             if not external_growth_rate_data:
+                log_service_success(
+                    self.logger_params,
+                    message='External Service Pokemon Growth Rate not exists!',
+                )
                 return None
 
             description = PokemonGrowthRateBusiness().ensure_description_message(
@@ -56,6 +65,8 @@ class PokemonGrowthRateService:
                 formula=external_growth_rate_data.formula,
                 description=description,
             )
+
+            log_service_success(self.logger_params, message='Pokemon Growth Rate create!')
 
             return await self.repository.create(pokemon_growth_rate_data)
         except Exception as exception:

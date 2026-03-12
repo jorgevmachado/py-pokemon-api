@@ -21,6 +21,7 @@ from app.shared.status_enum import StatusEnum
 from tests.factories.pokedex import PokedexFactory
 from tests.factories.pokemon import PokemonFactory
 from tests.factories.pokemon_ability import PokemonAbilityFactory
+from tests.factories.pokemon_type import PokemonTypeFactory
 
 
 @pytest_asyncio.fixture
@@ -167,3 +168,18 @@ async def pokemon_ability(session: AsyncSession):
     await session.refresh(pokemon_ability)
 
     return pokemon_ability
+
+
+@pytest_asyncio.fixture
+async def pokemon_type(session: AsyncSession):
+    pokemon_type = PokemonTypeFactory(
+        order=1,
+        name='fire',
+        text_color='#fff',
+        background_color='#fd7d24',
+    )
+    session.add(pokemon_type)
+    await session.commit()
+    await session.refresh(pokemon_type)
+
+    return pokemon_type

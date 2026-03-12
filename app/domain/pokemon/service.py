@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query
 
-from app.core.logging import LoggingParams
+from app.core.logging import LoggingParams, log_service_success
 from app.domain.ability.service import PokemonAbilityService
 from app.domain.growth_rate.service import PokemonGrowthRateService
 from app.domain.move.service import PokemonMoveService
@@ -53,6 +53,9 @@ class PokemonService:
         self.logger_params = LoggingParams(logger=logger, service='pokemon', operation='')
 
     async def total(self) -> int:
+        log_service_success(
+            self.logger_params, operation='total', message='Total Pokémon successfully'
+        )
         return await self.repository.total()
 
     async def list_all(
@@ -60,6 +63,11 @@ class PokemonService:
         page_filter: Annotated[FilterPage, Query()] = None,
     ):
         try:
+            log_service_success(
+                self.logger_params,
+                operation='list_all',
+                message='List all Pokémon successfully',
+            )
             return await self.repository.list_all(page_filter=page_filter)
         except Exception as exception:
             handle_service_exception(
@@ -80,6 +88,11 @@ class PokemonService:
             if total != POKEMON_TOTAL_LIMIT:
                 await self.initialize_database(total=total)
 
+            log_service_success(
+                self.logger_params,
+                operation='initialize',
+                message='Initialize all Pokémon successfully',
+            )
             return await self.repository.list_all(page_filter=page_filter)
 
         except Exception as exception:
@@ -112,6 +125,11 @@ class PokemonService:
                         pokemon_data=pokemon_to_create
                     )
                     result_initial.append(pokemon_created)
+                    log_service_success(
+                        self.logger_params,
+                        operation='initialize_database',
+                        message='Initialize all Pokémons from external in database!',
+                    )
                 return result_initial
 
             entities = await self.repository.list_all()
@@ -128,6 +146,12 @@ class PokemonService:
                 )
                 pokemon_added = await self.repository.create(pokemon_data=pokemon_to_add)
                 result_final.append(pokemon_added)
+
+            log_service_success(
+                self.logger_params,
+                operation='initialize_database',
+                message='Initialize some Pokémons from external in database successfully',
+            )
             return result_final
 
         except Exception as exception:
@@ -141,6 +165,11 @@ class PokemonService:
             return []
 
     async def fetch_one(self, name: str) -> Pokemon | None:
+        log_service_success(
+            self.logger_params,
+            operation='initialize_database',
+            message='Fetch One Pokémon successfully',
+        )
         return await self.validate_entity(name)
 
     async def validate_entity(
@@ -154,10 +183,20 @@ class PokemonService:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='Pokemon not found')
 
         if pokemon.status == StatusEnum.INCOMPLETE:
+            log_service_success(
+                self.logger_params,
+                operation='validate_entity',
+                message='Complete attributes from external service in database successfully',
+            )
             return await self.complete_pokemon_data(
                 pokemon=pokemon, with_evolutions=with_evolutions
             )
 
+        log_service_success(
+            self.logger_params,
+            operation='validate_entity',
+            message='Pokemon is complete in database',
+        )
         return pokemon
 
     async def complete_pokemon_data(
@@ -200,6 +239,11 @@ class PokemonService:
             pokemon_updated.status = relationships.status
 
             await self.repository.update(pokemon_updated)
+            log_service_success(
+                self.logger_params,
+                operation='complete_pokemon_data',
+                message='Pokemon completed successfully',
+            )
             return await self.repository.find_one(name=pokemon.name)
         except Exception as exception:
             handle_service_exception(
@@ -221,6 +265,11 @@ class PokemonService:
             )
 
             if not evolution_chain:
+                log_service_success(
+                    self.logger_params,
+                    operation='add_evolutions',
+                    message='Dont has evolutions for this Pokémon',
+                )
                 return evolutions
 
             evolutions_to_add = self.business.ensure_evolution(evolution_chain.chain)
@@ -231,7 +280,11 @@ class PokemonService:
                     with_evolutions=False,
                 )
                 evolutions.append(pokemon_evolution)
-
+            log_service_success(
+                self.logger_params,
+                operation='add_evolutions',
+                message='Add evolutions successfully',
+            )
             return evolutions
         except Exception as exception:
             handle_service_exception(
@@ -260,7 +313,11 @@ class PokemonService:
         status = StatusEnum.COMPLETE
         if has_invalid_inputs:
             status = StatusEnum.INCOMPLETE
-
+        log_service_success(
+            self.logger_params,
+            operation='generate_relationships',
+            message='Generate relationships successfully',
+        )
         return GeneratePokemonRelationshipSchemaResult(
             status=status,
             moves=moves,
@@ -284,11 +341,21 @@ class PokemonService:
             )
 
             if not first_pokemon:
+                log_service_success(
+                    self.logger_params,
+                    operation='first_pokemon',
+                    message='Dont has first pokemon with this name',
+                )
                 return FirstPokemonSchemaResult(
                     pokemon=None,
                     pokemons=pokemons,
                 )
             pokemon = await self.fetch_one(name=first_pokemon.name)
+            log_service_success(
+                self.logger_params,
+                operation='first_pokemon',
+                message='Return First Pokemon Successfully',
+            )
             return FirstPokemonSchemaResult(
                 pokemon=pokemon,
                 pokemons=pokemons,

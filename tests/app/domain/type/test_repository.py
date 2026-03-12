@@ -121,3 +121,27 @@ class TestPokemonTypeRepositoryFindOneByName:
         assert isinstance(result, PokemonType)
         assert result.order == result_order
         assert result.name == pokemon_type.name
+
+
+class TestPokemonTypeRepositoryUpdate:
+    """Test scope for update method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_type_repository_update_success(session, pokemon_type):
+        """Should update pokemon type when data is valid"""
+        repository = PokemonTypeRepository(session=session)
+        await repository.update(pokemon_type)
+        session.refresh(pokemon_type)
+        assert pokemon_type.name == 'fire'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_type_repository_update_commit_error(session, pokemon_type):
+        """Should raise exception when commit fails during update"""
+        session.commit = AsyncMock(side_effect=Exception('Database error'))
+
+        repository = PokemonTypeRepository(session=session)
+
+        with pytest.raises(Exception, match='Database error'):
+            await repository.update(pokemon_type)

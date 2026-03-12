@@ -7,7 +7,7 @@ from typing import Annotated, Optional
 
 from fastapi import Depends, HTTPException
 
-from app.core.logging import LoggingParams
+from app.core.logging import LoggingParams, log_service_success
 from app.domain.captured_pokemon.repository import CapturedPokemonRepository
 from app.domain.captured_pokemon.schema import (
     CapturedPokemonFilterPage,
@@ -92,9 +92,17 @@ class CapturedPokemonService:
             pokemon_move_business = PokemonMoveBusiness()
             selected_moves = pokemon_move_business.select_random_moves(pokemon.moves)
             captured_pokemon.moves = selected_moves
-
+            log_service_success(
+                self.logger_params,
+                operation='create',
+                message='Create Captured Pokemon not exists successfully',
+            )
             return await self.repository.update(captured_pokemon)
-
+        log_service_success(
+            self.logger_params,
+            operation='create',
+            message='Create Captured Pokemon exists successfully',
+        )
         return exist_captured_pokemon
 
     async def fetch_all(
@@ -103,6 +111,11 @@ class CapturedPokemonService:
         page_filter: Optional[CapturedPokemonFilterPage] = None,
     ):
         try:
+            log_service_success(
+                self.logger_params,
+                operation='fetch_all',
+                message='Fetch All Captured Pokemon successfully',
+            )
             return await self.repository.list_all(
                 trainer_id=trainer_id, page_filter=page_filter
             )
@@ -148,6 +161,10 @@ class CapturedPokemonService:
             if exist_pokemon and exist_pokemon.nickname == current_nickname:
                 current_nickname = f'{pokemon.name}_1'
 
+            log_service_success(
+                self.logger_params, operation='capture', message='Capture Pokemon successfully'
+            )
+
             return await self.create(
                 pokemon=pokemon, trainer=trainer, nickname=current_nickname
             )
@@ -161,6 +178,11 @@ class CapturedPokemonService:
 
     async def find_by_pokemon(self, find_capture_pokemon: FindCapturePokemonSchema):
         try:
+            log_service_success(
+                self.logger_params,
+                operation='find_by_pokemon',
+                message='Find Captured Pokemon by pokemon successfully',
+            )
             return await self.repository.find_by_pokemon(
                 find_capture_pokemon=find_capture_pokemon
             )
@@ -180,6 +202,12 @@ class CapturedPokemonService:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail='Captured Pokemon not found'
             )
+
+        log_service_success(
+            self.logger_params,
+            operation='update',
+            message='Update Captured Pokemon successfully',
+        )
 
         if captured_pokemon_update.level is not None:
             captured_pokemon.level = captured_pokemon_update.level
@@ -230,4 +258,7 @@ class CapturedPokemonService:
             pokemon.hp = pokemon.max_hp
             await self.repository.update(pokemon)
 
+        log_service_success(
+            self.logger_params, operation='heal', message='Heal Captured Pokemon successfully'
+        )
         return pokemons_to_heal

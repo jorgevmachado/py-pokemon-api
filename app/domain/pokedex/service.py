@@ -5,7 +5,7 @@ from typing import Annotated, Optional
 
 from fastapi import Depends, HTTPException, Query
 
-from app.core.logging import LoggingParams
+from app.core.logging import LoggingParams, log_service_success
 from app.domain.pokedex.model import Pokedex
 from app.domain.pokedex.repository import PokedexRepository
 from app.domain.pokedex.schema import (
@@ -70,6 +70,11 @@ class PokedexService:
                 trainer_id=trainer_id,
                 formula=stats.formula,
             )
+            log_service_success(
+                self.logger_params,
+                operation='initialize_pokemon',
+                message='Initialize Pokedex successfully',
+            )
             return await self.repository.create(create_pokedex)
         except Exception as exception:
             handle_service_exception(
@@ -103,6 +108,11 @@ class PokedexService:
 
                 new_entries.append(create_pokedex)
 
+            log_service_success(
+                self.logger_params,
+                operation='initialize',
+                message='Initialize list of Pokedex successfully',
+            )
             return new_entries
         except Exception as exception:
             handle_service_exception(
@@ -120,6 +130,11 @@ class PokedexService:
         page_filter: Annotated[PokedexFilterPage, Query()] = None,
     ):
         try:
+            log_service_success(
+                self.logger_params,
+                operation='fetch_all',
+                message='Fetch all Pokedex successfully',
+            )
             return await self.repository.list_all(
                 trainer_id=trainer_id, page_filter=page_filter
             )
@@ -149,10 +164,20 @@ class PokedexService:
         print(
             f'# LOG => pokedex => service => refresh => total_not_exist => {total_not_exist}'
         )
+        log_service_success(
+            self.logger_params,
+            operation='refresh',
+            message=f'refresh list of Pokedex add {total_not_exist} successfully',
+        )
         return new_entries
 
     async def find_by_pokemon(self, find_pokedex: FindPokedexSchema):
         try:
+            log_service_success(
+                self.logger_params,
+                operation='find_by_pokemon',
+                message='Find by pokemon Pokedex successfully',
+            )
             return await self.repository.find_by_pokemon(find_pokedex=find_pokedex)
         except Exception as exception:
             handle_service_exception(
@@ -199,8 +224,17 @@ class PokedexService:
                 pokedex.discovered_at = datetime.now()
             pokedex.formula = stats.formula
             await self.repository.update(pokedex)
+            log_service_success(
+                self.logger_params,
+                operation='discovered',
+                message='Pokemon discovered in Pokedex successfully',
+            )
             return pokedex
-
+        log_service_success(
+            self.logger_params,
+            operation='discovered',
+            message='Pokémon already discovered in the Pokédex',
+        )
         return pokedex
 
     async def discover(self, trainer_id: str, pokemon_name: str):
@@ -241,8 +275,17 @@ class PokedexService:
             pokedex.discovered_at = datetime.now()
             pokedex.formula = stats.formula
             await self.repository.update(pokedex)
+            log_service_success(
+                self.logger_params,
+                operation='discover',
+                message='Pokemon discovered in Pokedex successfully',
+            )
             return pokedex
-
+        log_service_success(
+            self.logger_params,
+            operation='discover',
+            message='Pokémon already discovered in the Pokédex',
+        )
         return pokedex
 
     async def update(self, pokedex_id: str, pokedex_update: PartialPokedexSchema):
@@ -253,4 +296,7 @@ class PokedexService:
         for key, value in pokedex_update.model_dump().items():
             setattr(pokedex, key, value)
 
+        log_service_success(
+            self.logger_params, operation='update', message='Update Pokedex successfully'
+        )
         return await self.repository.update(pokedex)

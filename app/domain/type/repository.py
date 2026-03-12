@@ -44,3 +44,9 @@ class PokemonTypeRepository:
             .options(selectinload(PokemonType.strengths))
             .where(PokemonType.name == name)
         )
+
+    async def update(self, pokemon_type: PokemonType) -> PokemonType:
+        self.session.add(pokemon_type)
+        await self.session.commit()
+        await self.session.refresh(pokemon_type)
+        return pokemon_type
