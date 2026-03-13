@@ -185,13 +185,14 @@ async def pokemon_type(session: AsyncSession):
 
     return pokemon_type
 
+
 @pytest_asyncio.fixture
 async def pokemon_growth_rate(session: AsyncSession):
     pokemon_growth_rate = PokemonGrowthRateFactory(
         order=1,
         name='slow',
         formula='((x / 255) * 100)',
-        description='Slow growth rate description'
+        description='Slow growth rate description',
     )
     session.add(pokemon_growth_rate)
     await session.commit()

@@ -7,7 +7,6 @@ from app.core.logging import LoggingParams, log_service_success
 from app.domain.growth_rate.business import PokemonGrowthRateBusiness
 from app.domain.growth_rate.model import PokemonGrowthRate
 from app.domain.growth_rate.repository import PokemonGrowthRateRepository
-from app.domain.growth_rate.schema import CreatePokemonGrowthRateSchema
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
 )

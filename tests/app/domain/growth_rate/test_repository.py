@@ -3,8 +3,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.domain.growth_rate.model import PokemonGrowthRate
-from app.domain.growth_rate.repository import PokemonGrowthRateRepository
-from app.domain.growth_rate.schema import CreatePokemonGrowthRateSchema
 
 MOCK_GROWTH_RATE_ORDER = 1
 MOCK_GROWTH_RATE_ORDER_2 = 2
@@ -15,10 +13,8 @@ class TestPokemonGrowthRateRepositorySave:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokemon_growth_rate_repository_save_success(            
-            pokemon_growth_rate_repository
-    ):
-        """Should persist pokemon growth rate when data is valid"""        
+    async def test_pokemon_growth_rate_repository_save_success(pokemon_growth_rate_repository):
+        """Should persist pokemon growth rate when data is valid"""
         repository = pokemon_growth_rate_repository
         pokemon_growth_rate = await repository.save(
             entity=PokemonGrowthRate(
@@ -37,10 +33,10 @@ class TestPokemonGrowthRateRepositorySave:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokemon_growth_rate_repository_save_with_complex_formula(            
-            pokemon_growth_rate_repository
+    async def test_pokemon_growth_rate_repository_save_with_complex_formula(
+        pokemon_growth_rate_repository,
     ):
-        """Should persist pokemon growth rate with complex formula when valid"""        
+        """Should persist pokemon growth rate with complex formula when valid"""
         repository = pokemon_growth_rate_repository
         pokemon_growth_rate = await repository.save(
             entity=(
@@ -62,10 +58,9 @@ class TestPokemonGrowthRateRepositorySave:
     @staticmethod
     @pytest.mark.asyncio
     async def test_pokemon_growth_rate_repository_save_commit_error(
-            session,
-            pokemon_growth_rate_repository
+        session, pokemon_growth_rate_repository
     ):
-        """Should raise exception when database commit fails"""        
+        """Should raise exception when database commit fails"""
         session.commit = AsyncMock(side_effect=Exception('Database error'))
 
         repository = pokemon_growth_rate_repository
@@ -88,7 +83,7 @@ class TestPokemonGrowthRateRepositoryFindBy:
     @staticmethod
     @pytest.mark.asyncio
     async def test_pokemon_growth_rate_repository_find_by_not_found(
-            pokemon_growth_rate_repository
+        pokemon_growth_rate_repository,
     ):
         """Should return None when pokemon growth rate is not found"""
         repository = pokemon_growth_rate_repository
@@ -99,8 +94,7 @@ class TestPokemonGrowthRateRepositoryFindBy:
     @staticmethod
     @pytest.mark.asyncio
     async def test_pokemon_growth_rate_repository_find_by_order_success(
-            pokemon_growth_rate,
-            pokemon_growth_rate_repository
+        pokemon_growth_rate, pokemon_growth_rate_repository
     ):
         """Should return pokemon growth rate when found by order"""
         repository = pokemon_growth_rate_repository
@@ -115,9 +109,7 @@ class TestPokemonGrowthRateRepositoryFindBy:
     @staticmethod
     @pytest.mark.asyncio
     async def test_pokemon_growth_rate_repository_find_by_order_medium(
-            session,
-            pokemon_growth_rate_repository
-
+        session, pokemon_growth_rate_repository
     ):
         """Should return medium growth rate when found by order"""
         pokemon_growth_rate = PokemonGrowthRate(
@@ -125,7 +117,7 @@ class TestPokemonGrowthRateRepositoryFindBy:
             name='medium',
             order=MOCK_GROWTH_RATE_ORDER_2,
             formula='x^3',
-            description='Medium growth rate formula'
+            description='Medium growth rate formula',
         )
         session.add(pokemon_growth_rate)
         await session.commit()
