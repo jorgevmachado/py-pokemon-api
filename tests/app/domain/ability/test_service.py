@@ -37,7 +37,7 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
             is_hidden=MOCK_POKEMON_ABILITY_IS_HIDDEN,
         )
         repository = pokemon_ability_service.repository
-        repository.find_one_by_order = AsyncMock(return_value=pokemon_ability)
+        repository.find_by = AsyncMock(return_value=pokemon_ability)
 
         result = await pokemon_ability_service.verify_pokemon_abilities(
             abilities=[response_pokemon_ability]
@@ -48,7 +48,7 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
         assert result[0].order == 1
         assert result[0].slot == MOCK_POKEMON_ABILITY_SLOT
         assert result[0].is_hidden is MOCK_POKEMON_ABILITY_IS_HIDDEN
-        repository.find_one_by_order.assert_called_once()
+        repository.find_by.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -73,8 +73,8 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
             is_hidden=MOCK_POKEMON_ABILITY_IS_HIDDEN,
         )
         repository = pokemon_ability_service.repository
-        repository.find_one_by_order = AsyncMock(return_value=None)
-        repository.create = AsyncMock(return_value=pokemon_ability)
+        repository.find_by = AsyncMock(return_value=None)
+        repository.save = AsyncMock(return_value=pokemon_ability)
 
         result = await pokemon_ability_service.verify_pokemon_abilities(
             abilities=[response_pokemon_ability]
@@ -85,8 +85,8 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
         assert result[0].order == pokemon_ability_order
         assert result[0].slot == MOCK_POKEMON_ABILITY_SLOT
         assert result[0].is_hidden is MOCK_POKEMON_ABILITY_IS_HIDDEN
-        repository.find_one_by_order.assert_called_once()
-        repository.create.assert_called_once()
+        repository.find_by.assert_called_once()
+        repository.save.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -111,8 +111,8 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
             is_hidden=True,
         )
         repository = pokemon_ability_service.repository
-        repository.find_one_by_order = AsyncMock(return_value=None)
-        repository.create = AsyncMock(return_value=pokemon_ability)
+        repository.find_by = AsyncMock(return_value=None)
+        repository.save = AsyncMock(return_value=pokemon_ability)
 
         result = await pokemon_ability_service.verify_pokemon_abilities(
             abilities=[response_pokemon_ability]
@@ -123,20 +123,20 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
         assert result[0].order == pokemon_ability_order
         assert result[0].slot == MOCK_POKEMON_ABILITY_SLOT_2
         assert result[0].is_hidden is True
-        repository.find_one_by_order.assert_called_once()
-        repository.create.assert_called_once()
+        repository.find_by.assert_called_once()
+        repository.save.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
     async def test_verify_pokemon_abilities_empty_list(pokemon_ability_service):
         """Should return empty list when abilities list is empty"""
         repository = pokemon_ability_service.repository
-        repository.find_one_by_order = AsyncMock()
+        repository.find_by = AsyncMock()
 
         result = await pokemon_ability_service.verify_pokemon_abilities(abilities=[])
 
         assert len(result) == 0
-        repository.find_one_by_order.assert_not_called()
+        repository.find_by.assert_not_called()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -175,9 +175,7 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
             ),
         ]
         repository = pokemon_ability_service.repository
-        repository.find_one_by_order = AsyncMock(
-            side_effect=[pokemon_ability_1, pokemon_ability_2]
-        )
+        repository.find_by = AsyncMock(side_effect=[pokemon_ability_1, pokemon_ability_2])
 
         result = await pokemon_ability_service.verify_pokemon_abilities(
             abilities=response_abilities
@@ -188,7 +186,7 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
         assert result[0].is_hidden is MOCK_POKEMON_ABILITY_IS_HIDDEN
         assert result[1].name == 'static'
         assert result[1].is_hidden is True
-        assert repository.find_one_by_order.call_count == TOTAL_ABILITIES_MULTIPLE
+        assert repository.find_by.call_count == TOTAL_ABILITIES_MULTIPLE
 
     @staticmethod
     @pytest.mark.asyncio
@@ -227,8 +225,8 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
             ),
         ]
         repository = pokemon_ability_service.repository
-        repository.find_one_by_order = AsyncMock(side_effect=[pokemon_ability_1, None])
-        repository.create = AsyncMock(return_value=pokemon_ability_2)
+        repository.find_by = AsyncMock(side_effect=[pokemon_ability_1, None])
+        repository.save = AsyncMock(return_value=pokemon_ability_2)
 
         result = await pokemon_ability_service.verify_pokemon_abilities(
             abilities=response_abilities
@@ -237,8 +235,8 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
         assert len(result) == TOTAL_ABILITIES_MULTIPLE
         assert result[0].name == 'stench'
         assert result[1].name == 'static'
-        assert repository.find_one_by_order.call_count == TOTAL_ABILITIES_MULTIPLE
-        repository.create.assert_called_once()
+        assert repository.find_by.call_count == TOTAL_ABILITIES_MULTIPLE
+        repository.save.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -252,11 +250,11 @@ class TestPokemonAbilityServiceVerifyPokemonAbilities:
             is_hidden=MOCK_POKEMON_ABILITY_IS_HIDDEN,
         )
         repository = pokemon_ability_service.repository
-        repository.find_one_by_order = AsyncMock(side_effect=Exception('Database error'))
+        repository.find_by = AsyncMock(side_effect=Exception('Database error'))
 
         result = await pokemon_ability_service.verify_pokemon_abilities(
             abilities=[response_pokemon_ability]
         )
 
         assert len(result) == 0
-        repository.find_one_by_order.assert_called_once()
+        repository.find_by.assert_called_once()

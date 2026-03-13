@@ -6,7 +6,6 @@ from fastapi import Depends
 from app.core.logging import LoggingParams, log_service_success
 from app.domain.ability.model import PokemonAbility
 from app.domain.ability.repository import PokemonAbilityRepository
-from app.domain.ability.schema import CreatePokemonAbilitySchema
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseAbilitySchemaResponse,
 )
@@ -34,19 +33,20 @@ class PokemonAbilityService:
                 name = ability_response.ability.name
                 order = ensure_order_number(url)
 
-                db_pokemon_ability = await self.repository.find_one_by_order(order=order)
+                db_pokemon_ability = await self.repository.find_by(order=order)
                 if db_pokemon_ability:
                     result_pokemon_abilities.append(db_pokemon_ability)
                     continue
 
-                pokemon_ability_data = CreatePokemonAbilitySchema(
-                    url=url,
-                    name=name,
-                    order=order,
-                    slot=ability_response.slot,
-                    is_hidden=ability_response.is_hidden,
+                pokemon_ability = await self.repository.save(
+                    PokemonAbility(
+                        name=name,
+                        url=url,
+                        order=order,
+                        slot=ability_response.slot,
+                        is_hidden=ability_response.is_hidden,
+                    )
                 )
-                pokemon_ability = await self.repository.create(pokemon_ability_data)
                 result_pokemon_abilities.append(pokemon_ability)
             log_service_success(
                 self.logger_params, message='Verify Pokemon Abilities successfully'
