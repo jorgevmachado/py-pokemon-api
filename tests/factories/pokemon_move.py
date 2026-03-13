@@ -10,6 +10,7 @@ class PokemonMoveFactory(factory.Factory):
 
     pp = factory.Sequence(lambda n: n * 15)
     url = factory.LazyAttribute(lambda o: f'https://pokeapi.co/api/v2/move/{o.order}/')
+    type = Faker('name')
     name = Faker('name')
     order = factory.Sequence(lambda n: n)
     power = factory.Sequence(lambda n: n * 40)

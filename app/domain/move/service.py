@@ -7,7 +7,6 @@ from app.core.logging import LoggingParams, log_service_success
 from app.domain.move.business import PokemonMoveBusiness
 from app.domain.move.model import PokemonMove
 from app.domain.move.repository import PokemonMoveRepository
-from app.domain.move.schema import CreatePokemonMoveSchema
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseMoveSchemaResponse,
 )
@@ -38,7 +37,7 @@ class PokemonMoveService:
                 name = move_response.move.name
                 order = ensure_order_number(url)
 
-                db_pokemon_move = await self.repository.find_one_by_order(order=order)
+                db_pokemon_move = await self.repository.find_by(order=order)
                 if db_pokemon_move:
                     result_pokemon_moves.append(db_pokemon_move)
                     continue
@@ -54,22 +53,23 @@ class PokemonMoveService:
                     external_move_data.effect_entries
                 )
 
-                pokemon_move_data = CreatePokemonMoveSchema(
-                    pp=external_move_data.pp,
-                    url=url,
-                    type=external_move_data.type.name,
-                    name=external_move_data.name,
-                    order=order,
-                    power=external_move_data.power or 0,
-                    target=external_move_data.target.name,
-                    effect=effect_message.effect,
-                    priority=external_move_data.priority,
-                    accuracy=external_move_data.accuracy or 0,
-                    short_effect=effect_message.short_effect,
-                    damage_class=external_move_data.damage_class.name,
-                    effect_chance=external_move_data.effect_chance,
+                pokemon_move = await self.repository.save(
+                    entity=PokemonMove(
+                        pp=external_move_data.pp,
+                        url=url,
+                        type=external_move_data.type.name,
+                        name=external_move_data.name,
+                        order=order,
+                        power=external_move_data.power or 0,
+                        target=external_move_data.target.name,
+                        effect=effect_message.effect,
+                        priority=external_move_data.priority,
+                        accuracy=external_move_data.accuracy or 0,
+                        short_effect=effect_message.short_effect,
+                        damage_class=external_move_data.damage_class.name,
+                        effect_chance=external_move_data.effect_chance,
+                    )
                 )
-                pokemon_move = await self.repository.create(pokemon_move_data)
                 result_pokemon_moves.append(pokemon_move)
             log_service_success(self.logger_params, message='Verify Pokemon Move successfully')
             return result_pokemon_moves

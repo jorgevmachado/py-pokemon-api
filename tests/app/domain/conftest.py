@@ -22,6 +22,7 @@ from tests.factories.growth_rate import PokemonGrowthRateFactory
 from tests.factories.pokedex import PokedexFactory
 from tests.factories.pokemon import PokemonFactory
 from tests.factories.pokemon_ability import PokemonAbilityFactory
+from tests.factories.pokemon_move import PokemonMoveFactory
 from tests.factories.pokemon_type import PokemonTypeFactory
 
 
@@ -199,3 +200,20 @@ async def pokemon_growth_rate(session: AsyncSession):
     await session.refresh(pokemon_growth_rate)
 
     return pokemon_growth_rate
+
+
+@pytest_asyncio.fixture
+async def pokemon_move(session: AsyncSession):
+    pokemon_move = PokemonMoveFactory(
+        order=1,
+        name='pound',
+        accuracy=100,
+        power=100,
+        pp=10,
+        effect_chance=100,
+    )
+    session.add(pokemon_move)
+    await session.commit()
+    await session.refresh(pokemon_move)
+
+    return pokemon_move

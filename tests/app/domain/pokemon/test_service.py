@@ -68,6 +68,7 @@ MOCK_POKEMON_GROWTH_RATE = PokemonGrowthRate(
     order=1,
     url='https://pokeapi.co/api/v2/growth-rate/4/',
     formula='x^3',
+    description='Slowly decreases in strength.',
 )
 
 MOCK_RELATIONSHIPS = GeneratePokemonRelationshipSchema(
