@@ -1483,6 +1483,7 @@ class TestPokemonBusinessCalculateExperience:
             name='slow',
             order=1,
             formula='x**3',
+            description='Slowly decreases in level.',
         )
         result = business._calculate_experience(
             growth_rate=growth_rate, level=MOCK_NUM_RANGE_5
@@ -1515,6 +1516,7 @@ class TestPokemonBusinessCalculateExperience:
             name='invalid',
             order=999,
             formula='invalid formula',
+            description='Invalid formula',
         )
         result = business._calculate_experience(
             growth_rate=growth_rate, level=MOCK_NUM_RANGE_5
