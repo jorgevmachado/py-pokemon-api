@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     )
 
     ALGORITHM: str
+    REDIS_HOST: str
+    REDIS_PORT: int
     SECRET_KEY: str
     DATABASE_URL: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int

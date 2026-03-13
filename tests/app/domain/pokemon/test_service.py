@@ -124,14 +124,14 @@ class TestPokemonServiceInitializeDatabase:
         pokemon_service.external_service.pokemon_external_list = AsyncMock(
             return_value=external_pokemon_list
         )
-        pokemon_service.repository.create = AsyncMock(side_effect=created_pokemons)
+        pokemon_service.repository.save = AsyncMock(side_effect=created_pokemons)
 
         result = await pokemon_service.initialize_database(total=0)
 
         assert len(result) == total_result
         assert result[0].name == 'Bulbasaur'
         assert result[1].name == 'Ivysaur'
-        assert pokemon_service.repository.create.call_count == total_result
+        assert pokemon_service.repository.save.call_count == total_result
         pokemon_service.external_service.pokemon_external_list.assert_called_once_with(
             offset=0, limit=1302
         )
@@ -171,14 +171,14 @@ class TestPokemonServiceInitializeDatabase:
             return_value=external_pokemon_list
         )
         pokemon_service.repository.list_all = AsyncMock(return_value=existing_pokemons)
-        pokemon_service.repository.create = AsyncMock(return_value=created_pokemon)
+        pokemon_service.repository.save = AsyncMock(return_value=created_pokemon)
 
         result = await pokemon_service.initialize_database(total=1)
 
         assert len(result) == 1
         assert result[0].name == 'Ivysaur'
         pokemon_service.repository.list_all.assert_called_once()
-        pokemon_service.repository.create.assert_called_once()
+        pokemon_service.repository.save.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -209,13 +209,13 @@ class TestPokemonServiceInitializeDatabase:
             return_value=external_pokemon_list
         )
         pokemon_service.repository.list_all = AsyncMock(return_value=existing_pokemons)
-        pokemon_service.repository.create = AsyncMock()
+        pokemon_service.repository.save = AsyncMock()
 
         result = await pokemon_service.initialize_database(total=2)
 
         assert len(result) == 0
         pokemon_service.repository.list_all.assert_called_once()
-        pokemon_service.repository.create.assert_not_called()
+        pokemon_service.repository.save.assert_not_called()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -225,17 +225,17 @@ class TestPokemonServiceInitializeDatabase:
         pokemon_service.external_service.pokemon_external_list = AsyncMock(
             side_effect=Exception('External API error')
         )
-        pokemon_service.repository.create = AsyncMock()
+        pokemon_service.repository.save = AsyncMock()
 
         result = await pokemon_service.initialize_database(total=0)
 
         assert len(result) == 0
         assert isinstance(result, list)
-        pokemon_service.repository.create.assert_not_called()
+        pokemon_service.repository.save.assert_not_called()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_initialize_database_repository_create_error_zero_total(pokemon_service):
+    async def test_initialize_database_repository_save_error_zero_total(pokemon_service):
         """Should handle repository error when creating pokemon with zero total"""
 
         external_pokemon_list = [
@@ -250,17 +250,17 @@ class TestPokemonServiceInitializeDatabase:
         pokemon_service.external_service.pokemon_external_list = AsyncMock(
             return_value=external_pokemon_list
         )
-        pokemon_service.repository.create = AsyncMock(side_effect=Exception('Database error'))
+        pokemon_service.repository.save = AsyncMock(side_effect=Exception('Database error'))
 
         result = await pokemon_service.initialize_database(total=0)
 
         assert len(result) == 0
         assert isinstance(result, list)
-        pokemon_service.repository.create.assert_called_once()
+        pokemon_service.repository.save.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_initialize_database_repository_create_error_with_existing(pokemon_service):
+    async def test_initialize_database_repository_save_error_with_existing(pokemon_service):
         """Should handle repository error when creating missing pokemon"""
 
         external_pokemon_list = [
@@ -286,13 +286,13 @@ class TestPokemonServiceInitializeDatabase:
             return_value=external_pokemon_list
         )
         pokemon_service.repository.list_all = AsyncMock(return_value=existing_pokemons)
-        pokemon_service.repository.create = AsyncMock(side_effect=Exception('Database error'))
+        pokemon_service.repository.save = AsyncMock(side_effect=Exception('Database error'))
 
         result = await pokemon_service.initialize_database(total=1)
 
         assert len(result) == 0
         assert isinstance(result, list)
-        pokemon_service.repository.create.assert_called_once()
+        pokemon_service.repository.save.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -300,7 +300,7 @@ class TestPokemonServiceInitializeDatabase:
         """Should return empty list when external pokemon_service returns no pokemon"""
 
         pokemon_service.external_service.pokemon_external_list = AsyncMock(return_value=[])
-        pokemon_service.repository.create = AsyncMock()
+        pokemon_service.repository.save = AsyncMock()
 
         result = await pokemon_service.initialize_database(total=0)
 
@@ -309,7 +309,7 @@ class TestPokemonServiceInitializeDatabase:
         pokemon_service.external_service.pokemon_external_list.assert_called_once_with(
             offset=0, limit=1302
         )
-        pokemon_service.repository.create.assert_not_called()
+        pokemon_service.repository.save.assert_not_called()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -337,7 +337,7 @@ class TestPokemonServiceInitializeDatabase:
         pokemon_service.external_service.pokemon_external_list = AsyncMock(
             return_value=external_pokemon_list
         )
-        pokemon_service.repository.create = AsyncMock(return_value=created_pokemon)
+        pokemon_service.repository.save = AsyncMock(return_value=created_pokemon)
 
         result = await pokemon_service.initialize_database(total=0)
 
@@ -352,8 +352,8 @@ class TestPokemonServiceInitializeDatabase:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_initialize_database_calls_correct_create_schema(pokemon_service):
-        """Should call create with correct CreatePokemonSchema parameters"""
+    async def test_initialize_database_calls_correct_save_entity(pokemon_service):
+        """Should call save with correct Pokemon entity attributes"""
 
         external_pokemon = SimpleNamespace(
             name='Dragonite',
@@ -371,18 +371,19 @@ class TestPokemonServiceInitializeDatabase:
         pokemon_service.external_service.pokemon_external_list = AsyncMock(
             return_value=[external_pokemon]
         )
-        pokemon_service.repository.create = AsyncMock(return_value=created_pokemon)
+        pokemon_service.repository.save = AsyncMock(return_value=created_pokemon)
 
         await pokemon_service.initialize_database(total=0)
 
-        call_args = pokemon_service.repository.create.call_args
-        pokemon_schema = call_args.kwargs['pokemon_data']
+        call_args = pokemon_service.repository.save.call_args
+        pokemon_entity = call_args.kwargs['entity']
 
-        assert pokemon_schema.name == 'Dragonite'
-        assert pokemon_schema.order == MOCK_ENTITY_ORDER
-        assert pokemon_schema.url == 'https://pokeapi.co/api/v2/pokemon/149'
+        assert pokemon_entity.name == 'Dragonite'
+        assert pokemon_entity.order == MOCK_ENTITY_ORDER
+        assert pokemon_entity.url == 'https://pokeapi.co/api/v2/pokemon/149'
+        assert pokemon_entity.status == StatusEnum.INCOMPLETE
         assert (
-            pokemon_schema.external_image
+            pokemon_entity.external_image
             == 'https://raw.githubusercontent.com/PokeAPI/sprites/149.png'
         )
 
@@ -659,21 +660,21 @@ class TestPokemonServiceFetchOne:
             external_image='https://example.com/25.png',
         )
 
-        pokemon_service.repository.find_one = AsyncMock(return_value=pokemon)
+        pokemon_service.repository.find_by = AsyncMock(return_value=pokemon)
 
         result = await pokemon_service.fetch_one(name='pikachu')
 
         assert result is not None
         assert result.name == 'pikachu'
         assert result.status == StatusEnum.COMPLETE
-        pokemon_service.repository.find_one.assert_called_once_with(name='pikachu')
+        pokemon_service.repository.find_by.assert_called_once_with(name='pikachu')
 
     @staticmethod
     @pytest.mark.asyncio
     async def test_fetch_one_not_found_raises_exception(pokemon_service):
         """Should raise HTTPException when pokemon not found"""
 
-        pokemon_service.repository.find_one = AsyncMock(return_value=None)
+        pokemon_service.repository.find_by = AsyncMock(return_value=None)
 
         with pytest.raises(HTTPException) as exc_info:
             await pokemon_service.fetch_one(name='nonexistent')
@@ -702,7 +703,7 @@ class TestPokemonServiceFetchOne:
             hp=45,
         )
 
-        pokemon_service.repository.find_one = AsyncMock(return_value=incomplete_pokemon)
+        pokemon_service.repository.find_by = AsyncMock(return_value=incomplete_pokemon)
         pokemon_service.complete_pokemon_data = AsyncMock(return_value=completed_pokemon)
 
         result = await pokemon_service.fetch_one(name='bulbasaur')
@@ -727,20 +728,20 @@ class TestPokemonServiceValidateEntity:
             external_image='https://example.com/6.png',
         )
 
-        pokemon_service.repository.find_one = AsyncMock(return_value=pokemon)
+        pokemon_service.repository.find_by = AsyncMock(return_value=pokemon)
 
         result = await pokemon_service.validate_entity(pokemon_name='charizard')
 
         assert result.name == 'charizard'
         assert result.status == StatusEnum.COMPLETE
-        pokemon_service.repository.find_one.assert_called_once_with(name='charizard')
+        pokemon_service.repository.find_by.assert_called_once_with(name='charizard')
 
     @staticmethod
     @pytest.mark.asyncio
     async def test_validate_entity_not_found_raises_exception(pokemon_service):
         """Should raise HTTPException when pokemon not found"""
 
-        pokemon_service.repository.find_one = AsyncMock(return_value=None)
+        pokemon_service.repository.find_by = AsyncMock(return_value=None)
 
         with pytest.raises(HTTPException) as exc_info:
             await pokemon_service.validate_entity(pokemon_name='missing')
@@ -760,7 +761,7 @@ class TestPokemonServiceValidateEntity:
             external_image='https://example.com/7.png',
         )
 
-        pokemon_service.repository.find_one = AsyncMock(return_value=incomplete_pokemon)
+        pokemon_service.repository.find_by = AsyncMock(return_value=incomplete_pokemon)
         pokemon_service.complete_pokemon_data = AsyncMock(return_value=incomplete_pokemon)
 
         result = await pokemon_service.validate_entity(pokemon_name='squirtle')
@@ -783,7 +784,7 @@ class TestPokemonServiceValidateEntity:
             external_image='https://example.com/133.png',
         )
 
-        pokemon_service.repository.find_one = AsyncMock(return_value=incomplete_pokemon)
+        pokemon_service.repository.find_by = AsyncMock(return_value=incomplete_pokemon)
         pokemon_service.complete_pokemon_data = AsyncMock(return_value=incomplete_pokemon)
 
         result = await pokemon_service.validate_entity(
@@ -1089,7 +1090,7 @@ class TestPokemonServiceCompletePokemonData:
         pokemon_service.add_evolutions = AsyncMock(return_value=evolutions)
         pokemon_service.business.merge_if_changed = MagicMock(return_value=updated_pokemon)
         pokemon_service.repository.update = AsyncMock()
-        pokemon_service.repository.find_one = AsyncMock(return_value=updated_pokemon)
+        pokemon_service.repository.find_by = AsyncMock(return_value=updated_pokemon)
 
         result = await pokemon_service.complete_pokemon_data(
             pokemon=pokemon, with_evolutions=True
@@ -1103,7 +1104,7 @@ class TestPokemonServiceCompletePokemonData:
             'https://pokeapi.co/api/v2/evolution-chain/1/'
         )
         pokemon_service.repository.update.assert_called_once()
-        pokemon_service.repository.find_one.assert_called_once_with(name='bulbasaur')
+        pokemon_service.repository.find_by.assert_called_once_with(name='bulbasaur')
 
     @staticmethod
     @pytest.mark.asyncio
@@ -1171,7 +1172,7 @@ class TestPokemonServiceCompletePokemonData:
         pokemon_service.add_evolutions = AsyncMock()
         pokemon_service.business.merge_if_changed = MagicMock(return_value=updated_pokemon)
         pokemon_service.repository.update = AsyncMock()
-        pokemon_service.repository.find_one = AsyncMock(return_value=updated_pokemon)
+        pokemon_service.repository.find_by = AsyncMock(return_value=updated_pokemon)
 
         result = await pokemon_service.complete_pokemon_data(
             pokemon=pokemon, with_evolutions=False

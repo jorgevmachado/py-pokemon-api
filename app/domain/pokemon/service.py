@@ -13,7 +13,6 @@ from app.domain.pokemon.external.service import PokemonExternalService
 from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.repository import PokemonRepository
 from app.domain.pokemon.schema import (
-    CreatePokemonSchema,
     FirstPokemonSchemaResult,
     GeneratePokemonRelationshipSchema,
     GeneratePokemonRelationshipSchemaResult,
@@ -115,15 +114,14 @@ class PokemonService:
             if total == 0:
                 result_initial = []
                 for pokemon in external_data:
-                    pokemon_to_create = CreatePokemonSchema(
+                    pokemon_to_create = Pokemon(
                         name=pokemon.name,
                         order=pokemon.order,
                         url=pokemon.url,
+                        status=StatusEnum.INCOMPLETE,
                         external_image=pokemon.external_image,
                     )
-                    pokemon_created = await self.repository.create(
-                        pokemon_data=pokemon_to_create
-                    )
+                    pokemon_created = await self.repository.save(entity=pokemon_to_create)
                     result_initial.append(pokemon_created)
                     log_service_success(
                         self.logger_params,
@@ -138,13 +136,14 @@ class PokemonService:
             save_list = [item for item in external_data if item.name not in existing_names]
             result_final = []
             for pokemon_data in save_list:
-                pokemon_to_add = CreatePokemonSchema(
+                pokemon_to_add = Pokemon(
                     name=pokemon_data.name,
                     order=pokemon_data.order,
                     url=pokemon_data.url,
+                    status=StatusEnum.INCOMPLETE,
                     external_image=pokemon_data.external_image,
                 )
-                pokemon_added = await self.repository.create(pokemon_data=pokemon_to_add)
+                pokemon_added = await self.repository.save(entity=pokemon_to_add)
                 result_final.append(pokemon_added)
 
             log_service_success(
@@ -177,7 +176,7 @@ class PokemonService:
         pokemon_name: str,
         with_evolutions: bool = True,
     ) -> Pokemon:
-        pokemon = await self.repository.find_one(name=pokemon_name)
+        pokemon = await self.repository.find_by(name=pokemon_name)
 
         if not pokemon:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='Pokemon not found')
@@ -244,7 +243,7 @@ class PokemonService:
                 operation='complete_pokemon_data',
                 message='Pokemon completed successfully',
             )
-            return await self.repository.find_one(name=pokemon.name)
+            return await self.repository.find_by(name=pokemon.name)
         except Exception as exception:
             handle_service_exception(
                 exception,
