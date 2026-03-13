@@ -14,10 +14,10 @@ from app.domain.trainer.model import Trainer
 from app.domain.trainer.repository import TrainerRepository
 from app.domain.trainer.schema import (
     CreateTrainerSchema,
-    FindOneUserSchemaParams,
     InitializeTrainerSchema,
 )
 from app.shared.exceptions import handle_service_exception
+from app.shared.role_enum import RoleEnum
 from app.shared.status_enum import StatusEnum
 
 Repository = Annotated[TrainerRepository, Depends()]
@@ -51,9 +51,23 @@ class TrainerService:
                     status_code=HTTPStatus.CONFLICT,
                     detail='Email already exists',
                 )
-            create_trainer.password = get_password_hash(create_trainer.password)
-            create_trainer.status = StatusEnum.INCOMPLETE
-            trainer = await self.repository.create(create_trainer)
+
+            trainer = await self.repository.save(
+                Trainer(
+                    role=RoleEnum.USER,
+                    name=create_trainer.name,
+                    email=create_trainer.email,
+                    gender=create_trainer.gender,
+                    status=StatusEnum.INCOMPLETE,
+                    password=get_password_hash(create_trainer.password),
+                    pokeballs=create_trainer.pokeballs,
+                    capture_rate=create_trainer.capture_rate,
+                    date_of_birth=create_trainer.date_of_birth,
+                    total_authentications=0,
+                    authentication_success=0,
+                    authentication_failures=0,
+                )
+            )
 
             await self.pokemon_service.initialize()
             log_service_success(
@@ -108,7 +122,7 @@ class TrainerService:
         return trainer
 
     async def find_one(self, trainer_id: str, trainer: Trainer) -> Trainer:
-        db_user = await self.repository.find_one(params=FindOneUserSchemaParams(id=trainer_id))
+        db_user = await self.repository.find_by(id=trainer_id)
 
         if not db_user:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='Trainer not found')
@@ -128,10 +142,10 @@ class TrainerService:
             operation='find_one_by_email',
             message='Find One Trainer by email successfully',
         )
-        return await self.repository.find_one(params=FindOneUserSchemaParams(email=email))
+        return await self.repository.find_by(email=email)
 
     async def update(self, trainer: Trainer):
         log_service_success(
             self.logger_params, operation='update', message='Update Trainer successfully'
         )
-        return await self.repository.update(trainer=trainer)
+        return await self.repository.update(entity=trainer)

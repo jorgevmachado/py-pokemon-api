@@ -81,7 +81,7 @@ class TestTrainerServiceCreate:
         )
 
         trainer_service.find_one_by_email = AsyncMock(return_value=None)
-        trainer_service.repository.create = AsyncMock(side_effect=Exception('boom'))
+        trainer_service.repository.save = AsyncMock(side_effect=Exception('boom'))
         trainer_service.pokemon_service.initialize = AsyncMock()
 
         with pytest.raises(HTTPException) as exc_info:
@@ -167,7 +167,7 @@ class TestTrainerServiceUpdate:
         result = await trainer_service.update(trainer=trainer)
 
         assert result == trainer
-        trainer_service.repository.update.assert_called_once_with(trainer=trainer)
+        trainer_service.repository.update.assert_called_once_with(entity=trainer)
 
 
 class TestTrainerServiceInitialize:

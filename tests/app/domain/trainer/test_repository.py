@@ -4,8 +4,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.domain.trainer.model import Trainer
-from app.domain.trainer.repository import TrainerRepository
-from app.domain.trainer.schema import CreateTrainerSchema, FindOneUserSchemaParams
 from app.shared.gender_enum import GenderEnum
 from app.shared.role_enum import RoleEnum
 from app.shared.status_enum import StatusEnum
@@ -30,28 +28,19 @@ MOCK_POKEBALLS = 1
 MOCK_CAPTURE_RATE = 200
 
 
-class TestTrainerRepositoryCreate:
+class TestTrainerRepositorySave:
     """Test scope for create method"""
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_trainer_repository_create_success(session):
+    async def test_trainer_repository_save_success(session, trainer_repository):
         """Should persist trainer with default status when data is valid"""
-        trainer_data = CreateTrainerSchema(
-            name=MOCK_TRAINER.name,
-            email=MOCK_TRAINER.email,
-            gender=MOCK_TRAINER.gender,
-            password=MOCK_TRAINER.password,
-            date_of_birth=MOCK_TRAINER.date_of_birth,
-        )
-
-        repository = TrainerRepository(session=session)
-        result = await repository.create(create_trainer=trainer_data)
+        result = await trainer_repository.save(entity=MOCK_TRAINER)
 
         assert isinstance(result, Trainer)
         assert result.name == MOCK_TRAINER.name
         assert result.role == MOCK_TRAINER.role
-        assert result.status == StatusEnum.INCOMPLETE
+        assert result.status == StatusEnum.ACTIVE
         assert result.gender == MOCK_TRAINER.gender
         assert result.password == MOCK_TRAINER.password
         assert result.pokeballs == MOCK_TRAINER.pokeballs
@@ -64,25 +53,32 @@ class TestTrainerRepositoryCreate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_trainer_repository_create_success_with_optional_fields(session):
+    async def test_trainer_repository_save_success_with_optional_fields(
+        session, trainer_repository
+    ):
         """Should persist trainer with optional fields when data is valid"""
-        trainer_data = CreateTrainerSchema(
+        trainer_data = Trainer(
             name=MOCK_TRAINER.name,
+            role=MOCK_TRAINER.role,
             email=MOCK_TRAINER.email,
             gender=MOCK_TRAINER.gender,
+            status=StatusEnum.ACTIVE,
             password=MOCK_TRAINER.password,
             pokeballs=MOCK_POKEBALLS,
             capture_rate=MOCK_CAPTURE_RATE,
+            total_authentications=0,
+            authentication_success=0,
+            authentication_failures=0,
+            last_authentication_at=None,
             date_of_birth=MOCK_TRAINER.date_of_birth,
         )
 
-        repository = TrainerRepository(session=session)
-        result = await repository.create(create_trainer=trainer_data)
+        result = await trainer_repository.save(entity=trainer_data)
 
         assert isinstance(result, Trainer)
         assert result.name == MOCK_TRAINER.name
         assert result.role == MOCK_TRAINER.role
-        assert result.status == StatusEnum.INCOMPLETE
+        assert result.status == StatusEnum.ACTIVE
         assert result.gender == MOCK_TRAINER.gender
         assert result.password == MOCK_TRAINER.password
         assert result.pokeballs == MOCK_POKEBALLS
@@ -95,19 +91,11 @@ class TestTrainerRepositoryCreate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_trainer_repository_create_error(session):
+    async def test_trainer_repository_save_error(session, trainer_repository):
         """Should raise exception when commit fails"""
-        trainer_data = CreateTrainerSchema(
-            name=MOCK_TRAINER.name,
-            email=MOCK_TRAINER.email,
-            gender=MOCK_TRAINER.gender,
-            password=MOCK_TRAINER.password,
-            date_of_birth=MOCK_TRAINER.date_of_birth,
-        )
         session.commit = AsyncMock(side_effect=Exception('Database error'))
-        repository = TrainerRepository(session=session)
         with pytest.raises(Exception, match='Database error'):
-            await repository.create(create_trainer=trainer_data)
+            await trainer_repository.save(entity=MOCK_TRAINER)
 
 
 class TestTrainerRepositoryUpdate:
@@ -115,15 +103,14 @@ class TestTrainerRepositoryUpdate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_trainer_repository_update_success(session, trainer):
+    async def test_trainer_repository_update_success(session, trainer, trainer_repository):
         """Should update trainer successfully when data is valid"""
         trainer.status = StatusEnum.ACTIVE
         trainer.pokeballs = MOCK_POKEBALLS
         trainer.capture_rate = MOCK_CAPTURE_RATE
         trainer.role = RoleEnum.ADMIN
 
-        repository = TrainerRepository(session=session)
-        result = await repository.update(trainer=trainer)
+        result = await trainer_repository.update(entity=trainer)
 
         assert result.status == StatusEnum.ACTIVE
         assert result.role == RoleEnum.ADMIN
@@ -135,18 +122,19 @@ class TestTrainerRepositoryUpdate:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_trainer_repository_update_commit_error(session, trainer):
+    async def test_trainer_repository_update_commit_error(
+        session, trainer, trainer_repository
+    ):
         """Should raise exception when commit fails during update"""
         trainer.status = StatusEnum.INACTIVE
         trainer.pokeballs = MOCK_POKEBALLS
         trainer.capture_rate = MOCK_CAPTURE_RATE
         trainer.role = RoleEnum.ADMIN
 
-        repository = TrainerRepository(session=session)
         session.commit = AsyncMock(side_effect=Exception('Database error'))
 
         with pytest.raises(Exception, match='Database error'):
-            await repository.update(trainer=trainer)
+            await trainer_repository.update(entity=trainer)
 
 
 class TestTrainerRepositoryFindOne:
@@ -154,30 +142,30 @@ class TestTrainerRepositoryFindOne:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_trainer_repository_find_one_by_email_success(session, trainer):
+    async def test_trainer_repository_find_by_email_success(
+        session, trainer, trainer_repository
+    ):
         """Should return trainer when email is found"""
 
-        repository = TrainerRepository(session=session)
-        result = await repository.find_one(params=FindOneUserSchemaParams(email=trainer.email))
+        result = await trainer_repository.find_by(email=trainer.email)
 
         assert result.status == StatusEnum.ACTIVE
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_trainer_repository_find_one_by_id_success(session, trainer):
+    async def test_trainer_repository_find_by_id_success(session, trainer, trainer_repository):
         """Should return trainer when id is found"""
-
-        repository = TrainerRepository(session=session)
-        result = await repository.find_one(params=FindOneUserSchemaParams(id=trainer.id))
+        result = await trainer_repository.find_by(id=trainer.id)
 
         assert result is not None
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_trainer_repository_find_one_return_none(session, trainer):
+    async def test_trainer_repository_find_one_return_none(
+        session, trainer, trainer_repository
+    ):
         """Should return trainer when don't receive params"""
 
-        repository = TrainerRepository(session=session)
-        result = await repository.find_one(params=FindOneUserSchemaParams(id=None, email=None))
+        result = await trainer_repository.find_by(id=None, email=None)
 
         assert result is None
