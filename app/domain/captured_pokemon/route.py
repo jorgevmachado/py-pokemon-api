@@ -5,13 +5,13 @@ from fastapi_pagination import LimitOffsetPage
 
 from app.core.security import get_current_user
 from app.domain.captured_pokemon.schema import (
-    CapturedPokemonFilterPage,
     CapturedPokemonPublicSchema,
     CapturePokemonHealSchema,
     CapturePokemonSchema,
 )
 from app.domain.captured_pokemon.service import CapturedPokemonService
 from app.domain.trainer.model import Trainer
+from app.shared.schemas import FilterPage
 
 router = APIRouter(prefix='/captured-pokemons', tags=['captured-pokemons'])
 Service = Annotated[CapturedPokemonService, Depends()]
@@ -26,7 +26,7 @@ CurrentTrainer = Annotated[Trainer, Depends(get_current_user)]
 async def get_captured_pokemons(
     service: Service,
     trainer: CurrentTrainer,
-    page_filter: Annotated[CapturedPokemonFilterPage, Depends()],
+    page_filter: Annotated[FilterPage, Depends()],
 ):
     return await service.fetch_all(trainer_id=trainer.id, page_filter=page_filter)
 

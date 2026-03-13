@@ -77,10 +77,12 @@ class BaseRepository(Generic[ModelT]):
         valid_columns = set(self.model.__mapper__.columns.keys())
         filters = {k: v for k, v in kwargs.items() if k in valid_columns and v is not None}
 
+        if not filters:
+            return None
+
         for option in self.relations:
             query = query.options(option)
 
-        if filters:
-            query = query.filter_by(**filters)
+        query = query.filter_by(**filters)
 
         return await self.session.scalar(query)

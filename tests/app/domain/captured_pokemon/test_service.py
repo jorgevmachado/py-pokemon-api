@@ -61,9 +61,13 @@ class TestCapturedPokemonServiceFetchAll:
         result = await captured_pokemon_service.fetch_all(trainer_id=trainer.id)
 
         assert result == expected_result
-        captured_pokemon_service.repository.list_all.assert_awaited_once_with(
-            page_filter=FilterPage(trainer_id=trainer.id)
-        )
+        captured_pokemon_service.repository.list_all.assert_awaited_once()
+        call_args = captured_pokemon_service.repository.list_all.await_args.kwargs
+        page_filter = call_args['page_filter']
+
+        assert page_filter.model_dump(exclude_none=True) == {
+            'trainer_id': trainer.id,
+        }
 
     @staticmethod
     @pytest.mark.asyncio
@@ -73,7 +77,7 @@ class TestCapturedPokemonServiceFetchAll:
     ):
         """Should pass page filter to repository when provided"""
         expected_result = ['entry_1']
-        page_filter = FilterPage(limit=10, offset=0, trainer_id=trainer.id)
+        page_filter = FilterPage.build(limit=10, offset=0, trainer_id=trainer.id)
         captured_pokemon_service.repository.list_all = AsyncMock(return_value=expected_result)
 
         result = await captured_pokemon_service.fetch_all(
@@ -81,9 +85,15 @@ class TestCapturedPokemonServiceFetchAll:
         )
 
         assert result == expected_result
-        captured_pokemon_service.repository.list_all.assert_awaited_once_with(
-            page_filter=page_filter
-        )
+        captured_pokemon_service.repository.list_all.assert_awaited_once()
+        call_args = captured_pokemon_service.repository.list_all.await_args.kwargs
+        page_filter = call_args['page_filter']
+
+        assert page_filter.model_dump(exclude_none=True) == {
+            'offset': 0,
+            'limit': 10,
+            'trainer_id': trainer.id,
+        }
 
     @staticmethod
     @pytest.mark.asyncio

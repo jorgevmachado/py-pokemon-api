@@ -272,7 +272,7 @@ class TestCapturedPokemonRepositoryListByTrainer:
         )
 
         result = await captured_pokemon_repository.list_all(
-            page_filter=FilterPage(
+            page_filter=FilterPage.build(
                 trainer_id=trainer.id,
                 nickname=MOCK_CAPTURED_POKEMON.nickname,
                 offset=None,

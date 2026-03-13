@@ -7,7 +7,6 @@ from app.domain.move.model import PokemonMove
 from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.schema import PublicPokemonSchema
 from app.domain.trainer.model import Trainer
-from app.shared.schemas import FilterPage
 
 
 class CreateCapturedPokemonSchema(BaseModel):
@@ -78,11 +77,6 @@ class CapturedPokemonPublicSchema(BaseModel):
     captured_at: datetime
     moves: list[PokemonMove] = []
     pokemon: PublicPokemonSchema
-
-
-class CapturedPokemonFilterPage(FilterPage):
-    model_config = ConfigDict(from_attributes=True)
-    nickname: Optional[str] = None
 
 
 class CapturePokemonSchema(BaseModel):
