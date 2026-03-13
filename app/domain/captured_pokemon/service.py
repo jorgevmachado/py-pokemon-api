@@ -8,13 +8,11 @@ from typing import Annotated, Optional
 from fastapi import Depends, HTTPException
 
 from app.core.logging import LoggingParams, log_service_success
+from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.captured_pokemon.repository import CapturedPokemonRepository
 from app.domain.captured_pokemon.schema import (
-    CapturedPokemonFilterPage,
     CapturePokemonHealSchema,
     CapturePokemonSchema,
-    CreateCapturedPokemonSchema,
-    FindCapturePokemonSchema,
     PartialCapturedPokemonSchema,
 )
 from app.domain.move.business import PokemonMoveBusiness
@@ -23,6 +21,7 @@ from app.domain.pokemon.model import Pokemon
 from app.domain.progression.business import PokemonProgressionBusiness
 from app.domain.trainer.model import Trainer
 from app.shared.exceptions import handle_service_exception
+from app.shared.schemas import FilterPage
 
 Repository = Annotated[CapturedPokemonRepository, Depends()]
 PokemonService = Annotated[PokemonService, Depends()]
@@ -44,50 +43,48 @@ class CapturedPokemonService:
         trainer: Trainer,
         nickname: str = None,
     ):
-        exist_captured_pokemon = await self.find_by_pokemon(
-            FindCapturePokemonSchema(
-                trainer_id=trainer.id,
-                pokemon_id=pokemon.id,
-            )
+        exist_captured_pokemon = await self.repository.find_by(
+            trainer_id=trainer.id,
+            pokemon_id=pokemon.id,
         )
         if not exist_captured_pokemon:
             stats = self.business.initialize_stats(
                 pokemon=pokemon,
             )
 
-            create_captured_pokemon = CreateCapturedPokemonSchema(
-                hp=stats.hp,
-                wins=stats.wins,
-                level=stats.level,
-                iv_hp=stats.iv_hp,
-                ev_hp=stats.ev_hp,
-                losses=stats.losses,
-                max_hp=stats.max_hp,
-                battles=stats.battles,
-                nickname=nickname if nickname else pokemon.name,
-                speed=stats.speed,
-                iv_speed=stats.iv_speed,
-                ev_speed=stats.ev_speed,
-                attack=stats.attack,
-                iv_attack=stats.iv_attack,
-                ev_attack=stats.ev_attack,
-                defense=stats.defense,
-                iv_defense=stats.iv_defense,
-                ev_defense=stats.ev_defense,
-                experience=stats.experience,
-                special_attack=stats.special_attack,
-                iv_special_attack=stats.iv_special_attack,
-                ev_special_attack=stats.ev_special_attack,
-                special_defense=stats.special_defense,
-                iv_special_defense=stats.iv_special_defense,
-                ev_special_defense=stats.ev_special_defense,
-                captured_at=datetime.now(),
-                pokemon_id=pokemon.id,
-                trainer_id=trainer.id,
-                formula=stats.formula,
+            captured_pokemon = await self.repository.save(
+                entity=CapturedPokemon(
+                    hp=stats.hp,
+                    wins=stats.wins,
+                    level=stats.level,
+                    iv_hp=stats.iv_hp,
+                    ev_hp=stats.ev_hp,
+                    losses=stats.losses,
+                    max_hp=stats.max_hp,
+                    battles=stats.battles,
+                    nickname=nickname if nickname else pokemon.name,
+                    speed=stats.speed,
+                    iv_speed=stats.iv_speed,
+                    ev_speed=stats.ev_speed,
+                    attack=stats.attack,
+                    iv_attack=stats.iv_attack,
+                    ev_attack=stats.ev_attack,
+                    defense=stats.defense,
+                    iv_defense=stats.iv_defense,
+                    ev_defense=stats.ev_defense,
+                    experience=stats.experience,
+                    special_attack=stats.special_attack,
+                    iv_special_attack=stats.iv_special_attack,
+                    ev_special_attack=stats.ev_special_attack,
+                    special_defense=stats.special_defense,
+                    iv_special_defense=stats.iv_special_defense,
+                    ev_special_defense=stats.ev_special_defense,
+                    captured_at=datetime.now(),
+                    pokemon_id=pokemon.id,
+                    trainer_id=trainer.id,
+                    formula=stats.formula,
+                )
             )
-
-            captured_pokemon = await self.repository.create(create_captured_pokemon)
 
             pokemon_move_business = PokemonMoveBusiness()
             selected_moves = pokemon_move_business.select_random_moves(pokemon.moves)
@@ -108,7 +105,7 @@ class CapturedPokemonService:
     async def fetch_all(
         self,
         trainer_id: str,
-        page_filter: Optional[CapturedPokemonFilterPage] = None,
+        page_filter: Optional[FilterPage] = None,
     ):
         try:
             log_service_success(
@@ -116,8 +113,9 @@ class CapturedPokemonService:
                 operation='fetch_all',
                 message='Fetch All Captured Pokemon successfully',
             )
+
             return await self.repository.list_all(
-                trainer_id=trainer_id, page_filter=page_filter
+                page_filter=FilterPage.build(page_filter, trainer_id=trainer_id)
             )
         except Exception as exception:
             handle_service_exception(
@@ -151,11 +149,9 @@ class CapturedPokemonService:
             if capture_pokemon.nickname:
                 current_nickname = capture_pokemon.nickname
 
-            exist_pokemon = await self.find_by_pokemon(
-                find_capture_pokemon=FindCapturePokemonSchema(
-                    trainer_id=trainer.id,
-                    pokemon_id=pokemon.id,
-                )
+            exist_pokemon = await self.repository.find_by(
+                trainer_id=trainer.id,
+                pokemon_id=pokemon.id,
             )
 
             if exist_pokemon and exist_pokemon.nickname == current_nickname:
@@ -176,28 +172,10 @@ class CapturedPokemonService:
                 operation='capture',
             )
 
-    async def find_by_pokemon(self, find_capture_pokemon: FindCapturePokemonSchema):
-        try:
-            log_service_success(
-                self.logger_params,
-                operation='find_by_pokemon',
-                message='Find Captured Pokemon by pokemon successfully',
-            )
-            return await self.repository.find_by_pokemon(
-                find_capture_pokemon=find_capture_pokemon
-            )
-        except Exception as exception:
-            handle_service_exception(
-                exception,
-                logger=self.logger_params.logger,
-                service=self.logger_params.service,
-                operation='find_by_pokemon',
-            )
-
     async def update(
         self, captured_pokemon_id: str, captured_pokemon_update: PartialCapturedPokemonSchema
     ):
-        captured_pokemon = await self.repository.find_by_id(captured_pokemon_id)
+        captured_pokemon = await self.repository.find_by(id=captured_pokemon_id)
         if not captured_pokemon:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail='Captured Pokemon not found'
@@ -250,7 +228,7 @@ class CapturedPokemonService:
         else:
             pokemons_to_heal = []
             for pokemon_id in heal_pokemons.pokemons:
-                pokemon = await self.repository.find_by_id(pokemon_id)
+                pokemon = await self.repository.find_by(id=pokemon_id)
                 if pokemon and pokemon.trainer_id == trainer_id:
                     pokemons_to_heal.append(pokemon)
 

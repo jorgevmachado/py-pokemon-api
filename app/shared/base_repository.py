@@ -48,6 +48,20 @@ class BaseRepository(Generic[ModelT]):
         if self.default_order_by is not None:
             query = query.order_by(self.default_order_by)
 
+        if page_filter is not None:
+            raw_filters = page_filter.model_dump(exclude_none=True)
+
+            raw_filters.pop('offset', None)
+            raw_filters.pop('limit', None)
+
+            valid_columns = set(self.model.__mapper__.columns.keys())
+            filters = {
+                k: v for k, v in raw_filters.items() if k in valid_columns and v is not None
+            }
+
+            if filters:
+                query = query.filter_by(**filters)
+
         if is_paginate(page_filter):
             params = LimitOffsetParams(
                 limit=limit_paginate(page_filter.limit),
@@ -60,9 +74,13 @@ class BaseRepository(Generic[ModelT]):
     async def find_by(self, **kwargs) -> ModelT | None:
         query = select(self.model)
 
+        valid_columns = set(self.model.__mapper__.columns.keys())
+        filters = {k: v for k, v in kwargs.items() if k in valid_columns and v is not None}
+
         for option in self.relations:
             query = query.options(option)
 
-        query = query.filter_by(**kwargs)
+        if filters:
+            query = query.filter_by(**filters)
 
         return await self.session.scalar(query)

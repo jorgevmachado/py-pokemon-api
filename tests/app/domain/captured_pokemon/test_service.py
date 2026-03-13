@@ -5,12 +5,11 @@ import pytest
 from fastapi import HTTPException
 
 from app.domain.captured_pokemon.schema import (
-    CapturedPokemonFilterPage,
     CapturePokemonHealSchema,
     CapturePokemonSchema,
-    FindCapturePokemonSchema,
     PartialCapturedPokemonSchema,
 )
+from app.shared.schemas import FilterPage
 
 MOCK_EXP_GAINED = 10
 MOCK_EV_AMOUNT = 10
@@ -63,7 +62,7 @@ class TestCapturedPokemonServiceFetchAll:
 
         assert result == expected_result
         captured_pokemon_service.repository.list_all.assert_awaited_once_with(
-            trainer_id=trainer.id, page_filter=None
+            page_filter=FilterPage(trainer_id=trainer.id)
         )
 
     @staticmethod
@@ -74,7 +73,7 @@ class TestCapturedPokemonServiceFetchAll:
     ):
         """Should pass page filter to repository when provided"""
         expected_result = ['entry_1']
-        page_filter = CapturedPokemonFilterPage(limit=10, offset=0)
+        page_filter = FilterPage(limit=10, offset=0, trainer_id=trainer.id)
         captured_pokemon_service.repository.list_all = AsyncMock(return_value=expected_result)
 
         result = await captured_pokemon_service.fetch_all(
@@ -83,7 +82,7 @@ class TestCapturedPokemonServiceFetchAll:
 
         assert result == expected_result
         captured_pokemon_service.repository.list_all.assert_awaited_once_with(
-            trainer_id=trainer.id, page_filter=page_filter
+            page_filter=page_filter
         )
 
     @staticmethod
@@ -97,77 +96,6 @@ class TestCapturedPokemonServiceFetchAll:
 
         with pytest.raises(HTTPException) as exc_info:
             await captured_pokemon_service.fetch_all(trainer_id=trainer.id)
-
-        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert exc_info.value.detail == 'Internal server error'
-
-
-class TestCapturedPokemonServiceFindByPokemon:
-    """Test scope for find_by_pokemon method"""
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_find_by_pokemon_returns_entry(
-        captured_pokemon_service,
-        trainer,
-        pokemon,
-    ):
-        """Should return captured pokemon when found"""
-
-        # Create a captured pokemon first
-        await captured_pokemon_service.create(
-            pokemon=pokemon, trainer=trainer, nickname='test'
-        )
-
-        result = await captured_pokemon_service.find_by_pokemon(
-            find_capture_pokemon=FindCapturePokemonSchema(
-                trainer_id=trainer.id,
-                pokemon_id=pokemon.id,
-            )
-        )
-
-        assert result is not None
-        assert result.pokemon_id == pokemon.id
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_find_by_pokemon_returns_none_when_empty_params(
-        captured_pokemon_service,
-        trainer,
-    ):
-        """Should return None when all parameters are empty"""
-
-        result = await captured_pokemon_service.find_by_pokemon(
-            find_capture_pokemon=FindCapturePokemonSchema(
-                trainer_id=trainer.id,
-                pokemon_id=None,
-                name=None,
-                nickname=None,
-            )
-        )
-
-        assert result is None
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_find_by_pokemon_raises_http_exception_on_error(
-        captured_pokemon_service,
-        trainer,
-        pokemon,
-    ):
-        """Should raise HTTPException when repository fails"""
-
-        captured_pokemon_service.repository.find_by_pokemon = AsyncMock(
-            side_effect=Exception('boom')
-        )
-
-        with pytest.raises(HTTPException) as exc_info:
-            await captured_pokemon_service.find_by_pokemon(
-                find_capture_pokemon=FindCapturePokemonSchema(
-                    trainer_id=trainer.id,
-                    pokemon_id=pokemon.id,
-                )
-            )
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         assert exc_info.value.detail == 'Internal server error'
@@ -191,7 +119,7 @@ class TestCapturedPokemonServiceCapture:
         captured_pokemon_service.pokemon_service.fetch_one = AsyncMock(return_value=pokemon)
 
         expected_result = {'pokemon_id': pokemon.id, 'trainer_id': trainer.id}
-        captured_pokemon_service.find_by_pokemon = AsyncMock(return_value=None)
+        captured_pokemon_service.repository.find_by = AsyncMock(return_value=None)
         captured_pokemon_service.create = AsyncMock(return_value=expected_result)
 
         result = await captured_pokemon_service.capture(
@@ -200,7 +128,7 @@ class TestCapturedPokemonServiceCapture:
         )
 
         assert result == expected_result
-        captured_pokemon_service.find_by_pokemon.assert_awaited_once()
+        captured_pokemon_service.repository.find_by.assert_awaited_once()
         captured_pokemon_service.create.assert_awaited_once_with(
             pokemon=pokemon,
             trainer=trainer,
@@ -221,7 +149,7 @@ class TestCapturedPokemonServiceCapture:
         captured_pokemon_service.pokemon_service.fetch_one = AsyncMock(return_value=pokemon)
 
         existing_pokemon = type('ExistingPokemon', (), {'nickname': 'sparky'})()
-        captured_pokemon_service.find_by_pokemon = AsyncMock(return_value=existing_pokemon)
+        captured_pokemon_service.repository.find_by = AsyncMock(return_value=existing_pokemon)
         captured_pokemon_service.create = AsyncMock(return_value={'ok': True})
 
         await captured_pokemon_service.capture(
@@ -295,7 +223,7 @@ class TestCapturedPokemonServiceCapture:
         trainer.capture_rate = 100
         pokemon.capture_rate = 30
         captured_pokemon_service.pokemon_service.fetch_one = AsyncMock(return_value=pokemon)
-        captured_pokemon_service.find_by_pokemon = AsyncMock(side_effect=Exception('boom'))
+        captured_pokemon_service.repository.find_by = AsyncMock(side_effect=Exception('boom'))
 
         with pytest.raises(HTTPException) as exc_info:
             await captured_pokemon_service.capture(
@@ -325,7 +253,7 @@ class TestCapturedPokemonServiceUpdate:
     @pytest.mark.asyncio
     async def test_update_raises_not_found_when_missing(captured_pokemon_service):
         """Should raise not found when captured pokemon does not exist"""
-        captured_pokemon_service.repository.find_by_id = AsyncMock(return_value=None)
+        captured_pokemon_service.repository.find_by = AsyncMock(return_value=None)
 
         with pytest.raises(HTTPException) as exc_info:
             await captured_pokemon_service.update(
@@ -357,7 +285,7 @@ class TestCapturedPokemonServiceUpdate:
             },
         )()
 
-        captured_pokemon_service.repository.find_by_id = AsyncMock(return_value=captured)
+        captured_pokemon_service.repository.find_by = AsyncMock(return_value=captured)
         captured_pokemon_service.repository.update = AsyncMock(return_value=captured)
 
         update_schema = PartialCapturedPokemonSchema(
@@ -461,7 +389,7 @@ class TestCapturedPokemonServiceHeal:
         )()
         other = type('P', (), {'trainer_id': 'other', 'hp': 2, 'max_hp': 50})()
 
-        captured_pokemon_service.repository.find_by_id = AsyncMock(side_effect=[own, other])
+        captured_pokemon_service.repository.find_by = AsyncMock(side_effect=[own, other])
         captured_pokemon_service.repository.update = AsyncMock()
 
         result = await captured_pokemon_service.heal(

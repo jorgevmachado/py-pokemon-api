@@ -18,6 +18,7 @@ from app.domain.trainer.service import TrainerService
 from app.domain.type.repository import PokemonTypeRepository
 from app.domain.type.service import PokemonTypeService
 from app.shared.status_enum import StatusEnum
+from tests.factories.captured_pokemon import CapturedPokemonFactory
 from tests.factories.growth_rate import PokemonGrowthRateFactory
 from tests.factories.pokedex import PokedexFactory
 from tests.factories.pokemon import PokemonFactory
@@ -155,6 +156,16 @@ async def pokedex(session: AsyncSession, pokemon, trainer):
     await session.refresh(pokedex)
 
     return pokedex
+
+
+@pytest_asyncio.fixture
+async def captured_pokemon(session: AsyncSession, pokemon, trainer):
+    captured_pokemon = CapturedPokemonFactory(pokemon_id=pokemon.id, trainer_id=trainer.id)
+    session.add(captured_pokemon)
+    await session.commit()
+    await session.refresh(captured_pokemon)
+
+    return captured_pokemon
 
 
 @pytest_asyncio.fixture

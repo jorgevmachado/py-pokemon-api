@@ -1,142 +1,22 @@
 from typing import Annotated
 
-from fastapi import Depends, Query
-from fastapi_pagination import LimitOffsetParams
-from fastapi_pagination.ext.sqlalchemy import paginate
-from sqlalchemy import select
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_session
 from app.domain.captured_pokemon.model import CapturedPokemon
-from app.domain.captured_pokemon.schema import (
-    CapturedPokemonFilterPage,
-    CreateCapturedPokemonSchema,
-    FindCapturePokemonSchema,
-)
 from app.domain.pokemon.model import Pokemon
-from app.shared.pagination import is_paginate, limit_paginate
+from app.shared.base_repository import BaseRepository
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
 
-class CapturedPokemonRepository:
-    def __init__(self, session: Session):
-        self.session = session
-
-    async def create(
-        self, create_captured_pokemon: CreateCapturedPokemonSchema
-    ) -> CapturedPokemon:
-        captured_pokemon = CapturedPokemon(
-            hp=create_captured_pokemon.hp,
-            wins=create_captured_pokemon.wins,
-            level=create_captured_pokemon.level,
-            iv_hp=create_captured_pokemon.iv_hp,
-            ev_hp=create_captured_pokemon.ev_hp,
-            losses=create_captured_pokemon.losses,
-            max_hp=create_captured_pokemon.max_hp,
-            battles=create_captured_pokemon.battles,
-            nickname=create_captured_pokemon.nickname,
-            speed=create_captured_pokemon.speed,
-            iv_speed=create_captured_pokemon.iv_speed,
-            ev_speed=create_captured_pokemon.ev_speed,
-            attack=create_captured_pokemon.attack,
-            iv_attack=create_captured_pokemon.iv_attack,
-            ev_attack=create_captured_pokemon.ev_attack,
-            defense=create_captured_pokemon.defense,
-            iv_defense=create_captured_pokemon.iv_defense,
-            ev_defense=create_captured_pokemon.ev_defense,
-            experience=create_captured_pokemon.experience,
-            special_attack=create_captured_pokemon.special_attack,
-            iv_special_attack=create_captured_pokemon.iv_special_attack,
-            ev_special_attack=create_captured_pokemon.ev_special_attack,
-            special_defense=create_captured_pokemon.special_defense,
-            iv_special_defense=create_captured_pokemon.iv_special_defense,
-            ev_special_defense=create_captured_pokemon.ev_special_defense,
-            captured_at=create_captured_pokemon.captured_at,
-            pokemon_id=create_captured_pokemon.pokemon_id,
-            trainer_id=create_captured_pokemon.trainer_id,
-            formula=create_captured_pokemon.formula,
-        )
-        self.session.add(captured_pokemon)
-        await self.session.commit()
-        await self.session.refresh(captured_pokemon)
-        return captured_pokemon
-
-    async def list_all(
-        self,
-        trainer_id: str,
-        page_filter: Annotated[CapturedPokemonFilterPage, Query()] = None,
-    ):
-        query = (
-            select(CapturedPokemon)
-            .options(
-                selectinload(CapturedPokemon.pokemon),
-                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.moves),
-                selectinload(CapturedPokemon.moves),
-            )
-            .order_by(CapturedPokemon.captured_at.desc())
-            .where(CapturedPokemon.trainer_id == trainer_id)
-        )
-
-        if page_filter and page_filter.nickname is not None:
-            query = query.where(CapturedPokemon.nickname.ilike(f'%{page_filter.nickname}%'))
-
-        if is_paginate(page_filter):
-            params = LimitOffsetParams(
-                limit=limit_paginate(page_filter.limit),
-                offset=page_filter.offset,
-            )
-            return await paginate(self.session, query, params=params)
-        captured_pokemons = await self.session.scalars(query)
-        return captured_pokemons.all()
-
-    async def find_by_pokemon(self, find_capture_pokemon: FindCapturePokemonSchema):
-        if (
-            find_capture_pokemon.pokemon_id is None
-            and find_capture_pokemon.name is None
-            and find_capture_pokemon.nickname is None
-        ):
-            return None
-
-        query = (
-            select(CapturedPokemon)
-            .options(
-                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.moves),
-                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.types),
-                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.growth_rate),
-            )
-            .where(CapturedPokemon.trainer_id == find_capture_pokemon.trainer_id)
-        )
-
-        if find_capture_pokemon.pokemon_id is not None:
-            query = query.where(CapturedPokemon.pokemon_id == find_capture_pokemon.pokemon_id)
-
-        if find_capture_pokemon.name is not None:
-            query = query.where(CapturedPokemon.pokemon.has(name=find_capture_pokemon.name))
-
-        if find_capture_pokemon.nickname is not None:
-            query = query.where(
-                CapturedPokemon.nickname.ilike(f'%{find_capture_pokemon.nickname}%')
-            )
-
-        return await self.session.scalar(query)
-
-    async def update(self, captured_pokemon: CapturedPokemon):
-        await self.session.merge(captured_pokemon)
-        await self.session.commit()
-        await self.session.refresh(captured_pokemon)
-        return captured_pokemon
-
-    async def find_by_id(self, captured_pokemon_id: str) -> CapturedPokemon:
-        query = (
-            select(CapturedPokemon)
-            .options(
-                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.moves),
-                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.types),
-                selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.growth_rate),
-            )
-            .where(CapturedPokemon.id == captured_pokemon_id)
-        )
-
-        return await self.session.scalar(query)
+class CapturedPokemonRepository(BaseRepository[CapturedPokemon]):
+    model = CapturedPokemon
+    default_order_by = 'captured_at'
+    relations = (
+        selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.moves),
+        selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.types),
+        selectinload(CapturedPokemon.pokemon).selectinload(Pokemon.growth_rate),
+    )
