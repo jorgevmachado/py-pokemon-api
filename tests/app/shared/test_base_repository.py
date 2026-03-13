@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from sqlalchemy.orm import selectinload
 
+from app.domain.pokedex.model import Pokedex
 from app.domain.pokemon.model import Pokemon
 from app.shared.base_repository import BaseRepository
 from app.shared.schemas import FilterPage
@@ -13,6 +14,10 @@ class PokemonBaseRepository(BaseRepository[Pokemon]):
     model = Pokemon
     relations = (selectinload(Pokemon.moves),)
     default_order_by = 'order'
+
+
+class PokedexBaseRepository(BaseRepository[Pokedex]):
+    model = Pokedex
 
 
 class TestBaseRepositoryTotal:
@@ -124,6 +129,26 @@ class TestBaseRepositoryListAll:
         assert called_params.limit == result_limit
         assert called_params.offset == 0
 
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_list_all_applies_filter_by_from_page_filter():
+        expected_items = ['pikachu']
+        scalars_result = Mock()
+        scalars_result.all.return_value = expected_items
+
+        mock_session = AsyncMock()
+        mock_session.scalars = AsyncMock(return_value=scalars_result)
+
+        repository = PokemonBaseRepository(session=mock_session)
+
+        with patch('app.shared.base_repository.is_paginate', return_value=False):
+            result = await repository.list_all(page_filter=FilterPage.build(name='pikachu'))
+
+        query = mock_session.scalars.await_args.args[0]
+
+        assert result == expected_items
+        assert 'pokemon.name' in str(query)
+
 
 class TestBaseRepositoryFindBy:
     @staticmethod
@@ -138,3 +163,30 @@ class TestBaseRepositoryFindBy:
 
         assert result == expected_entity
         mock_session.scalar.assert_awaited_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_returns_none_when_no_valid_filters_are_provided():
+        mock_session = AsyncMock()
+        repository = PokemonBaseRepository(session=mock_session)
+
+        result = await repository.find_by(name=None, order=None)
+
+        assert result is None
+        mock_session.scalar.assert_not_called()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_aply_special_pokemon_name_filter_when_model_has_pokemon_relation():
+        expected_entity = types.SimpleNamespace(id='pokedex-id')
+        mock_session = AsyncMock()
+        mock_session.scalar = AsyncMock(return_value=expected_entity)
+
+        repository = PokedexBaseRepository(session=mock_session)
+
+        result = await repository.find_by(trainer_id='trainer-id', pokemon_name='pikachu')
+        query = mock_session.scalar.await_args.args[0]
+
+        assert result == expected_entity
+        assert 'pokemon.name' in str(query)
+        assert 'pokedex.trainer_id' in str(query)

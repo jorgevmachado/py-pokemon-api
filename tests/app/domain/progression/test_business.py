@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from app.domain.battle.schema import AttackResult, BattleSchema
 from app.domain.progression.business import PokemonProgressionBusiness
 from app.domain.progression.schema import ProgressionResult, StatBlock
@@ -7,6 +9,8 @@ from tests.factories.pokemon import PokemonFactory
 MIN_IV_EV = 0
 MAX_IV = 31
 MAX_EV = 255
+MOCK_MAX_EV_PER_STAT = 252
+MOCK_EV_BUDGET_REMAINDER = 6
 
 ATTACK_DAMAGE = 5
 BASE_EXPERIENCE = 50
@@ -86,6 +90,22 @@ class TestPokemonProgressionBusinessCalculateEvs:
         assert MIN_IV_EV <= result.defense <= MAX_EV, 'EV should be between 0 and 255'
         assert MIN_IV_EV <= result.special_attack <= MAX_EV, 'EV should be between 0 and 255'
         assert MIN_IV_EV <= result.special_defense <= MAX_EV, 'EV should be between 0 and 255'
+
+    @staticmethod
+    def test_calculate_evs_stops_when_budget_exhausted():
+        """Should break early and leave remaining stats at zero when is exhausted"""
+        with patch(
+            'app.domain.progression.business.random.randint',
+            side_effect=lambda a, b: b,
+        ):
+            result = PokemonProgressionBusiness._calculate_evs()
+
+        assert result.hp == MOCK_MAX_EV_PER_STAT
+        assert result.speed == MOCK_MAX_EV_PER_STAT
+        assert result.attack == MOCK_EV_BUDGET_REMAINDER
+        assert result.defense == ZERO_VALUE
+        assert result.special_attack == ZERO_VALUE
+        assert result.special_defense == ZERO_VALUE
 
 
 class TestPokemonProgressionBusinessCalculateStat:

@@ -9,16 +9,14 @@ from app.core.logging import LoggingParams, log_service_success
 from app.domain.pokedex.model import Pokedex
 from app.domain.pokedex.repository import PokedexRepository
 from app.domain.pokedex.schema import (
-    CreatePokedexSchema,
-    FindPokedexSchema,
     PartialPokedexSchema,
-    PokedexFilterPage,
 )
 from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.service import PokemonService
 from app.domain.progression.business import PokemonProgressionBusiness
 from app.domain.trainer.model import Trainer
 from app.shared.exceptions import handle_service_exception
+from app.shared.schemas import FilterPage
 
 Repository = Annotated[PokedexRepository, Depends()]
 PokemonService = Annotated[PokemonService, Depends()]
@@ -38,44 +36,45 @@ class PokedexService:
         try:
             stats = self.business.initialize_stats(pokemon=pokemon)
 
-            create_pokedex = CreatePokedexSchema(
-                hp=stats.hp,
-                wins=stats.wins,
-                level=stats.level,
-                iv_hp=stats.iv_hp,
-                ev_hp=stats.ev_hp,
-                losses=stats.losses,
-                max_hp=stats.max_hp,
-                battles=stats.battles,
-                nickname=pokemon.name,
-                speed=stats.speed,
-                iv_speed=stats.iv_speed,
-                ev_speed=stats.ev_speed,
-                attack=stats.attack,
-                iv_attack=stats.iv_attack,
-                ev_attack=stats.ev_attack,
-                defense=stats.defense,
-                iv_defense=stats.iv_defense,
-                ev_defense=stats.ev_defense,
-                experience=stats.experience,
-                special_attack=stats.special_attack,
-                iv_special_attack=stats.iv_special_attack,
-                ev_special_attack=stats.ev_special_attack,
-                special_defense=stats.special_defense,
-                iv_special_defense=stats.iv_special_defense,
-                ev_special_defense=stats.ev_special_defense,
-                discovered=discovered,
-                discovered_at=None,
-                pokemon_id=pokemon.id,
-                trainer_id=trainer_id,
-                formula=stats.formula,
-            )
             log_service_success(
                 self.logger_params,
                 operation='initialize_pokemon',
                 message='Initialize Pokedex successfully',
             )
-            return await self.repository.create(create_pokedex)
+            return await self.repository.save(
+                entity=Pokedex(
+                    hp=stats.hp,
+                    wins=stats.wins,
+                    level=stats.level,
+                    iv_hp=stats.iv_hp,
+                    ev_hp=stats.ev_hp,
+                    losses=stats.losses,
+                    max_hp=stats.max_hp,
+                    battles=stats.battles,
+                    nickname=pokemon.name,
+                    speed=stats.speed,
+                    iv_speed=stats.iv_speed,
+                    ev_speed=stats.ev_speed,
+                    attack=stats.attack,
+                    iv_attack=stats.iv_attack,
+                    ev_attack=stats.ev_attack,
+                    defense=stats.defense,
+                    iv_defense=stats.iv_defense,
+                    ev_defense=stats.ev_defense,
+                    experience=stats.experience,
+                    special_attack=stats.special_attack,
+                    iv_special_attack=stats.iv_special_attack,
+                    ev_special_attack=stats.ev_special_attack,
+                    special_defense=stats.special_defense,
+                    iv_special_defense=stats.iv_special_defense,
+                    ev_special_defense=stats.ev_special_defense,
+                    discovered=discovered,
+                    discovered_at=None,
+                    pokemon_id=pokemon.id,
+                    trainer_id=trainer_id,
+                    formula=stats.formula,
+                )
+            )
         except Exception as exception:
             handle_service_exception(
                 exception,
@@ -96,7 +95,7 @@ class PokedexService:
             new_entries: list[Pokedex] = []
             pokemon_name = pokemon.name if pokemon else None
 
-            existing_pokemon_ids = await self.repository.find_by_trainer(trainer.id)
+            existing_pokemon_ids = await self.repository.find_by(trainer_id=trainer.id)
 
             for item in pokemons:
                 if item.id in existing_pokemon_ids:
@@ -127,7 +126,7 @@ class PokedexService:
     async def fetch_all(
         self,
         trainer_id: str,
-        page_filter: Annotated[PokedexFilterPage, Query()] = None,
+        page_filter: Annotated[FilterPage, Query()] = None,
     ):
         try:
             log_service_success(
@@ -136,7 +135,7 @@ class PokedexService:
                 message='Fetch all Pokedex successfully',
             )
             return await self.repository.list_all(
-                trainer_id=trainer_id, page_filter=page_filter
+                page_filter=FilterPage.build(page_filter, trainer_id=trainer_id)
             )
         except Exception as exception:
             handle_service_exception(
@@ -150,8 +149,8 @@ class PokedexService:
         total_not_exist = 0
         new_entries: list[Pokedex] = []
         for pokemon in pokemons:
-            exist_pokedex = await self.repository.find_by_pokemon(
-                FindPokedexSchema(trainer_id=trainer_id, pokemon_id=pokemon.id)
+            exist_pokedex = await self.repository.find_by(
+                trainer_id=trainer_id, pokemon_id=pokemon.id
             )
             if not exist_pokedex:
                 total_not_exist += 1
@@ -171,26 +170,24 @@ class PokedexService:
         )
         return new_entries
 
-    async def find_by_pokemon(self, find_pokedex: FindPokedexSchema):
+    async def find_by(self, **kwargs):
         try:
             log_service_success(
                 self.logger_params,
-                operation='find_by_pokemon',
-                message='Find by pokemon Pokedex successfully',
+                operation='find_by',
+                message='Find by Pokedex successfully',
             )
-            return await self.repository.find_by_pokemon(find_pokedex=find_pokedex)
+            return await self.repository.find_by(**kwargs)
         except Exception as exception:
             handle_service_exception(
                 exception,
                 logger=self.logger_params.logger,
                 service=self.logger_params.service,
-                operation='find_by_pokemon',
+                operation='find_by',
             )
 
     async def discovered(self, trainer_id: str, pokemon: Pokemon, discovered: bool):
-        pokedex = await self.find_by_pokemon(
-            find_pokedex=FindPokedexSchema(trainer_id=trainer_id, pokemon_id=pokemon.id)
-        )
+        pokedex = await self.find_by(trainer_id=trainer_id, pokemon_id=pokemon.id)
 
         if not pokedex.discovered:
             pokedex.discovered = discovered
@@ -240,9 +237,7 @@ class PokedexService:
     async def discover(self, trainer_id: str, pokemon_name: str):
         pokemon = await self.pokemon_service.fetch_one(name=pokemon_name)
 
-        pokedex = await self.find_by_pokemon(
-            find_pokedex=FindPokedexSchema(trainer_id=trainer_id, pokemon_id=pokemon.id)
-        )
+        pokedex = await self.find_by(trainer_id=trainer_id, pokemon_id=pokemon.id)
 
         if not pokedex.discovered:
             pokedex.discovered = True
@@ -289,7 +284,7 @@ class PokedexService:
         return pokedex
 
     async def update(self, pokedex_id: str, pokedex_update: PartialPokedexSchema):
-        pokedex = await self.repository.find_by_id(pokedex_id)
+        pokedex = await self.repository.find_by(id=pokedex_id)
         if not pokedex:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='Pokedex not found')
 

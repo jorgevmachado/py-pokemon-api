@@ -187,7 +187,8 @@ class TestPokemonBattleServiceGetOpponentPokemon:
         pokedex_service = AsyncMock()
         pokemon_service = AsyncMock()
 
-        pokedex_service.find_by_pokemon = AsyncMock(return_value=None)
+        pokedex_service.find_by = AsyncMock(return_value=None)
+        pokedex_service.discover = AsyncMock()
 
         service = PokemonBattleService(
             captured_pokemon_service=captured_service,
@@ -203,6 +204,11 @@ class TestPokemonBattleServiceGetOpponentPokemon:
 
         assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
         assert exc_info.value.detail == 'Opponent Pokedex Pokemon not found'
+        pokedex_service.find_by.assert_awaited_once_with(
+            trainer_id='trainer-id',
+            name='charizard',
+        )
+        pokedex_service.discover.assert_not_awaited()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -215,7 +221,8 @@ class TestPokemonBattleServiceGetOpponentPokemon:
         mock_pokedex = MagicMock()
         mock_pokedex.discovered = True
         mock_pokedex.pokemon.moves = [MOCK_MOVE]
-        pokedex_service.find_by_pokemon = AsyncMock(return_value=mock_pokedex)
+        pokedex_service.find_by = AsyncMock(return_value=mock_pokedex)
+        pokedex_service.discover = AsyncMock()
 
         service = PokemonBattleService(
             captured_pokemon_service=captured_service,
@@ -233,6 +240,11 @@ class TestPokemonBattleServiceGetOpponentPokemon:
 
         assert isinstance(result, GetBattlePokemonSchema)
         assert result.pokemon == MOCK_BATTLE_SCHEMA
+        pokedex_service.find_by.assert_awaited_once_with(
+            trainer_id='trainer-id',
+            name='charizard',
+        )
+        pokedex_service.discover.assert_not_awaited()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -245,7 +257,7 @@ class TestPokemonBattleServiceGetOpponentPokemon:
         mock_pokedex = MagicMock()
         mock_pokedex.discovered = False
         mock_pokedex.pokemon.moves = [MOCK_MOVE]
-        pokedex_service.find_by_pokemon = AsyncMock(return_value=mock_pokedex)
+        pokedex_service.find_by = AsyncMock(return_value=mock_pokedex)
 
         mock_discovered = MagicMock()
         mock_discovered.pokemon.moves = [MOCK_MOVE]
@@ -266,7 +278,14 @@ class TestPokemonBattleServiceGetOpponentPokemon:
         )
 
         assert isinstance(result, GetBattlePokemonSchema)
-        pokedex_service.discover.assert_awaited_once()
+        pokedex_service.find_by.assert_awaited_once_with(
+            trainer_id='trainer-id',
+            name='charizard',
+        )
+        pokedex_service.discover.assert_awaited_once_with(
+            trainer_id='trainer-id',
+            pokemon_name='charizard',
+        )
 
 
 class TestPokemonBattleServiceGetOpponentPokemonMove:

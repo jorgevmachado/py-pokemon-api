@@ -18,7 +18,7 @@ from app.domain.captured_pokemon.service import CapturedPokemonService, PokemonS
 from app.domain.move.business import PokemonMoveBusiness
 from app.domain.move.model import PokemonMove
 from app.domain.pokedex.model import Pokedex
-from app.domain.pokedex.schema import FindPokedexSchema, PartialPokedexSchema
+from app.domain.pokedex.schema import PartialPokedexSchema
 from app.domain.pokedex.service import PokedexService
 from app.domain.progression.business import PokemonProgressionBusiness
 from app.domain.progression.schema import StatBlock
@@ -191,8 +191,8 @@ class PokemonBattleService:
         self, trainer_id: str, pokemon_name: str, pokemon_move: Optional[str] = None
     ) -> GetBattlePokemonSchema:
 
-        opponent_pokemon = await self.pokedex_service.find_by_pokemon(
-            FindPokedexSchema(trainer_id=trainer_id, name=pokemon_name)
+        opponent_pokemon = await self.pokedex_service.find_by(
+            trainer_id=trainer_id, name=pokemon_name
         )
 
         if not opponent_pokemon:

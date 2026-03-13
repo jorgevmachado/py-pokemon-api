@@ -74,15 +74,26 @@ class BaseRepository(Generic[ModelT]):
     async def find_by(self, **kwargs) -> ModelT | None:
         query = select(self.model)
 
+        has_special_filter = False
+        pokemon_name = kwargs.pop('pokemon_name', None)
+        if (
+            pokemon_name is not None
+            and hasattr(self.model, 'pokemon_id')
+            and hasattr(self.model, 'pokemon')
+        ):
+            query = query.where(self.model.pokemon.has(name=pokemon_name))
+            has_special_filter = True
+
         valid_columns = set(self.model.__mapper__.columns.keys())
         filters = {k: v for k, v in kwargs.items() if k in valid_columns and v is not None}
 
-        if not filters:
+        if not filters and not has_special_filter:
             return None
 
         for option in self.relations:
             query = query.options(option)
 
-        query = query.filter_by(**filters)
+        if filters:
+            query = query.filter_by(**filters)
 
         return await self.session.scalar(query)
