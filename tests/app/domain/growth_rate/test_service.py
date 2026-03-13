@@ -24,12 +24,13 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
             name='slow',
             order=MOCK_GROWTH_RATE_ORDER,
             formula='\\frac{5x^3}{4}',
+            description='Slow growth rate description',
         )
         response_growth_rate = PokemonExternalBase(
             name='slow', url='https://pokeapi.co/api/v2/growth-rate/1/'
         )
 
-        pokemon_growth_rate_service.repository.find_one_by_order = AsyncMock(
+        pokemon_growth_rate_service.repository.find_by = AsyncMock(
             return_value=pokemon_growth_rate
         )
         result = await pokemon_growth_rate_service.verify_pokemon_growth_rate(
@@ -40,7 +41,7 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
         assert result.name == 'slow'
         assert result.order == MOCK_GROWTH_RATE_ORDER
         assert result.formula == '\\frac{5x^3}{4}'
-        pokemon_growth_rate_service.repository.find_one_by_order.assert_called_once_with(
+        pokemon_growth_rate_service.repository.find_by.assert_called_once_with(
             order=MOCK_GROWTH_RATE_ORDER
         )
 
@@ -69,10 +70,11 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
             name='slow',
             order=pokemon_growth_rate_order,
             formula='\\frac{5x^3}{4}',
+            description='Slow growth rate description',
         )
 
-        pokemon_growth_rate_service.repository.find_one_by_order = AsyncMock(return_value=None)
-        pokemon_growth_rate_service.repository.create = AsyncMock(
+        pokemon_growth_rate_service.repository.find_by = AsyncMock(return_value=None)
+        pokemon_growth_rate_service.repository.save = AsyncMock(
             return_value=pokemon_growth_rate
         )
 
@@ -94,8 +96,8 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
         assert result.name == 'slow'
         assert result.order == pokemon_growth_rate_order
         assert result.formula == '\\frac{5x^3}{4}'
-        pokemon_growth_rate_service.repository.find_one_by_order.assert_called_once()
-        pokemon_growth_rate_service.repository.create.assert_called_once()
+        pokemon_growth_rate_service.repository.find_by.assert_called_once()
+        pokemon_growth_rate_service.repository.save.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -108,7 +110,7 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
             url='https://pokeapi.co/api/v2/growth-rate/999/',
         )
 
-        pokemon_growth_rate_service.repository.find_one_by_order = AsyncMock(return_value=None)
+        pokemon_growth_rate_service.repository.find_by = AsyncMock(return_value=None)
 
         with patch.object(
             pokemon_growth_rate_service.external_service,
@@ -120,7 +122,7 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
             )
 
         assert result is None
-        pokemon_growth_rate_service.repository.find_one_by_order.assert_called_once()
+        pokemon_growth_rate_service.repository.find_by.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -144,10 +146,11 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
             name='medium',
             order=2,
             formula='x^3',
+            description='Medium growth rate description',
         )
 
-        pokemon_growth_rate_service.repository.find_one_by_order = AsyncMock(return_value=None)
-        pokemon_growth_rate_service.repository.create = AsyncMock(
+        pokemon_growth_rate_service.repository.find_by = AsyncMock(return_value=None)
+        pokemon_growth_rate_service.repository.save = AsyncMock(
             return_value=pokemon_growth_rate
         )
 
@@ -169,7 +172,7 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
 
         assert result is not None
         mock_ensure_description.assert_called_once_with(external_growth_rate_data.descriptions)
-        pokemon_growth_rate_service.repository.create.assert_called_once()
+        pokemon_growth_rate_service.repository.save.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio
@@ -179,7 +182,7 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
             name='slow', url='https://pokeapi.co/api/v2/growth-rate/1/'
         )
 
-        pokemon_growth_rate_service.repository.find_one_by_order = AsyncMock(
+        pokemon_growth_rate_service.repository.find_by = AsyncMock(
             side_effect=Exception('Database error')
         )
         result = await pokemon_growth_rate_service.verify_pokemon_growth_rate(
@@ -187,7 +190,7 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
         )
 
         assert not result
-        pokemon_growth_rate_service.repository.find_one_by_order.assert_called_once()
+        pokemon_growth_rate_service.repository.find_by.assert_called_once()
 
     @staticmethod
     @pytest.mark.asyncio

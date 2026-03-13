@@ -36,7 +36,7 @@ class PokemonGrowthRateService:
             url = growth_rate.url
             order = ensure_order_number(url)
 
-            db_pokemon_growth_rate = await self.repository.find_one_by_order(order=order)
+            db_pokemon_growth_rate = await self.repository.find_by(order=order)
             if db_pokemon_growth_rate:
                 log_service_success(
                     self.logger_params, message='Pokemon Growth Rate exist in database!'
@@ -58,17 +58,17 @@ class PokemonGrowthRateService:
                 external_growth_rate_data.descriptions
             )
 
-            pokemon_growth_rate_data = CreatePokemonGrowthRateSchema(
-                url=url,
-                name=external_growth_rate_data.name,
-                order=order,
-                formula=external_growth_rate_data.formula,
-                description=description,
-            )
-
             log_service_success(self.logger_params, message='Pokemon Growth Rate create!')
 
-            return await self.repository.create(pokemon_growth_rate_data)
+            return await self.repository.save(
+                entity=PokemonGrowthRate(
+                    url=url,
+                    name=external_growth_rate_data.name,
+                    order=order,
+                    formula=external_growth_rate_data.formula,
+                    description=description,
+                )
+            )
         except Exception as exception:
             handle_service_exception(
                 exception,

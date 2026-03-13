@@ -18,6 +18,7 @@ from app.domain.trainer.service import TrainerService
 from app.domain.type.repository import PokemonTypeRepository
 from app.domain.type.service import PokemonTypeService
 from app.shared.status_enum import StatusEnum
+from tests.factories.growth_rate import PokemonGrowthRateFactory
 from tests.factories.pokedex import PokedexFactory
 from tests.factories.pokemon import PokemonFactory
 from tests.factories.pokemon_ability import PokemonAbilityFactory
@@ -183,3 +184,17 @@ async def pokemon_type(session: AsyncSession):
     await session.refresh(pokemon_type)
 
     return pokemon_type
+
+@pytest_asyncio.fixture
+async def pokemon_growth_rate(session: AsyncSession):
+    pokemon_growth_rate = PokemonGrowthRateFactory(
+        order=1,
+        name='slow',
+        formula='((x / 255) * 100)',
+        description='Slow growth rate description'
+    )
+    session.add(pokemon_growth_rate)
+    await session.commit()
+    await session.refresh(pokemon_growth_rate)
+
+    return pokemon_growth_rate

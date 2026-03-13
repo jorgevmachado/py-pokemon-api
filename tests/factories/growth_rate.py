@@ -12,3 +12,4 @@ class PokemonGrowthRateFactory(factory.Factory):
     name = Faker('name')
     order = factory.Sequence(lambda n: n)
     formula = '\\frac{6x^3}{5} - 15x^2 + 100x - 140'
+    description = Faker('text')
