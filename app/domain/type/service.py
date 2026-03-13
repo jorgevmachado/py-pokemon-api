@@ -13,7 +13,6 @@ from app.domain.type.business import PokemonTypeBusiness
 from app.domain.type.model import PokemonType
 from app.domain.type.repository import PokemonTypeRepository
 from app.domain.type.schema import (
-    CreatePokemonTypeSchema,
     ValidatePokemonTypeDamageRelationSchema,
 )
 from app.shared.exceptions import handle_service_exception
@@ -40,7 +39,7 @@ class PokemonTypeService:
                 url = type_response.type.url
                 order = ensure_order_number(url)
 
-                db_pokemon_type = await self.repository.find_one_by_order(order=order)
+                db_pokemon_type = await self.repository.find_by(order=order)
                 if db_pokemon_type:
                     result_pokemon_type.append(db_pokemon_type)
                     continue
@@ -111,9 +110,9 @@ class PokemonTypeService:
         url = pokemon_type.url
         order = ensure_order_number(url)
 
-        existing_type = await self.repository.find_one_by_order(order=order)
+        existing_type = await self.repository.find_by(order=order)
         if not existing_type:
-            existing_type = await self.repository.find_one(name=pokemon_type.name)
+            existing_type = await self.repository.find_by(name=pokemon_type.name)
 
         if existing_type:
             if (
@@ -135,16 +134,18 @@ class PokemonTypeService:
             return existing_type
 
         type_colors = PokemonTypeBusiness().ensure_colors(pokemon_type.name)
-        pokemon_type_data = CreatePokemonTypeSchema(
-            url=url,
-            name=pokemon_type.name,
-            order=order,
-            text_color=type_colors.text_color,
-            background_color=type_colors.background_color,
-        )
+
         log_service_success(
             self.logger_params,
             operation='persist',
             message='Persist Type when not exist successfully',
         )
-        return await self.repository.create(pokemon_type_data)
+        return await self.repository.save(
+            entity=PokemonType(
+                url=url,
+                name=pokemon_type.name,
+                order=order,
+                text_color=type_colors.text_color,
+                background_color=type_colors.background_color,
+            )
+        )

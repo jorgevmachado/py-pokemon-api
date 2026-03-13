@@ -1023,6 +1023,7 @@ class TestPokemonServiceCompletePokemonData:
             order=1,
             url='https://pokeapi.co/api/v2/growth-rate/4/',
             formula='x^3',
+            description='Growth rate for medium-slow Pokémon',
         )
         growth_rate.id = 'growth-rate-id'
         external_pokemon = SimpleNamespace(
