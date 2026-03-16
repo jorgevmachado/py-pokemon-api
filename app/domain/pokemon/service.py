@@ -17,6 +17,7 @@ from app.domain.pokemon.schema import (
     FirstPokemonSchemaResult,
     GeneratePokemonRelationshipSchema,
     GeneratePokemonRelationshipSchemaResult,
+    PokemonFilterPage,
     PokemonSchema,
 )
 from app.domain.type.service import PokemonTypeService
@@ -53,6 +54,52 @@ class PokemonService:
         self.logger_params = LoggingParams(logger=logger, service='pokemon', operation='')
         self.pokemon_cache_service = PokemonCacheService(logger_params=self.logger_params)
 
+    async def _rebuild_catalog_cache(self) -> list[PokemonSchema]:
+        pokemons = await self.repository.list_all()
+        await self.pokemon_cache_service.cache_catalog(pokemons=pokemons)
+        return await self.pokemon_cache_service.get_catalog()
+
+    async def _ensure_list_synced(self) -> list[PokemonSchema]:
+
+        cached_catalog = await self.pokemon_cache_service.get_catalog()
+
+        cached_meta = await self.pokemon_cache_service.get_meta()
+        print(f'cached_catalog => {cached_catalog}')
+        if cached_catalog and cached_meta:
+            return cached_catalog
+
+        db_total = await self.repository.total()
+
+        external_total = await self.external_service.pokemon_external_total()
+
+        if not cached_catalog:
+            cached_catalog = await self._rebuild_catalog_cache()
+
+        if db_total == 0:
+            created_pokemons = await self.initialize_database(
+                total=0,
+                external_total=external_total,
+            )
+            if cached_catalog and created_pokemons:
+                await self.pokemon_cache_service.cache_catalog(pokemons=created_pokemons)
+
+        if external_total > db_total:
+            new_pokemons = await self.initialize_database(
+                total=external_total,
+                external_total=external_total,
+            )
+
+            if cached_catalog and new_pokemons:
+                await self.pokemon_cache_service.cache_catalog_append(pokemons=new_pokemons)
+            db_total = await self.repository.total()
+
+        await self.pokemon_cache_service.cache_meta(
+            db_total=db_total,
+            external_total=external_total,
+        )
+
+        return cached_catalog
+
     async def total(self) -> int:
         log_service_success(
             self.logger_params, operation='total', message='Total Pokémon successfully'
@@ -61,15 +108,33 @@ class PokemonService:
 
     async def list_all(
         self,
-        page_filter: Annotated[FilterPage, Query()] = None,
+        page_filter: Annotated[PokemonFilterPage, Query()] = None,
     ):
         try:
+            cached_catalog = await self._ensure_list_synced()
+            print(f'cached_catalog => {cached_catalog}')
+
+            if cached_catalog:
+                log_service_success(
+                    self.logger_params,
+                    operation='list_all',
+                    message='List all Pokémon from cache successfully',
+                )
+                return self.business.filter_and_paginate_catalog(
+                    catalog=cached_catalog, page_filter=page_filter
+                )
+            print('IM HERE')
+            pokemons = await self._rebuild_catalog_cache()
+
             log_service_success(
                 self.logger_params,
                 operation='list_all',
                 message='List all Pokémon successfully',
             )
-            return await self.repository.list_all(page_filter=page_filter)
+            return self.business.filter_and_paginate_catalog(
+                catalog=pokemons, page_filter=page_filter
+            )
+
         except Exception as exception:
             handle_service_exception(
                 exception,
@@ -106,11 +171,15 @@ class PokemonService:
             )
         return exception_pagination(page_filter)
 
-    async def initialize_database(self, total: int = 0) -> list[Pokemon]:
+    async def initialize_database(
+        self,
+        total: int = 0,
+        external_total: int = POKEMON_TOTAL_LIMIT,
+    ) -> list[Pokemon]:
         try:
             external_data = await self.external_service.pokemon_external_list(
                 offset=0,
-                limit=POKEMON_TOTAL_LIMIT,
+                limit=external_total,
             )
 
             if total == 0:

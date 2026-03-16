@@ -73,7 +73,7 @@ class TestPokemonExternalServiceListTotal:
                     'name': 'ivysaur',
                     'url': 'https://pokeapi.co/api/v2/pokemon/2/',
                 },
-            ]
+            ],
         }
 
         mock_response = MagicMock()
@@ -95,13 +95,9 @@ class TestPokemonExternalServiceListTotal:
     @pytest.mark.asyncio
     async def test_pokemon_external_total_no_results_key():
         """Should raise HTTPException when results key is missing"""
-        offset = 0
-        limit = 2
-
         mock_response = MagicMock()
         mock_response.json.return_value = {}
         mock_response.raise_for_status.return_value = None
-        text_detail = 'Failed to execute external request'
 
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
@@ -111,7 +107,6 @@ class TestPokemonExternalServiceListTotal:
             mock_client_class.return_value = mock_client
 
             result = await PokemonExternalService.pokemon_external_total()
-
 
         assert result is None
 
@@ -136,6 +131,7 @@ class TestPokemonExternalServiceListTotal:
 
         assert exc_info.value.status_code == HTTPStatus.SERVICE_UNAVAILABLE
         assert text_detail in exc_info.value.detail
+
 
 class TestPokemonExternalServiceList:
     """Test scope for pokemon_external_list method"""

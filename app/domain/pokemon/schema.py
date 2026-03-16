@@ -16,6 +16,7 @@ from app.domain.pokemon.model import Pokemon
 from app.domain.type.model import PokemonType
 from app.domain.type.schema import PokemonTypeSchema
 from app.shared.enums.status_enum import StatusEnum
+from app.shared.schemas import FilterPage
 
 
 class PokemonEvolutionSchema(BaseModel):
@@ -149,3 +150,10 @@ class FirstPokemonSchemaResult(BaseModel):
 
     pokemon: Optional[Pokemon] = None
     pokemons: list[Pokemon] = []
+
+
+class PokemonFilterPage(FilterPage):
+    model_config = ConfigDict(from_attributes=True)
+
+    name: Optional[str] = None
+    status: Optional[StatusEnum] = None

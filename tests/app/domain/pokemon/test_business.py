@@ -1,6 +1,5 @@
 from datetime import datetime
 
-from app.domain.growth_rate.model import PokemonGrowthRate
 from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
@@ -10,7 +9,7 @@ from app.domain.pokemon.external.schemas.evolution import (
     PokemonExternalEvolutionChainSchemaResponse,
 )
 from app.domain.pokemon.model import Pokemon
-from app.domain.pokemon.schema import PokemonSchema
+from app.domain.pokemon.schema import PokemonFilterPage, PokemonSchema
 from app.shared.enums.status_enum import StatusEnum
 
 MOCK_BULBASAUR_HP_UPDATED = 50
@@ -855,680 +854,349 @@ class TestPokemonBusinessGetRandomPokemon:
         assert result.order in MOCK_VARIOUS_ORDERS
 
 
-class TestPokemonBusinessCalculateStats:
-    """Test scope for calculate_pokemon_stats method"""
+class TestPokemonBusinessFilterAndPaginateCatalog:
+    """Test scope for filter_and_paginate_catalog and _matches_filter methods"""
 
     @staticmethod
-    def test_calculate_pokemon_stats_returns_dict():
-        """Should return a dictionary with calculated stats"""
+    def test_filter_and_paginate_catalog_no_filters():
+        """Should return all items when no filters are provided"""
+        result_len = 2
         business = PokemonBusiness()
-        pokemon = Pokemon(
-            name='bulbasaur',
-            order=1,
-            url='https://pokeapi.co/api/v2/pokemon/1/',
-            status=StatusEnum.COMPLETE,
-            external_image='https://example.com/1.png',
-            hp=45,
-            attack=49,
-            defense=49,
-            special_attack=65,
-            special_defense=65,
-            speed=45,
-        )
-
-        result = business.calculate_pokemon_stats(pokemon=pokemon, level=1)
-
-        assert isinstance(result, dict)
-        assert 'hp' in result
-        assert 'attack' in result
-        assert 'defense' in result
-        assert 'level' in result
-        assert 'experience' in result
-
-    @staticmethod
-    def test_calculate_pokemon_stats_with_none_pokemon():
-        """Should return empty dict when pokemon is None"""
-        business = PokemonBusiness()
-        result = business.calculate_pokemon_stats(pokemon=None, level=1)
-
-        assert result == {}
-
-    @staticmethod
-    def test_calculate_pokemon_stats_default_level():
-        """Should use level 1 as default"""
-        business = PokemonBusiness()
-        pokemon = Pokemon(
-            name='pikachu',
-            order=25,
-            url='https://pokeapi.co/api/v2/pokemon/25/',
-            status=StatusEnum.COMPLETE,
-            external_image='https://example.com/25.png',
-            hp=35,
-            attack=55,
-            defense=40,
-            special_attack=50,
-            special_defense=50,
-            speed=90,
-        )
-
-        result = business.calculate_pokemon_stats(pokemon=pokemon)
-
-        assert result['level'] == 1
-
-    @staticmethod
-    def test_calculate_pokemon_stats_includes_all_fields():
-        """Should include all required stat fields in result"""
-        business = PokemonBusiness()
-        pokemon = Pokemon(
-            name='charizard',
-            order=6,
-            url='https://pokeapi.co/api/v2/pokemon/6/',
-            status=StatusEnum.COMPLETE,
-            external_image='https://example.com/6.png',
-            hp=78,
-            attack=84,
-            defense=78,
-            special_attack=109,
-            special_defense=85,
-            speed=100,
-        )
-
-        result = business.calculate_pokemon_stats(pokemon=pokemon, level=5)
-
-        expected_fields = [
-            'hp',
-            'max_hp',
-            'attack',
-            'defense',
-            'special_attack',
-            'special_defense',
-            'speed',
-            'level',
-            'experience',
-            'iv_hp',
-            'iv_attack',
-            'iv_defense',
-            'iv_special_attack',
-            'iv_special_defense',
-            'iv_speed',
-            'ev_hp',
-            'ev_attack',
-            'ev_defense',
-            'ev_special_attack',
-            'ev_special_defense',
-            'ev_speed',
-            'wins',
-            'losses',
-            'battles',
-            'nickname',
+        pokemons = [
+            PokemonSchema(
+                id='1',
+                name='bulbasaur',
+                order=1,
+                url='url1',
+                status=StatusEnum.COMPLETE,
+                external_image='img1',
+                hp=45,
+                attack=49,
+                defense=49,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            ),
+            PokemonSchema(
+                id='2',
+                name='ivysaur',
+                order=2,
+                url='url2',
+                status=StatusEnum.COMPLETE,
+                external_image='img2',
+                hp=60,
+                attack=62,
+                defense=63,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            ),
         ]
-
-        for field in expected_fields:
-            assert field in result
+        result = business.filter_and_paginate_catalog(pokemons)
+        assert isinstance(result, list)
+        assert len(result) == result_len
 
     @staticmethod
-    def test_calculate_pokemon_stats_with_higher_level():
-        """Should calculate different stats for higher level"""
+    def test_filter_and_paginate_catalog_with_name_filter():
+        """Should filter by name (case-insensitive)"""
+        result_len = 1
         business = PokemonBusiness()
-        pokemon = Pokemon(
-            name='bulbasaur',
+        pokemons = [
+            PokemonSchema(
+                id='1',
+                name='bulbasaur',
+                order=1,
+                url='url1',
+                status=StatusEnum.COMPLETE,
+                external_image='img1',
+                hp=45,
+                attack=49,
+                defense=49,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            ),
+            PokemonSchema(
+                id='2',
+                name='ivysaur',
+                order=2,
+                url='url2',
+                status=StatusEnum.COMPLETE,
+                external_image='img2',
+                hp=60,
+                attack=62,
+                defense=63,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            ),
+        ]
+        filter_page = PokemonFilterPage(name='IVYSAUR')
+        result = business.filter_and_paginate_catalog(pokemons, filter_page)
+        assert isinstance(result, list)
+        assert len(result) == result_len
+        assert result[0].name == 'ivysaur'
+
+    @staticmethod
+    def test_filter_and_paginate_catalog_with_multiple_filters():
+        """Should filter by multiple fields"""
+        result_len = 1
+        result_order = 2
+        business = PokemonBusiness()
+        pokemons = [
+            PokemonSchema(
+                id='1',
+                name='bulbasaur',
+                order=1,
+                url='url1',
+                status=StatusEnum.COMPLETE,
+                external_image='img1',
+                hp=45,
+                attack=49,
+                defense=49,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            ),
+            PokemonSchema(
+                id='2',
+                name='ivysaur',
+                order=2,
+                url='url2',
+                status=StatusEnum.COMPLETE,
+                external_image='img2',
+                hp=60,
+                attack=62,
+                defense=63,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            ),
+        ]
+        filter_page = PokemonFilterPage(name='ivysaur', order=2)
+        result = business.filter_and_paginate_catalog(pokemons, filter_page)
+        assert isinstance(result, list)
+        assert len(result) == result_len
+        assert result[0].name == 'ivysaur'
+        assert result[0].order == result_order
+
+    @staticmethod
+    def test_filter_and_paginate_catalog_with_nonexistent_filter():
+        """Should return empty list when filter does not match any item"""
+        business = PokemonBusiness()
+        pokemons = [
+            PokemonSchema(
+                id='1',
+                name='bulbasaur',
+                order=1,
+                url='url1',
+                status=StatusEnum.COMPLETE,
+                external_image='img1',
+                hp=45,
+                attack=49,
+                defense=49,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+        ]
+        filter_page = PokemonFilterPage(name='pikachu')
+        result = business.filter_and_paginate_catalog(pokemons, filter_page)
+        assert isinstance(result, list)
+        assert len(result) == 0
+
+    @staticmethod
+    def test_filter_and_paginate_catalog_with_pagination():
+        """Should return paginated result when limit and offset are provided"""
+        result_len = 5
+        result_order = 3
+        result_total = 10
+        business = PokemonBusiness()
+        pokemons = [
+            PokemonSchema(
+                id=str(i),
+                name=f'poke{i}',
+                order=i,
+                url=f'url{i}',
+                status=StatusEnum.COMPLETE,
+                external_image=f'img{i}',
+                hp=10 + i,
+                attack=20 + i,
+                defense=30 + i,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+            for i in range(1, 11)
+        ]
+        filter_page = PokemonFilterPage(limit=5, offset=2)
+        result = business.filter_and_paginate_catalog(pokemons, filter_page)
+        assert hasattr(result, 'items')
+        assert len(result.items) == result_len
+        assert result.items[0].order == result_order
+        assert result.total == result_total
+
+    @staticmethod
+    def test_matches_filter_case_insensitive():
+        """Should match string fields case-insensitively"""
+        business = PokemonBusiness()
+        pokemon = PokemonSchema(
+            id='1',
+            name='Bulbasaur',
             order=1,
-            url='https://pokeapi.co/api/v2/pokemon/1/',
+            url='url1',
             status=StatusEnum.COMPLETE,
-            external_image='https://example.com/1.png',
+            external_image='img1',
             hp=45,
             attack=49,
             defense=49,
-            special_attack=65,
-            special_defense=65,
-            speed=45,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
         )
-
-        stats_level_1 = business.calculate_pokemon_stats(pokemon=pokemon, level=1)
-        stats_level_50 = business.calculate_pokemon_stats(pokemon=pokemon, level=MOCK_LEVEL_50)
-
-        assert stats_level_1['level'] == 1
-        assert stats_level_50['level'] == MOCK_LEVEL_50
-        assert stats_level_50['experience'] != stats_level_1['experience']
+        filters = {'name': 'bulbasaur'}
+        assert business._matches_filter(pokemon, filters) is True
+        filters = {'name': 'BULBASAUR'}
+        assert business._matches_filter(pokemon, filters) is True
 
     @staticmethod
-    def test_calculate_pokemon_stats_sets_initial_values():
-        """Should set wins, losses, battles to 0 and nickname to pokemon name"""
+    def test_matches_filter_non_string():
+        """Should match non-string fields exactly"""
         business = PokemonBusiness()
-        pokemon = Pokemon(
-            name='mew',
-            order=151,
-            url='https://pokeapi.co/api/v2/pokemon/151/',
-            status=StatusEnum.COMPLETE,
-            external_image='https://example.com/151.png',
-            hp=100,
-            attack=100,
-            defense=100,
-            special_attack=100,
-            special_defense=100,
-            speed=100,
-        )
-
-        result = business.calculate_pokemon_stats(pokemon=pokemon, level=1)
-
-        assert result['wins'] == 0
-        assert result['losses'] == 0
-        assert result['battles'] == 0
-        assert result['nickname'] == 'mew'
-
-
-class TestPokemonBusinessBuildBaseStats:
-    """Test scope for _build_base_stats method"""
-
-    @staticmethod
-    def test_build_base_stats_returns_dict():
-        """Should return a dictionary with all stat keys"""
-        business = PokemonBusiness()
-        pokemon = Pokemon(
-            name='bulbasaur',
+        pokemon = PokemonSchema(
+            id='1',
+            name='Bulbasaur',
             order=1,
-            url='https://pokeapi.co/api/v2/pokemon/1/',
+            url='url1',
             status=StatusEnum.COMPLETE,
-            external_image='https://example.com/1.png',
+            external_image='img1',
             hp=45,
             attack=49,
             defense=49,
-            special_attack=65,
-            special_defense=65,
-            speed=45,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
         )
-
-        result = business._build_base_stats(pokemon)
-
-        assert isinstance(result, dict)
-        assert len(result) == MOCK_NUM_STATS
-        assert 'hp' in result
-        assert 'attack' in result
-        assert 'defense' in result
-        assert 'special_attack' in result
-        assert 'special_defense' in result
-        assert 'speed' in result
+        filters = {'order': 1}
+        assert business._matches_filter(pokemon, filters) is True
+        filters = {'order': 2}
+        assert business._matches_filter(pokemon, filters) is False
 
     @staticmethod
-    def test_build_base_stats_with_correct_values():
-        """Should return exact stat values from pokemon"""
+    def test_matches_filter_empty_filters():
         business = PokemonBusiness()
-        pokemon = Pokemon(
-            name='pikachu',
-            order=25,
-            url='https://pokeapi.co/api/v2/pokemon/25/',
-            status=StatusEnum.COMPLETE,
-            external_image='https://example.com/25.png',
-            hp=MOCK_PIKACHU_HP,
-            attack=MOCK_PIKACHU_ATTACK_STAT,
-            defense=MOCK_PIKACHU_DEFENSE_STAT,
-            special_attack=MOCK_PIKACHU_SPECIAL_ATTACK,
-            special_defense=MOCK_PIKACHU_SPECIAL_DEFENSE,
-            speed=MOCK_PIKACHU_SPEED,
-        )
-
-        result = business._build_base_stats(pokemon)
-
-        assert result['hp'] == MOCK_PIKACHU_HP
-        assert result['attack'] == MOCK_PIKACHU_ATTACK_STAT
-        assert result['defense'] == MOCK_PIKACHU_DEFENSE_STAT
-        assert result['special_attack'] == MOCK_PIKACHU_SPECIAL_ATTACK
-        assert result['special_defense'] == MOCK_PIKACHU_SPECIAL_DEFENSE
-        assert result['speed'] == MOCK_PIKACHU_SPEED
-
-    @staticmethod
-    def test_build_base_stats_with_none_values():
-        """Should treat None values as 0"""
-        business = PokemonBusiness()
-        pokemon = Pokemon(
-            name='test',
-            order=999,
-            url='https://pokeapi.co/api/v2/pokemon/999/',
-            status=StatusEnum.INCOMPLETE,
-            external_image='https://example.com/999.png',
-            hp=None,
-            attack=None,
-            defense=MOCK_BULBASAUR_DEFENSE_UPDATED,
-        )
-
-        result = business._build_base_stats(pokemon)
-
-        assert result['hp'] == 0
-        assert result['attack'] == 0
-        assert result['defense'] == MOCK_BULBASAUR_DEFENSE_UPDATED
-
-
-class TestPokemonBusinessBuildIVs:
-    """Test scope for _build_ivs method"""
-
-    @staticmethod
-    def test_build_ivs_returns_dict():
-        """Should return a dictionary with stat keys"""
-        business = PokemonBusiness()
-        base_stats = {
-            'hp': 45,
-            'attack': 49,
-            'defense': 49,
-            'special_attack': 65,
-            'special_defense': 65,
-            'speed': 45,
-        }
-
-        result = business._build_ivs(base_stats)
-
-        assert isinstance(result, dict)
-        assert len(result) == MOCK_NUM_STATS
-
-    @staticmethod
-    def test_build_ivs_contains_all_stat_keys():
-        """Should contain all stat keys from base_stats"""
-        business = PokemonBusiness()
-        base_stats = {
-            'hp': 35,
-            'attack': 55,
-            'defense': 40,
-            'special_attack': 50,
-            'special_defense': 50,
-            'speed': 90,
-        }
-
-        result = business._build_ivs(base_stats)
-
-        for key in base_stats:
-            assert key in result
-
-    @staticmethod
-    def test_build_ivs_values_in_valid_range():
-        """Should generate IV values between 0 and 31"""
-        business = PokemonBusiness()
-        base_stats = {
-            'hp': 45,
-            'attack': 49,
-            'defense': 49,
-            'special_attack': 65,
-            'special_defense': 65,
-            'speed': 45,
-        }
-
-        result = business._build_ivs(base_stats)
-
-        for iv_value in result.values():
-            assert 0 <= iv_value <= MOCK_IV_MAX_VALUE
-
-    @staticmethod
-    def test_build_ivs_randomness():
-        """Should generate different IV values on multiple calls"""
-        business = PokemonBusiness()
-        base_stats = {
-            'hp': 45,
-            'attack': 49,
-            'defense': 49,
-            'special_attack': 65,
-            'special_defense': 65,
-            'speed': 45,
-        }
-
-        results = [business._build_ivs(base_stats) for _ in range(MOCK_NUM_RANGE_10)]
-
-        # At least one IV value should differ across calls
-        all_same = all(results[0] == r for r in results[1:])
-        assert not all_same
-
-
-class TestPokemonBusinessBuildEvs:
-    """Test scope for _build_evs method"""
-
-    @staticmethod
-    def test_build_evs_returns_dict():
-        """Should return a dictionary with stat keys"""
-        business = PokemonBusiness()
-        base_stats = {
-            'hp': 45,
-            'attack': 49,
-            'defense': 49,
-            'special_attack': 65,
-            'special_defense': 65,
-            'speed': 45,
-        }
-
-        result = business._build_evs(base_stats)
-
-        assert isinstance(result, dict)
-        assert len(result) == MOCK_NUM_STATS
-
-    @staticmethod
-    def test_build_evs_all_zeros():
-        """Should initialize all EVs to 0"""
-        business = PokemonBusiness()
-        base_stats = {
-            'hp': 35,
-            'attack': 55,
-            'defense': 40,
-            'special_attack': 50,
-            'special_defense': 50,
-            'speed': 90,
-        }
-
-        result = business._build_evs(base_stats)
-
-        for ev_value in result.values():
-            assert ev_value == 0
-
-    @staticmethod
-    def test_build_evs_contains_all_stat_keys():
-        """Should contain all stat keys from base_stats"""
-        business = PokemonBusiness()
-        base_stats = {
-            'hp': 45,
-            'attack': 49,
-            'defense': 49,
-            'special_attack': 65,
-            'special_defense': 65,
-            'speed': 45,
-        }
-
-        result = business._build_evs(base_stats)
-
-        for key in base_stats:
-            assert key in result
-
-
-class TestPokemonBusinessBuildStats:
-    """Test scope for _build_stats method"""
-
-    @staticmethod
-    def test_build_stats_returns_dict():
-        """Should return a dictionary with calculated stats"""
-        business = PokemonBusiness()
-        base_stats = {
-            'hp': 45,
-            'attack': 49,
-            'defense': 49,
-            'special_attack': 65,
-            'special_defense': 65,
-            'speed': 45,
-        }
-        ivs = {
-            'hp': 15,
-            'attack': 20,
-            'defense': 10,
-            'special_attack': 25,
-            'special_defense': 20,
-            'speed': 30,
-        }
-        evs = {
-            'hp': 0,
-            'attack': 0,
-            'defense': 0,
-            'special_attack': 0,
-            'special_defense': 0,
-            'speed': 0,
-        }
-
-        result = business._build_stats(base_stats, ivs, evs, 1)
-
-        assert isinstance(result, dict)
-        assert len(result) == MOCK_NUM_STATS
-
-    @staticmethod
-    def test_build_stats_contains_all_stat_keys():
-        """Should contain all stat keys"""
-        business = PokemonBusiness()
-        base_stats = {
-            'hp': 35,
-            'attack': 55,
-            'defense': 40,
-            'special_attack': 50,
-            'special_defense': 50,
-            'speed': 90,
-        }
-        ivs = {
-            'hp': 10,
-            'attack': 15,
-            'defense': 8,
-            'special_attack': 20,
-            'special_defense': 15,
-            'speed': 25,
-        }
-        evs = {
-            'hp': 0,
-            'attack': 0,
-            'defense': 0,
-            'special_attack': 0,
-            'special_defense': 0,
-            'speed': 0,
-        }
-
-        result = business._build_stats(base_stats, ivs, evs, 1)
-
-        for key in base_stats:
-            assert key in result
-
-    @staticmethod
-    def test_build_stats_all_values_positive():
-        """Should ensure all stat values are at least 1"""
-        business = PokemonBusiness()
-        base_stats = {
-            'hp': MOCK_BASE_STAT_LOW,
-            'attack': MOCK_BASE_STAT_LOW,
-            'defense': MOCK_BASE_STAT_LOW,
-            'special_attack': MOCK_BASE_STAT_LOW,
-            'special_defense': MOCK_BASE_STAT_LOW,
-            'speed': MOCK_BASE_STAT_LOW,
-        }
-        ivs = {
-            'hp': 0,
-            'attack': 0,
-            'defense': 0,
-            'special_attack': 0,
-            'special_defense': 0,
-            'speed': 0,
-        }
-        evs = {
-            'hp': 0,
-            'attack': 0,
-            'defense': 0,
-            'special_attack': 0,
-            'special_defense': 0,
-            'speed': 0,
-        }
-
-        result = business._build_stats(base_stats, ivs, evs, 1)
-
-        for stat_value in result.values():
-            assert stat_value >= 1
-
-    @staticmethod
-    def test_build_stats_higher_level_increases_stats():
-        """Should calculate higher stats for higher levels"""
-        business = PokemonBusiness()
-        base_stats = {
-            'hp': 45,
-            'attack': 49,
-            'defense': 49,
-            'special_attack': 65,
-            'special_defense': 65,
-            'speed': 45,
-        }
-        ivs = {
-            'hp': 15,
-            'attack': 20,
-            'defense': 10,
-            'special_attack': 25,
-            'special_defense': 20,
-            'speed': 30,
-        }
-        evs = {
-            'hp': 0,
-            'attack': 0,
-            'defense': 0,
-            'special_attack': 0,
-            'special_defense': 0,
-            'speed': 0,
-        }
-
-        stats_level_1 = business._build_stats(base_stats, ivs, evs, 1)
-        stats_level_50 = business._build_stats(base_stats, ivs, evs, MOCK_LEVEL_50)
-
-        assert stats_level_50['hp'] > stats_level_1['hp']
-        assert stats_level_50['attack'] > stats_level_1['attack']
-
-
-class TestPokemonBusinessCalculateStatValue:
-    """Test scope for _calculate_stat_value method"""
-
-    @staticmethod
-    def test_calculate_stat_value_with_hp():
-        """Should add level bonus for HP stats"""
-        business = PokemonBusiness()
-        base, iv, ev, level = 45, 15, 0, 1
-
-        result = business._calculate_stat_value(base, iv, ev, level, is_hp=True)
-
-        assert isinstance(result, int)
-        assert result >= 1
-
-    @staticmethod
-    def test_calculate_stat_value_without_hp():
-        """Should not add level bonus for non-HP stats"""
-        business = PokemonBusiness()
-        base, iv, ev, level = 49, 20, 0, 1
-
-        result = business._calculate_stat_value(base, iv, ev, level, is_hp=False)
-
-        assert isinstance(result, int)
-        assert result >= 1
-
-    @staticmethod
-    def test_calculate_stat_value_respects_minimum():
-        """Should ensure minimum value of 1"""
-        business = PokemonBusiness()
-        base, iv, ev, level = 0, 0, 0, 1
-
-        result = business._calculate_stat_value(base, iv, ev, level, is_hp=False)
-
-        assert result >= 1
-
-    @staticmethod
-    def test_calculate_stat_value_scales_with_level():
-        """Should increase stat value with higher level"""
-        business = PokemonBusiness()
-        base, iv, ev = 50, 20, 0
-
-        value_level_1 = business._calculate_stat_value(base, iv, ev, 1, is_hp=False)
-        value_level_50 = business._calculate_stat_value(
-            base, iv, ev, MOCK_LEVEL_50, is_hp=False
-        )
-
-        assert value_level_50 > value_level_1
-
-    @staticmethod
-    def test_calculate_stat_value_with_evs():
-        """Should increase stat value with more EVs"""
-        business = PokemonBusiness()
-        base, iv, level = 50, 20, MOCK_LEVEL_50
-
-        value_no_ev = business._calculate_stat_value(base, iv, 0, level, is_hp=False)
-        value_with_ev = business._calculate_stat_value(
-            base, iv, MOCK_EV_MAX_STANDARD, level, is_hp=False
-        )
-
-        assert value_with_ev > value_no_ev
-
-    @staticmethod
-    def test_calculate_stat_value_hp_includes_level():
-        """Should include level in HP calculation"""
-        business = PokemonBusiness()
-        base, iv, ev = 45, 15, 0
-
-        hp_stat = business._calculate_stat_value(base, iv, ev, MOCK_LEVEL_50, is_hp=True)
-        other_stat = business._calculate_stat_value(base, iv, ev, MOCK_LEVEL_50, is_hp=False)
-
-        assert hp_stat > other_stat
-
-
-class TestPokemonBusinessCalculateExperience:
-    """Test scope for _calculate_experience method"""
-
-    @staticmethod
-    def test_calculate_experience_without_growth_rate():
-        """Should use default formula (x^3) when growth_rate is None"""
-        business = PokemonBusiness()
-        result = business._calculate_experience(growth_rate=None, level=MOCK_NUM_RANGE_5)
-
-        assert result == MOCK_EXP_LEVEL_5
-
-    @staticmethod
-    def test_calculate_experience_default_formula_level_1():
-        """Should calculate 1 for level 1 with default formula"""
-        business = PokemonBusiness()
-        result = business._calculate_experience(growth_rate=None, level=1)
-
-        assert result == MOCK_EXP_LEVEL_1
-
-    @staticmethod
-    def test_calculate_experience_default_formula_level_10():
-        """Should calculate 1000 for level 10 with default formula"""
-        business = PokemonBusiness()
-        result = business._calculate_experience(growth_rate=None, level=10)
-
-        assert result == MOCK_EXP_LEVEL_10
-
-    @staticmethod
-    def test_calculate_experience_with_growth_rate_formula():
-        """Should use growth rate formula when provided"""
-        business = PokemonBusiness()
-        growth_rate = PokemonGrowthRate(
-            url='https://pokeapi.co/api/v2/growth-rate/1/',
-            name='slow',
+        pokemon = PokemonSchema(
+            id='1',
+            name='Bulbasaur',
             order=1,
-            formula='x**3',
-            description='Slowly decreases in level.',
+            url='url1',
+            status=StatusEnum.COMPLETE,
+            external_image='img1',
+            hp=45,
+            attack=49,
+            defense=49,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
         )
-        result = business._calculate_experience(
-            growth_rate=growth_rate, level=MOCK_NUM_RANGE_5
-        )
+        assert business._matches_filter(pokemon, {}) is True
 
-        assert result == MOCK_EXP_LEVEL_5
+
+class TestPokemonBusinessCatalogSerialization:
+    @staticmethod
+    def test_serialize_catalog_returns_json_dicts():
+        business = PokemonBusiness()
+        pokemons = [
+            Pokemon(
+                name='bulbasaur',
+                order=1,
+                status=StatusEnum.COMPLETE,
+                url='https://pokeapi.co/api/v2/pokemon/1/',
+                external_image='https://img.pokemondb.net/artwork/bulbasaur.jpg',
+                hp=45,
+                attack=49,
+                defense=49,
+            ),
+            Pokemon(
+                name='ivysaur',
+                order=2,
+                status=StatusEnum.COMPLETE,
+                url='https://pokeapi.co/api/v2/pokemon/2/',
+                external_image='https://img.pokemondb.net/artwork/ivysaur.jpg',
+                hp=60,
+                attack=62,
+                defense=63,
+            ),
+        ]
+        # Patch missing fields before serialization
+        for i, pokemon in enumerate(pokemons, start=1):
+            pokemon.id = str(i)
+            pokemon.created_at = datetime.now()
+            pokemon.updated_at = datetime.now()
+        result = business.serialize_catalog(pokemons)
+        assert isinstance(result, list)
+        assert all(isinstance(item, dict) for item in result)
+        assert result[0]['name'] == 'bulbasaur'
+        assert result[1]['name'] == 'ivysaur'
 
     @staticmethod
-    def test_calculate_experience_returns_integer():
-        """Should return an integer value"""
+    def test_serialize_catalog_empty_list():
         business = PokemonBusiness()
-        result = business._calculate_experience(growth_rate=None, level=7)
-
-        assert isinstance(result, int)
+        result = business.serialize_catalog([])
+        assert result == []
 
     @staticmethod
-    def test_calculate_experience_non_negative():
-        """Should return non-negative experience"""
+    def test_deserialize_catalog_returns_schema_instances():
         business = PokemonBusiness()
-        result = business._calculate_experience(growth_rate=None, level=1)
-
-        assert result >= 0
+        payload = [
+            {
+                'id': '1',
+                'name': 'bulbasaur',
+                'order': 1,
+                'status': StatusEnum.COMPLETE.value,
+                'url': 'https://pokeapi.co/api/v2/pokemon/1/',
+                'external_image': 'https://img.pokemondb.net/artwork/bulbasaur.jpg',
+                'hp': 45,
+                'attack': 49,
+                'defense': 49,
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(),
+            },
+            {
+                'id': '2',
+                'name': 'ivysaur',
+                'order': 2,
+                'status': StatusEnum.COMPLETE.value,
+                'url': 'https://pokeapi.co/api/v2/pokemon/2/',
+                'external_image': 'https://img.pokemondb.net/artwork/ivysaur.jpg',
+                'hp': 60,
+                'attack': 62,
+                'defense': 63,
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(),
+            },
+        ]
+        result = business.deserialize_catalog(payload)
+        assert isinstance(result, list)
+        assert all(isinstance(item, PokemonSchema) for item in result)
+        assert result[0].name == 'bulbasaur'
+        assert result[1].name == 'ivysaur'
 
     @staticmethod
-    def test_calculate_experience_with_invalid_formula():
-        """Should fallback to default formula on invalid formula"""
+    def test_deserialize_catalog_empty_list():
         business = PokemonBusiness()
-        growth_rate = PokemonGrowthRate(
-            url='https://pokeapi.co/api/v2/growth-rate/999/',
-            name='invalid',
-            order=999,
-            formula='invalid formula',
-            description='Invalid formula',
-        )
-        result = business._calculate_experience(
-            growth_rate=growth_rate, level=MOCK_NUM_RANGE_5
-        )
-
-        assert result == MOCK_EXP_LEVEL_5
+        result = business.deserialize_catalog([])
+        assert result == []
 
     @staticmethod
-    def test_calculate_experience_scales_with_level():
-        """Should increase experience with higher level"""
+    def test_deserialize_catalog_skips_non_dict():
         business = PokemonBusiness()
-        exp_level_1 = business._calculate_experience(growth_rate=None, level=1)
-        exp_level_50 = business._calculate_experience(growth_rate=None, level=MOCK_LEVEL_50)
-
-        assert exp_level_50 > exp_level_1
+        payload = [
+            'not-a-dict',
+            {
+                'id': '1',
+                'name': 'bulbasaur',
+                'order': 1,
+                'status': StatusEnum.COMPLETE.value,
+                'url': 'https://pokeapi.co/api/v2/pokemon/1/',
+                'external_image': 'https://img.pokemondb.net/artwork/bulbasaur.jpg',
+                'hp': 45,
+                'attack': 49,
+                'defense': 49,
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(),
+            },
+        ]
+        result = business.deserialize_catalog(payload)
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0].name == 'bulbasaur'

@@ -35,18 +35,18 @@ class CacheService:
         value: Any,
         *,
         ttl_seconds: int | None = None,
-    ) -> None:
+    ) -> bool:
         try:
             payload = json.dumps(value, default=str)
             expires_in = self.ttl_seconds if ttl_seconds is None else ttl_seconds
 
             if expires_in and expires_in > 0:
-                await self.redis.set(key, payload, ex=expires_in)
-                return
+                return bool(await self.redis.set(key, payload, ex=expires_in))
 
-            await self.redis.set(key, payload)
+            return bool(await self.redis.set(key, payload))
         except RedisError:
             logger.warning('Redis unavailable while setting key: %s', key)
+            return False
 
     async def get_json(self, key: str) -> Any | None:
         try:
@@ -58,20 +58,21 @@ class CacheService:
             logger.warning('Redis unavailable while reading key: %s', key)
             return None
 
-    async def delete(self, key: str) -> None:
+    async def delete(self, key: str) -> bool:
         try:
-            await self.redis.delete(key)
+            return bool(await self.redis.delete(key))
         except RedisError:
             logger.warning('Redis unavailable while deleting key: %s', key)
+            return False
 
     async def set_many_json(
         self,
         key_values: dict[str, Any],
         *,
         ttl_seconds: int | None = None,
-    ) -> None:
+    ) -> bool:
         if not key_values:
-            return
+            return False
 
         try:
             expires_in = self.ttl_seconds if ttl_seconds is None else ttl_seconds
@@ -84,6 +85,8 @@ class CacheService:
                     else:
                         pipe.set(key, payload)
 
-                await pipe.execute()
+                results = await pipe.execute()
+                return all(bool(result) for result in results)
         except RedisError:
             logger.warning('Redis unavailable while writing %d keys', len(key_values))
+            return False

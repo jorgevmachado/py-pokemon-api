@@ -14,10 +14,11 @@ from app.domain.pokemon.external.schemas import PokemonExternalBase
 from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.schema import (
     GeneratePokemonRelationshipSchema,
+    PokemonFilterPage,
+    PokemonSchema,
 )
 from app.domain.type.model import PokemonType
 from app.shared.enums.status_enum import StatusEnum
-from app.shared.schemas import FilterPage
 from tests.app.domain.pokemon.external.mocks.business_mock import (
     MOCK_ATTRIBUTES_ATTACK,
     MOCK_ATTRIBUTES_DEFENSE,
@@ -415,7 +416,7 @@ class TestPokemonServiceInitialize:
         pokemon_service.repository.total = AsyncMock(return_value=1302)
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
-        page_filter = FilterPage(offset=0, limit=10)
+        page_filter = PokemonFilterPage(offset=0, limit=10)
         result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert len(result) == total_list
@@ -441,7 +442,7 @@ class TestPokemonServiceInitialize:
         pokemon_service.initialize_database = AsyncMock(return_value=[])
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
-        page_filter = FilterPage(offset=0, limit=10)
+        page_filter = PokemonFilterPage(offset=0, limit=10)
         result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert len(result) == 1
@@ -466,7 +467,7 @@ class TestPokemonServiceInitialize:
         pokemon_service.repository.total = AsyncMock(return_value=1302)
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
-        page_filter = FilterPage(offset=10, limit=1)
+        page_filter = PokemonFilterPage(offset=10, limit=1)
         result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert len(result) == 1
@@ -480,7 +481,7 @@ class TestPokemonServiceInitialize:
 
         pokemon_service.repository.total = AsyncMock(side_effect=Exception('Database error'))
 
-        page_filter = FilterPage(offset=0, limit=10)
+        page_filter = PokemonFilterPage(offset=0, limit=10)
         result = await pokemon_service.initialize(page_filter=page_filter)
 
         # Deve retornar LimitOffsetPage vazio com paginação
@@ -496,7 +497,7 @@ class TestPokemonServiceInitialize:
         pokemon_service.repository.total = AsyncMock(return_value=1302)
         pokemon_service.repository.list_all = AsyncMock(side_effect=Exception('Query error'))
 
-        page_filter = FilterPage(offset=0, limit=10)
+        page_filter = PokemonFilterPage(offset=0, limit=10)
         result = await pokemon_service.initialize(page_filter=page_filter)
 
         # Deve retornar LimitOffsetPage vazio com paginação
@@ -514,7 +515,7 @@ class TestPokemonServiceInitialize:
             side_effect=Exception('Initialization error')
         )
 
-        page_filter = FilterPage(offset=0, limit=10)
+        page_filter = PokemonFilterPage(offset=0, limit=10)
         result = await pokemon_service.initialize(page_filter=page_filter)
 
         # Deve retornar LimitOffsetPage vazio com paginação
@@ -530,7 +531,7 @@ class TestPokemonServiceInitialize:
         pokemon_service.repository.total = AsyncMock(return_value=1302)
         pokemon_service.repository.list_all = AsyncMock(return_value=[])
 
-        page_filter = FilterPage(offset=0, limit=10)
+        page_filter = PokemonFilterPage(offset=0, limit=10)
         result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert result == []
@@ -545,7 +546,7 @@ class TestPokemonServiceInitialize:
         pokemon_service.repository.total = AsyncMock(return_value=1302)
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
-        page_filter = FilterPage(offset=1300, limit=10)
+        page_filter = PokemonFilterPage(offset=1300, limit=10)
         result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert result == []
@@ -572,7 +573,7 @@ class TestPokemonServiceInitialize:
         pokemon_service.repository.total = AsyncMock(return_value=1302)
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
-        page_filter = FilterPage(offset=0, limit=10)
+        page_filter = PokemonFilterPage(offset=0, limit=10)
         result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert len(result) == total_list
@@ -600,7 +601,7 @@ class TestPokemonServiceInitialize:
         pokemon_service.initialize_database = AsyncMock()
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
-        page_filter = FilterPage(offset=0, limit=10)
+        page_filter = PokemonFilterPage(offset=0, limit=10)
         result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert len(result) == 1
@@ -617,7 +618,7 @@ class TestPokemonServiceInitialize:
         pokemon_service.initialize_database = AsyncMock(return_value=[])
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
-        page_filter = FilterPage(offset=0, limit=10)
+        page_filter = PokemonFilterPage(offset=0, limit=10)
         result = await pokemon_service.initialize(page_filter=page_filter)
 
         assert result == []
@@ -626,7 +627,7 @@ class TestPokemonServiceInitialize:
     @staticmethod
     @pytest.mark.asyncio
     async def test_fetch_all_with_different_filter_configs(pokemon_service):
-        """Should respect different FilterPage configurations"""
+        """Should respect different PokemonFilterPage configurations"""
         pokemon_list = [SimpleNamespace(name='Venusaur')]
         total_call_count = 3
 
@@ -634,9 +635,9 @@ class TestPokemonServiceInitialize:
         pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
 
         filters = [
-            FilterPage(offset=0, limit=20),
-            FilterPage(offset=50, limit=100),
-            FilterPage(offset=1200, limit=102),
+            PokemonFilterPage(offset=0, limit=20),
+            PokemonFilterPage(offset=50, limit=100),
+            PokemonFilterPage(offset=1200, limit=102),
         ]
 
         for page_filter in filters:
@@ -1475,24 +1476,60 @@ class TestPokemonServiceListAll:
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_list_all_returns_repository_results(pokemon_service):
+    async def test_list_all_returns_repository_results_not_cached(pokemon_service, pokemon):
         """Should return repository list when no error occurs"""
-        pokemon_list = [SimpleNamespace(name='Bulbasaur')]
-        pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
+        pokemon_list = [
+            PokemonSchema(
+                name=pokemon.name,
+                order=pokemon.order,
+                url=pokemon.url,
+                status=pokemon.status,
+                external_image=pokemon.external_image,
+                id=pokemon.id,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+        ]
+        pokemon_service._ensure_list_synced = AsyncMock(return_value=None)
+        pokemon_service._rebuild_catalog_cache = AsyncMock(return_value=pokemon_list)
 
-        page_filter = FilterPage(offset=LIST_OFFSET, limit=LIST_LIMIT)
+        page_filter = PokemonFilterPage(offset=LIST_OFFSET, limit=LIST_LIMIT)
         result = await pokemon_service.list_all(page_filter=page_filter)
 
-        assert result == pokemon_list
-        pokemon_service.repository.list_all.assert_called_once_with(page_filter=page_filter)
+        assert result.items == pokemon_list
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_list_all_returns_repository_results_cached(pokemon_service, pokemon):
+        """Should return repository list when no error occurs"""
+        pokemon_list = [
+            PokemonSchema(
+                name=pokemon.name,
+                order=pokemon.order,
+                url=pokemon.url,
+                status=pokemon.status,
+                external_image=pokemon.external_image,
+                id=pokemon.id,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+        ]
+        pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
+        pokemon_service._ensure_list_synced = AsyncMock(return_value=pokemon_list)
+
+        page_filter = PokemonFilterPage(offset=LIST_OFFSET, limit=LIST_LIMIT)
+        result = await pokemon_service.list_all(page_filter=page_filter)
+
+        assert result.items == pokemon_list
 
     @staticmethod
     @pytest.mark.asyncio
     async def test_list_all_returns_empty_page_on_error_with_pagination(pokemon_service):
         """Should return empty page when repository raises and pagination is set"""
         pokemon_service.repository.list_all = AsyncMock(side_effect=Exception('boom'))
+        pokemon_service._ensure_list_synced = AsyncMock(return_value=None)
 
-        page_filter = FilterPage(offset=LIST_OFFSET, limit=LIST_LIMIT)
+        page_filter = PokemonFilterPage(offset=LIST_OFFSET, limit=LIST_LIMIT)
         result = await pokemon_service.list_all(page_filter=page_filter)
 
         assert hasattr(result, 'items')
@@ -1506,6 +1543,7 @@ class TestPokemonServiceListAll:
     ):
         """Should return empty list when repository raises without pagination"""
         pokemon_service.repository.list_all = AsyncMock(side_effect=Exception('boom'))
+        pokemon_service._ensure_list_synced = AsyncMock(return_value=None)
 
         result = await pokemon_service.list_all(page_filter=None)
 
@@ -1525,3 +1563,158 @@ class TestPokemonServiceTotal:
 
         assert result == TOTAL_COUNT
         pokemon_service.repository.total.assert_awaited_once()
+
+
+class TestPokemonServiceRebuildCatalogCache:
+    """Test scope for rebuild_catalog_cache method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_rebuild_catalog_cache_success(pokemon_service, pokemon):
+        """Should return repository list when no error occurs"""
+        pokemon_list = [
+            PokemonSchema(
+                name=pokemon.name,
+                order=pokemon.order,
+                url=pokemon.url,
+                status=pokemon.status,
+                external_image=pokemon.external_image,
+                id=pokemon.id,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+        ]
+        pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
+        pokemon_service.pokemon_cache_service.get_catalog = AsyncMock(
+            return_value=pokemon_list
+        )
+
+        result = await pokemon_service._rebuild_catalog_cache()
+        assert result == pokemon_list
+
+
+class TestPokemonServiceEnsureListSynced:
+    """Test scope for rebuild_catalog_cache method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_ensure_list_synced_with_cached(pokemon_service, pokemon):
+        """Should return repository list when no error occurs"""
+        pokemon_list = [
+            PokemonSchema(
+                name=pokemon.name,
+                order=pokemon.order,
+                url=pokemon.url,
+                status=pokemon.status,
+                external_image=pokemon.external_image,
+                id=pokemon.id,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+        ]
+        pokemon_service.pokemon_cache_service.get_catalog = AsyncMock(
+            return_value=pokemon_list
+        )
+        pokemon_service.pokemon_cache_service.get_meta = AsyncMock(
+            return_value={
+                'db_total': 1,
+                'external_total': 1,
+                'last_sync_at': datetime.now().isoformat(),
+            }
+        )
+
+        result = await pokemon_service._ensure_list_synced()
+        assert result == pokemon_list
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_ensure_list_synced_not_cached_empty_database(pokemon_service, pokemon):
+        """Should return repository list when no error occurs"""
+        pokemon_list = [
+            PokemonSchema(
+                name=pokemon.name,
+                order=pokemon.order,
+                url=pokemon.url,
+                status=pokemon.status,
+                external_image=pokemon.external_image,
+                id=pokemon.id,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+        ]
+        pokemon_service.pokemon_cache_service.get_catalog = AsyncMock(return_value=None)
+        pokemon_service.pokemon_cache_service.get_meta = AsyncMock(return_value=None)
+        pokemon_service.repository.total = AsyncMock(return_value=0)
+        pokemon_service.external_service.pokemon_external_total = AsyncMock(return_value=1)
+        pokemon_service.initialize_database = AsyncMock(return_value=pokemon_list)
+        pokemon_service.pokemon_cache_service.get_catalog = AsyncMock(
+            return_value=pokemon_list
+        )
+
+        result = await pokemon_service._ensure_list_synced()
+        assert result == pokemon_list
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_ensure_list_synced_not_cached_total_external_not_equal_db_total(
+        pokemon_service, pokemon
+    ):
+        """Should return repository list when no error occurs"""
+        first_pokemon = PokemonSchema(
+            name=pokemon.name,
+            order=pokemon.order,
+            url=pokemon.url,
+            status=pokemon.status,
+            external_image=pokemon.external_image,
+            id=pokemon.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        second_pokemon = PokemonSchema(
+            name=pokemon.name,
+            order=pokemon.order,
+            url=pokemon.url,
+            status=pokemon.status,
+            external_image=pokemon.external_image,
+            id=pokemon.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        pokemon_list = [first_pokemon, second_pokemon]
+        pokemon_service.pokemon_cache_service.get_catalog = AsyncMock(return_value=None)
+        pokemon_service.pokemon_cache_service.get_meta = AsyncMock(return_value=None)
+        pokemon_service.repository.total = AsyncMock(return_value=1)
+        pokemon_service.external_service.pokemon_external_total = AsyncMock(return_value=2)
+        pokemon_service.initialize_database = AsyncMock(return_value=pokemon_list)
+        pokemon_service.pokemon_cache_service.get_catalog = AsyncMock(
+            return_value=pokemon_list
+        )
+        pokemon_service.repository.total = AsyncMock(return_value=2)
+
+        result = await pokemon_service._ensure_list_synced()
+        assert result == pokemon_list
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_ensure_list_synced_not_cached(pokemon_service, pokemon):
+        """Should return repository list when no error occurs"""
+        pokemon_list = [
+            PokemonSchema(
+                name=pokemon.name,
+                order=pokemon.order,
+                url=pokemon.url,
+                status=pokemon.status,
+                external_image=pokemon.external_image,
+                id=pokemon.id,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+        ]
+        pokemon_service.pokemon_cache_service.get_catalog = AsyncMock(return_value=None)
+        pokemon_service.pokemon_cache_service.get_meta = AsyncMock(return_value=None)
+        pokemon_service.repository.total = AsyncMock(return_value=1)
+        pokemon_service.external_service.pokemon_external_total = AsyncMock(return_value=1)
+        pokemon_service._rebuild_catalog_cache = AsyncMock(return_value=pokemon_list)
+
+        result = await pokemon_service._ensure_list_synced()
+        assert result == pokemon_list

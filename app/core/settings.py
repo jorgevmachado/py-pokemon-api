@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     )
 
     ALGORITHM: str
+    REDIS_URL: str | None = None
     REDIS_HOST: str
     REDIS_PORT: int
     SECRET_KEY: str
@@ -15,4 +16,4 @@ class Settings(BaseSettings):
     REDIS_CACHE_TTL_SECONDS: int = 3600
     REDIS_POKEMON_CATALOG_TTL_SECONDS: int = 86400
     REDIS_POKEMON_ITEM_TTL_SECONDS: int = 21600
-    REDIS_POKEMON_SYNC_CHECK_SECONDS: int = 600
+    REDIS_POKEMON_SYNC_CHECK_SECONDS: int = 86400

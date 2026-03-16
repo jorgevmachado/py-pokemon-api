@@ -1,16 +1,16 @@
-import random
 from typing import Optional
 
+from fastapi_pagination import LimitOffsetPage, LimitOffsetParams
 from sqlalchemy import inspect
 
-from app.domain.growth_rate.model import PokemonGrowthRate
 from app.domain.pokemon.external.schemas.evolution import (
     PokemonExternalEvolutionChainEvolvesToSchemaResponse,
     PokemonExternalEvolutionChainSchemaResponse,
 )
 from app.domain.pokemon.model import Pokemon
-from app.domain.pokemon.schema import PokemonSchema
+from app.domain.pokemon.schema import PokemonFilterPage, PokemonSchema
 from app.shared.enums.status_enum import StatusEnum
+from app.shared.utils.pagination import is_paginate, limit_paginate
 
 
 class PokemonBusiness:
@@ -95,136 +95,69 @@ class PokemonBusiness:
         )
 
     @staticmethod
-    def calculate_pokemon_stats(
-        pokemon: Pokemon,
-        level: int = 1,
-    ) -> dict:
-        """
-        Calculate initial pokemon stats based on base stats and growth rate formula.
-
-        Args:
-            pokemon: Pokemon model with base stats
-            level: Starting level (default 1)
-
-        Returns:
-            Dictionary with calculated stats for pokedex and captured_pokemon
-        """
-        if not pokemon:
-            return {}
-
-        base_stats = PokemonBusiness._build_base_stats(pokemon)
-        experience = PokemonBusiness._calculate_experience(
-            pokemon.growth_rate,
-            level,
-        )
-        ivs = PokemonBusiness._build_ivs(base_stats)
-        evs = PokemonBusiness._build_evs(base_stats)
-        stats = PokemonBusiness._build_stats(base_stats, ivs, evs, level)
-
-        return {
-            'hp': stats['hp'],
-            'max_hp': stats['hp'],
-            'attack': stats['attack'],
-            'defense': stats['defense'],
-            'special_attack': stats['special_attack'],
-            'special_defense': stats['special_defense'],
-            'speed': stats['speed'],
-            'level': level,
-            'experience': experience,
-            'iv_hp': ivs['hp'],
-            'iv_attack': ivs['attack'],
-            'iv_defense': ivs['defense'],
-            'iv_special_attack': ivs['special_attack'],
-            'iv_special_defense': ivs['special_defense'],
-            'iv_speed': ivs['speed'],
-            'ev_hp': evs['hp'],
-            'ev_attack': evs['attack'],
-            'ev_defense': evs['defense'],
-            'ev_special_attack': evs['special_attack'],
-            'ev_special_defense': evs['special_defense'],
-            'ev_speed': evs['speed'],
-            'wins': 0,
-            'losses': 0,
-            'battles': 0,
-            'nickname': pokemon.name,
-        }
+    def serialize_catalog(pokemons: list[Pokemon]) -> list[dict]:
+        return [
+            PokemonSchema.model_validate(pokemon).model_dump(mode='json')
+            for pokemon in pokemons
+        ]
 
     @staticmethod
-    def _build_base_stats(pokemon: Pokemon) -> dict[str, int]:
-        return {
-            'hp': pokemon.hp or 0,
-            'attack': pokemon.attack or 0,
-            'defense': pokemon.defense or 0,
-            'special_attack': pokemon.special_attack or 0,
-            'special_defense': pokemon.special_defense or 0,
-            'speed': pokemon.speed or 0,
-        }
+    def deserialize_catalog(payload: list[dict]) -> list[PokemonSchema]:
+        result = []
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            result.append(PokemonSchema.model_validate(item))
+        return result
 
     @staticmethod
-    def _build_ivs(base_stats: dict[str, int]) -> dict[str, int]:
-        return {name: random.randint(0, 31) for name in base_stats}
+    def filter_and_paginate_catalog(
+        catalog: list[PokemonSchema],
+        page_filter: Optional[PokemonFilterPage] = None,
+    ) -> LimitOffsetPage[PokemonSchema] | list[PokemonSchema]:
 
-    @staticmethod
-    def _build_evs(base_stats: dict[str, int]) -> dict[str, int]:
-        return {name: 0 for name in base_stats}
+        raw_filters = page_filter.model_dump(exclude_none=True) if page_filter else {}
 
-    @staticmethod
-    def _build_stats(
-        base_stats: dict[str, int],
-        ivs: dict[str, int],
-        evs: dict[str, int],
-        level: int,
-    ) -> dict[str, int]:
-        return {
-            name: PokemonBusiness._calculate_stat_value(
-                base_stats[name],
-                ivs[name],
-                evs[name],
-                level,
-                name == 'hp',
+        raw_filters.pop('offset', None)
+        raw_filters.pop('limit', None)
+
+        valid_fields = set(PokemonSchema.model_fields.keys())
+        filters = {k: v for k, v in raw_filters.items() if k in valid_fields and v is not None}
+
+        filtered_catalog = [
+            pokemon for pokemon in catalog if PokemonBusiness._matches_filter(pokemon, filters)
+        ]
+
+        if is_paginate(page_filter):
+            params = LimitOffsetParams(
+                limit=limit_paginate(page_filter.limit),
+                offset=page_filter.offset,
             )
-            for name in base_stats
-        }
+            start = params.offset
+            end = start + params.limit
+            return LimitOffsetPage.create(
+                items=filtered_catalog[start:end],
+                total=len(filtered_catalog),
+                params=params,
+            )
+        return filtered_catalog
 
     @staticmethod
-    def _calculate_stat_value(
-        base: int,
-        iv: int,
-        ev: int,
-        level: int,
-        is_hp: bool,
-    ) -> int:
-        value = ((2 * base + iv + ev // 4) * level // 100) + 5
-        if is_hp:
-            value += level
-        return max(1, value)
+    def _matches_filter(
+        pokemon: PokemonSchema,
+        filters: dict[str, object],
+    ) -> bool:
+        if not filters:
+            return True
 
-    @staticmethod
-    def _calculate_experience(
-        growth_rate: PokemonGrowthRate | None,
-        level: int,
-    ) -> int:
-        """
-        Calculate experience points for a given level using growth rate formula.
+        for key, value in filters.items():
+            pokemon_value = getattr(pokemon, key, None)
 
-        Args:
-            growth_rate: Growth rate object containing formula
-            level: Pokemon level
+            if isinstance(pokemon_value, str) and isinstance(value, str):
+                if pokemon_value.lower() != value.lower():
+                    return False
+                continue
 
-        Returns:
-            Experience points required for the level
-        """
-        if not growth_rate or not growth_rate.formula:
-            # Default formula: x^3 (Slow growth rate)
-            return int(level**3)
-
-        # Parse and evaluate the formula
-        # Common formulas: x^3, x^2, x, etc.
-        formula = growth_rate.formula.replace('x', str(level))
-
-        try:
-            experience = eval(formula)  # noqa: S307
-            return max(0, int(experience))
-        except Exception:
-            # Fallback to default formula if evaluation fails
-            return int(level**3)
+            if pokemon_value != value:
+                return False
+        return True
