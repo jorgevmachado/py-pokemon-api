@@ -1,4 +1,4 @@
-from app.shared.image import ensure_external_image
+from app.shared.utils.image import ensure_external_image
 
 
 class TestImageEnsureExternalImage:

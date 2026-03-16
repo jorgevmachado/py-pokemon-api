@@ -8,9 +8,9 @@ from sqlalchemy import UUID, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.base import default_lazy, table_registry
-from app.shared.gender_enum import GenderEnum
-from app.shared.role_enum import RoleEnum
-from app.shared.status_enum import StatusEnum
+from app.shared.enums.gender_enum import GenderEnum
+from app.shared.enums.role_enum import RoleEnum
+from app.shared.enums.status_enum import StatusEnum
 
 if TYPE_CHECKING:
     from app.domain.captured_pokemon.model import CapturedPokemon

@@ -16,7 +16,7 @@ from app.domain.type.schema import (
     ValidatePokemonTypeDamageRelationSchema,
 )
 from app.shared.exceptions import handle_service_exception
-from app.shared.number import ensure_order_number
+from app.shared.utils.number import ensure_order_number
 
 Repository = Annotated[PokemonTypeRepository, Depends()]
 logger = logging.getLogger(__name__)

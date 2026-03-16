@@ -2,12 +2,12 @@ import ast
 
 import pytest
 
-from app.shared.number import (
+from app.shared.utils.number import (
     calculate_by_formula,
     convert_latex_to_python,
     ensure_order_number,
 )
-from app.shared.number import (
+from app.shared.utils.number import (
     eval as eval_expression,
 )
 

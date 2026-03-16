@@ -1,5 +1,5 @@
 from app.domain.pokemon.model import Pokemon
-from app.shared.status_enum import StatusEnum
+from app.shared.enums.status_enum import StatusEnum
 
 MOCK_ENTITY_ORDER = 1
 

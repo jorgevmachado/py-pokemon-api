@@ -16,8 +16,8 @@ from app.domain.pokemon.schema import (
     GeneratePokemonRelationshipSchema,
 )
 from app.domain.type.model import PokemonType
+from app.shared.enums.status_enum import StatusEnum
 from app.shared.schemas import FilterPage
-from app.shared.status_enum import StatusEnum
 from tests.app.domain.pokemon.external.mocks.business_mock import (
     MOCK_ATTRIBUTES_ATTACK,
     MOCK_ATTRIBUTES_DEFENSE,

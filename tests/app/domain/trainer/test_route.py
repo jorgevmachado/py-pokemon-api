@@ -8,9 +8,9 @@ import pytest
 from app.core.security import get_current_user
 from app.domain.trainer.service import TrainerService
 from app.main import app
-from app.shared.gender_enum import GenderEnum
-from app.shared.role_enum import RoleEnum
-from app.shared.status_enum import StatusEnum
+from app.shared.enums.gender_enum import GenderEnum
+from app.shared.enums.role_enum import RoleEnum
+from app.shared.enums.status_enum import StatusEnum
 from tests.factories.trainer import TrainerFactory
 
 CAPTURE_RATE = 45

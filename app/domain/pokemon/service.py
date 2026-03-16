@@ -19,10 +19,10 @@ from app.domain.pokemon.schema import (
     PokemonSchema,
 )
 from app.domain.type.service import PokemonTypeService
+from app.shared.enums.status_enum import StatusEnum
 from app.shared.exceptions import handle_service_exception
-from app.shared.pagination import exception_pagination
 from app.shared.schemas import FilterPage
-from app.shared.status_enum import StatusEnum
+from app.shared.utils.pagination import exception_pagination
 
 POKEMON_TOTAL_LIMIT = 1302
 Repository = Annotated[PokemonRepository, Depends()]

@@ -9,7 +9,7 @@ from app.domain.ability.model import PokemonAbility
 from app.domain.growth_rate.model import PokemonGrowthRate
 from app.domain.move.model import PokemonMove
 from app.domain.type.model import PokemonType
-from app.shared.status_enum import StatusEnum
+from app.shared.enums.status_enum import StatusEnum
 
 
 @table_registry.mapped_as_dataclass

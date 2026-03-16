@@ -12,3 +12,4 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     DATABASE_URL: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
+    REDIS_CACHE_TTL_SECONDS: int = 3600

@@ -4,7 +4,7 @@ import factory
 from factory import Faker
 
 from app.domain.pokemon.model import Pokemon
-from app.shared.status_enum import StatusEnum
+from app.shared.enums.status_enum import StatusEnum
 
 
 class PokemonFactory(factory.Factory):

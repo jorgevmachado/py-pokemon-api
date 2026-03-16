@@ -15,7 +15,7 @@ from app.domain.pokemon.external.schemas import (
 from app.domain.pokemon.model import Pokemon
 from app.domain.type.model import PokemonType
 from app.domain.type.schema import PokemonTypeSchema
-from app.shared.status_enum import StatusEnum
+from app.shared.enums.status_enum import StatusEnum
 
 
 class PokemonEvolutionSchema(BaseModel):

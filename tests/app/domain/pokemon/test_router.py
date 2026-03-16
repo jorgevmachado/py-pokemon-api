@@ -8,7 +8,7 @@ from fastapi_pagination import LimitOffsetPage, LimitOffsetParams
 
 from app.core.database import get_session
 from app.main import app
-from app.shared.status_enum import StatusEnum
+from app.shared.enums.status_enum import StatusEnum
 from tests.app.domain.pokemon.external.mocks.business_mock import (
     MOCK_ATTRIBUTES_ATTACK,
     MOCK_ATTRIBUTES_DEFENSE,

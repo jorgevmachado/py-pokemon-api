@@ -10,9 +10,9 @@ from app.core.security import verify_password
 from app.domain.pokemon.schema import FirstPokemonSchemaResult
 from app.domain.trainer.model import Trainer
 from app.domain.trainer.schema import CreateTrainerSchema, InitializeTrainerSchema
-from app.shared.gender_enum import GenderEnum
-from app.shared.role_enum import RoleEnum
-from app.shared.status_enum import StatusEnum
+from app.shared.enums.gender_enum import GenderEnum
+from app.shared.enums.role_enum import RoleEnum
+from app.shared.enums.status_enum import StatusEnum
 from tests.factories.pokemon import PokemonFactory
 
 CAPTURE_RATE_HIGH = 80

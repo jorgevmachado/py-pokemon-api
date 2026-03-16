@@ -14,7 +14,7 @@ from app.domain.pokemon.external.schemas import (
     PokemonSpecieEvolutionChainResponse,
 )
 from app.domain.pokemon.schema import PokemonSchema
-from app.shared.status_enum import StatusEnum
+from app.shared.enums.status_enum import StatusEnum
 from tests.app.domain.pokemon.external.mocks.business_mock import (
     MOCK_ATTRIBUTES_ATTACK,
     MOCK_ATTRIBUTES_DEFENSE,

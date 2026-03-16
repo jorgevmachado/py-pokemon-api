@@ -17,7 +17,7 @@ from app.domain.trainer.repository import TrainerRepository
 from app.domain.trainer.service import TrainerService
 from app.domain.type.repository import PokemonTypeRepository
 from app.domain.type.service import PokemonTypeService
-from app.shared.status_enum import StatusEnum
+from app.shared.enums.status_enum import StatusEnum
 from tests.factories.captured_pokemon import CapturedPokemonFactory
 from tests.factories.growth_rate import PokemonGrowthRateFactory
 from tests.factories.pokedex import PokedexFactory

@@ -3,8 +3,8 @@ from unittest.mock import patch
 import pytest
 from pydantic import ValidationError
 
-from app.shared.pagination import exception_pagination, is_paginate, limit_paginate
 from app.shared.schemas import FilterPage
+from app.shared.utils.pagination import exception_pagination, is_paginate, limit_paginate
 
 
 class TestPaginationLimitPaginate:
@@ -113,7 +113,9 @@ class TestPaginationExceptionPagination:
     @staticmethod
     def test_exception_pagination_catch_exception():
         """Should catch exception and return empty list when LimitOffsetParams raises error"""
-        with patch('app.shared.pagination.is_paginate', side_effect=Exception('Test error')):
+        with patch(
+            'app.shared.utils.pagination.is_paginate', side_effect=Exception('Test error')
+        ):
             result = exception_pagination(FilterPage(offset=0, limit=10))
 
             # Should return empty list due to exception handling
@@ -126,9 +128,9 @@ class TestPaginationExceptionPagination:
         # Mock is_paginate to return True so we enter the try block
         # Then mock LimitOffsetParams to raise an exception
         with (
-            patch('app.shared.pagination.is_paginate', return_value=True),
+            patch('app.shared.utils.pagination.is_paginate', return_value=True),
             patch(
-                'app.shared.pagination.LimitOffsetParams',
+                'app.shared.utils.pagination.LimitOffsetParams',
                 side_effect=ValueError('Invalid params'),
             ),
         ):

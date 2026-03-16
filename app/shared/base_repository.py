@@ -7,8 +7,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
-from app.shared.pagination import is_paginate, limit_paginate
 from app.shared.schemas import FilterPage
+from app.shared.utils.pagination import is_paginate, limit_paginate
 
 ModelT = TypeVar('ModelT')
 Session = Annotated[AsyncSession, Depends(get_session)]

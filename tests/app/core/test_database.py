@@ -2,9 +2,9 @@ import pytest
 from sqlalchemy import select
 
 from app.domain.trainer.model import Trainer
-from app.shared.gender_enum import GenderEnum
-from app.shared.role_enum import RoleEnum
-from app.shared.status_enum import StatusEnum
+from app.shared.enums.gender_enum import GenderEnum
+from app.shared.enums.role_enum import RoleEnum
+from app.shared.enums.status_enum import StatusEnum
 
 
 @pytest.mark.asyncio

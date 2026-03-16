@@ -16,9 +16,9 @@ from app.domain.trainer.schema import (
     CreateTrainerSchema,
     InitializeTrainerSchema,
 )
+from app.shared.enums.role_enum import RoleEnum
+from app.shared.enums.status_enum import StatusEnum
 from app.shared.exceptions import handle_service_exception
-from app.shared.role_enum import RoleEnum
-from app.shared.status_enum import StatusEnum
 
 Repository = Annotated[TrainerRepository, Depends()]
 PokemonService = Annotated[PokemonService, Depends()]

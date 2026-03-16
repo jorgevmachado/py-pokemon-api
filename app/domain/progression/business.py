@@ -7,7 +7,7 @@ from typing import Optional
 from app.domain.battle.schema import AttackResult, BattleSchema
 from app.domain.pokemon.model import Pokemon
 from app.domain.progression.schema import ProgressionListResult, ProgressionResult, StatBlock
-from app.shared.number import calculate_by_formula
+from app.shared.utils.number import calculate_by_formula
 
 
 class PokemonProgressionBusiness:

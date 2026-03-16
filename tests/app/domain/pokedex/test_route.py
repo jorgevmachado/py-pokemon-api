@@ -9,7 +9,7 @@ from app.core.security import get_current_user
 from app.domain.pokedex.route import CurrentTrainer, Service, router
 from app.domain.pokedex.service import PokedexService
 from app.main import app
-from app.shared.status_enum import StatusEnum
+from app.shared.enums.status_enum import StatusEnum
 from tests.factories.pokedex import PokedexFactory
 from tests.factories.pokemon import PokemonFactory
 from tests.factories.trainer import TrainerFactory

@@ -23,10 +23,10 @@ from app.domain.pokemon.external.schemas.specie import (
     PokemonExternalSpecieSchemaResponse,
 )
 from app.domain.pokemon.schema import PokemonSchema
+from app.shared.enums.status_enum import StatusEnum
 from app.shared.exceptions import handle_service_exception
-from app.shared.image import ensure_external_image
-from app.shared.number import ensure_order_number
-from app.shared.status_enum import StatusEnum
+from app.shared.utils.image import ensure_external_image
+from app.shared.utils.number import ensure_order_number
 
 logger = logging.getLogger(__name__)
 

@@ -10,7 +10,7 @@ from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseAbilitySchemaResponse,
 )
 from app.shared.exceptions import handle_service_exception
-from app.shared.number import ensure_order_number
+from app.shared.utils.number import ensure_order_number
 
 Repository = Annotated[PokemonAbilityRepository, Depends()]
 logger = logging.getLogger(__name__)

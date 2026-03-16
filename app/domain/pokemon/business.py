@@ -10,7 +10,7 @@ from app.domain.pokemon.external.schemas.evolution import (
 )
 from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.schema import PokemonSchema
-from app.shared.status_enum import StatusEnum
+from app.shared.enums.status_enum import StatusEnum
 
 
 class PokemonBusiness:
