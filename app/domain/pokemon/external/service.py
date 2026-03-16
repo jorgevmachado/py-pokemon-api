@@ -38,6 +38,30 @@ class PokemonExternalService:
     )
 
     @staticmethod
+    async def pokemon_external_total() -> int | None:
+        try:
+            async with httpx.AsyncClient(verify=False) as client:
+                response = await client.get(
+                    f'{PokemonExternalService.BASE_URL}/pokemon',
+                    params={'limit': 1, 'offset': 0},
+                    timeout=10.0,
+                )
+                response.raise_for_status()
+                response_data = response.json()
+
+                if 'count' not in response_data:
+                    return None
+
+                return int(response_data['count'])
+        except httpx.HTTPError as exception:
+            handle_service_exception(
+                exception,
+                logger=PokemonExternalService.LOGGING_PARAMS.logger,
+                service=PokemonExternalService.LOGGING_PARAMS.service,
+                operation='pokemon_external_total',
+            )
+
+    @staticmethod
     async def pokemon_external_list(
         offset: int, limit: int
     ) -> list[PokemonExternalBaseSchemaResponse]:

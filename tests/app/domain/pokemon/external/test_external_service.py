@@ -53,6 +53,90 @@ from tests.app.domain.pokemon.external.mocks.external_mock import (
 )
 
 
+class TestPokemonExternalServiceListTotal:
+    """Test scope for pokemon_external_total method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_external_total_success():
+        """Should return list of pokemon when API request is successful"""
+        total_result = 2
+
+        mock_response_data = {
+            'count': total_result,
+            'results': [
+                {
+                    'name': 'bulbasaur',
+                    'url': 'https://pokeapi.co/api/v2/pokemon/1/',
+                },
+                {
+                    'name': 'ivysaur',
+                    'url': 'https://pokeapi.co/api/v2/pokemon/2/',
+                },
+            ]
+        }
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status.return_value = None
+
+        with patch('httpx.AsyncClient') as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value = mock_client
+
+            result = await PokemonExternalService.pokemon_external_total()
+
+            assert result == total_result
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_external_total_no_results_key():
+        """Should raise HTTPException when results key is missing"""
+        offset = 0
+        limit = 2
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {}
+        mock_response.raise_for_status.return_value = None
+        text_detail = 'Failed to execute external request'
+
+        with patch('httpx.AsyncClient') as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value = mock_client
+
+            result = await PokemonExternalService.pokemon_external_total()
+
+
+        assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_external_total_http_error():
+        """Should raise HTTPException when HTTP request fails"""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {}
+        mock_response.raise_for_status.return_value = None
+        text_detail = 'Failed to execute external request'
+
+        with patch('httpx.AsyncClient') as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.get.side_effect = httpx.HTTPError('Connection error')
+            mock_client_class.return_value = mock_client
+
+            with pytest.raises(HTTPException) as exc_info:
+                await PokemonExternalService.pokemon_external_total()
+
+        assert exc_info.value.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+        assert text_detail in exc_info.value.detail
+
 class TestPokemonExternalServiceList:
     """Test scope for pokemon_external_list method"""
 
