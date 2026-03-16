@@ -3,11 +3,15 @@ from datetime import datetime
 
 import pytest
 import pytest_asyncio
+import redis.asyncio as redis
 from fastapi.testclient import TestClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
+from testcontainers.redis import RedisContainer
 
+import app.core.redis as core_redis
+import app.shared.cache.cache as cache_module
 from app.core.base import table_registry
 from app.core.database import get_session
 from app.core.security import get_password_hash
@@ -34,6 +38,12 @@ def engine():
         yield _engine
 
 
+@pytest.fixture(scope='session')
+def redis_container():
+    with RedisContainer('redis:7.4') as container:
+        yield container
+
+
 @pytest_asyncio.fixture
 async def session(engine):
     async with engine.begin() as conn:
@@ -44,6 +54,26 @@ async def session(engine):
 
     async with engine.begin() as conn:
         await conn.run_sync(table_registry.metadata.drop_all)
+
+
+@pytest_asyncio.fixture
+async def redis_client(monkeypatch, redis_container):
+    client = redis.Redis(
+        host=redis_container.get_container_host_ip(),
+        port=int(redis_container.get_exposed_port(6379)),
+        decode_responses=True,
+    )
+
+    monkeypatch.setattr(core_redis, 'redis_client', client)
+    monkeypatch.setattr(cache_module, 'redis_client', client)
+
+    await client.flushdb()
+
+    try:
+        yield client
+    finally:
+        await client.flushdb()
+        await client.aclose()
 
 
 @contextmanager

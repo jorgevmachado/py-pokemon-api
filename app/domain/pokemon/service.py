@@ -9,6 +9,7 @@ from app.domain.ability.service import PokemonAbilityService
 from app.domain.growth_rate.service import PokemonGrowthRateService
 from app.domain.move.service import PokemonMoveService
 from app.domain.pokemon.business import PokemonBusiness
+from app.domain.pokemon.cache import PokemonCacheService
 from app.domain.pokemon.external.service import PokemonExternalService
 from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.repository import PokemonRepository
@@ -50,6 +51,7 @@ class PokemonService:
         self.external_service = PokemonExternalService()
         self.business = PokemonBusiness()
         self.logger_params = LoggingParams(logger=logger, service='pokemon', operation='')
+        self.pokemon_cache_service = PokemonCacheService(logger_params=self.logger_params)
 
     async def total(self) -> int:
         log_service_success(
