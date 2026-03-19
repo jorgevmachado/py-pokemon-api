@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from http import HTTPStatus
 from typing import Any
 
+from app.core.context.request_context import request_id_ctx
 from app.core.logging.schemas import LoggingParams
 
 DEFAULT_LOG_LEVEL = 'INFO'
@@ -13,10 +14,20 @@ DEFAULT_LOG_LEVEL = 'INFO'
 
 class HighlightFormatter(logging.Formatter):
     ERROR_STYLE = '\x1b[41;97m'
-    WARNING_STYLE = '\x1b[43;30m'
-    INFO_STYLE = '\x1b[42;30m'
+    WARNING_STYLE = '\x1b[43;97m'
+    INFO_STYLE = '\x1b[44;97m'
     RESET_STYLE = '\x1b[0m'
-    FIELDS_TO_DISPLAY = {'service', 'operation', 'status_code', 'detail', 'error'}
+    FIELDS_TO_DISPLAY = {
+        'service',
+        'operation',
+        'status_code',
+        'detail',
+        'error',
+        'method',
+        'path',
+        'duration',
+        'request_id',
+    }
 
     LEVEL_STYLES = {
         logging.ERROR: ERROR_STYLE,
@@ -24,12 +35,19 @@ class HighlightFormatter(logging.Formatter):
         logging.INFO: INFO_STYLE,
     }
 
+    LOGGER_NAME_MAP = {
+        'uvicorn.error': 'uvicorn',
+        'watchfiles.main': 'watchfiles',
+    }
+
     def format(self, record: logging.LogRecord) -> str:
         original_levelname = record.levelname
+        original_name = record.name
+        record.name = self.LOGGER_NAME_MAP.get(record.name, record.name.split('.')[0])
         style = self.LEVEL_STYLES.get(record.levelno)
 
         if style:
-            record.levelname = f'{style}{original_levelname}{self.RESET_STYLE}'
+            record.levelname = f'{style}{original_levelname:^7}{self.RESET_STYLE}'
 
         try:
             base_format = super().format(record)
@@ -46,6 +64,7 @@ class HighlightFormatter(logging.Formatter):
             return base_format
         finally:
             record.levelname = original_levelname
+            record.name = original_name
 
 
 def _extract_base_fields(
@@ -134,6 +153,7 @@ def log_service_exception(
             'operation': params.operation,
             'status_code': params.status_code,
             'error': error or params.message,
+            'request_id': request_id_ctx.get(),
         },
     )
 
@@ -164,6 +184,7 @@ def log_service_success(
             'operation': params.operation,
             'status_code': params.status_code,
             'detail': params.message,
+            'request_id': request_id_ctx.get(),
         },
     )
 
@@ -198,6 +219,21 @@ def configure_logging() -> None:
             'app': {
                 'handlers': ['stdout'],
                 'level': log_level,
+                'propagate': False,
+            },
+            'uvicorn.error': {
+                'handlers': ['stdout'],
+                'level': log_level,
+                'propagate': False,
+            },
+            'watchfiles': {
+                'handlers': ['stdout'],
+                'level': log_level,
+                'propagate': False,
+            },
+            'uvicorn.access': {
+                'handlers': [],
+                'level': 'CRITICAL',
                 'propagate': False,
             },
         },

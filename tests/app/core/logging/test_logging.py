@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app.core.context.request_context import request_id_ctx
 from app.core.logging import (
     HighlightFormatter,
     LoggingParams,
@@ -48,8 +49,9 @@ class TestHighlightFormatter:
             exc_info=None,
         )
         formatted_error = formatter.format(record_error)
+        original_levelname = 'ERROR'
         assert formatted_error.startswith(
-            f'{formatter.ERROR_STYLE}ERROR{formatter.RESET_STYLE} '
+            f'{formatter.ERROR_STYLE}{original_levelname:^7}{formatter.RESET_STYLE} '
         )
         assert 'Failure' in formatted_error
         assert formatted_error.count(formatter.ERROR_STYLE) == 1
@@ -66,8 +68,9 @@ class TestHighlightFormatter:
             exc_info=None,
         )
         formatted_warning = formatter.format(record_warning)
+        levelname = 'WARNING'
         assert formatted_warning.startswith(
-            f'{formatter.WARNING_STYLE}WARNING{formatter.RESET_STYLE} '
+            f'{formatter.WARNING_STYLE}{levelname:^7}{formatter.RESET_STYLE} '
         )
         assert 'Warn' in formatted_warning
         assert formatted_warning.count(formatter.WARNING_STYLE) == 1
@@ -84,10 +87,46 @@ class TestHighlightFormatter:
             exc_info=None,
         )
         formatted_info = formatter.format(record_info)
-        assert formatted_info.startswith(f'{formatter.INFO_STYLE}INFO{formatter.RESET_STYLE} ')
+        levelname = 'INFO'
+        assert formatted_info.startswith(
+            f'{formatter.INFO_STYLE}{levelname:^7}{formatter.RESET_STYLE} '
+        )
         assert 'Info' in formatted_info
         assert formatted_info.count(formatter.INFO_STYLE) == 1
         assert formatted_info.count(formatter.RESET_STYLE) == 1
+
+    @staticmethod
+    def test_logger_name_map_applies_mapping():
+        """Should map logger name using LOGGER_NAME_MAP if present"""
+        formatter = HighlightFormatter('%(levelname)s %(name)s %(message)s')
+        formatter.LOGGER_NAME_MAP = {'custom.logger': 'mapped'}
+        record = logging.LogRecord(
+            name='custom.logger',
+            level=logging.INFO,
+            pathname=__file__,
+            lineno=10,
+            msg='Test message',
+            args=(),
+            exc_info=None,
+        )
+        formatted = formatter.format(record)
+        assert 'mapped' in formatted
+
+    @staticmethod
+    def test_logger_name_map_fallbacks_to_first_segment():
+        """Should fallback to first segment of logger name if not mapped"""
+        formatter = HighlightFormatter('%(levelname)s %(name)s %(message)s')
+        record = logging.LogRecord(
+            name='foo.bar.baz',
+            level=logging.INFO,
+            pathname=__file__,
+            lineno=11,
+            msg='Test message',
+            args=(),
+            exc_info=None,
+        )
+        formatted = formatter.format(record)
+        assert 'foo' in formatted
 
 
 class TestServiceLogging:
@@ -95,7 +134,7 @@ class TestServiceLogging:
     def test_log_service_exception_with_keyword_args():
         """Should log exception payload when called arguments (WARNING and ERROR)"""
         logger = MagicMock()
-
+        request_id_ctx.set('test-id')
         # WARNING (client error)
         log_service_exception(
             logger=logger,
@@ -104,19 +143,18 @@ class TestServiceLogging:
             status_code=HTTPStatus.BAD_REQUEST,
             message='Bad request',
         )
-        logger.log.assert_called_with(
-            logging.WARNING,
-            'Bad request',
-            exc_info=False,
-            extra={
-                'service': 'auth',
-                'operation': 'authenticate',
-                'status_code': HTTPStatus.BAD_REQUEST,
-                'error': 'Bad request',
-            },
-        )
+        args, kwargs = logger.log.call_args
+        assert args[0] == logging.WARNING
+        assert args[1] == 'Bad request'
+        assert kwargs['exc_info'] is False
+        extra = kwargs['extra']
+        assert extra['service'] == 'auth'
+        assert extra['operation'] == 'authenticate'
+        assert extra['status_code'] == HTTPStatus.BAD_REQUEST
+        assert extra['error'] == 'Bad request'
+        assert 'request_id' in extra
+        assert extra['request_id'] == 'test-id'
         logger.reset_mock()
-
         # ERROR (server error)
         log_service_exception(
             logger=logger,
@@ -125,22 +163,23 @@ class TestServiceLogging:
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             message='Server error',
         )
-        logger.log.assert_called_with(
-            logging.ERROR,
-            'Server error',
-            exc_info=True,
-            extra={
-                'service': 'auth',
-                'operation': 'authenticate',
-                'status_code': HTTPStatus.INTERNAL_SERVER_ERROR,
-                'error': 'Server error',
-            },
-        )
+        args, kwargs = logger.log.call_args
+        assert args[0] == logging.ERROR
+        assert args[1] == 'Server error'
+        assert kwargs['exc_info'] is True
+        extra = kwargs['extra']
+        assert extra['service'] == 'auth'
+        assert extra['operation'] == 'authenticate'
+        assert extra['status_code'] == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert extra['error'] == 'Server error'
+        assert 'request_id' in extra
+        assert extra['request_id'] == 'test-id'
 
     @staticmethod
     def test_log_service_exception_with_logging_params():
         """Should log exception payload when called with LoggingParams (WARNING and ERROR)"""
         logger = MagicMock()
+        request_id_ctx.set('test-id')
         params_warning = LoggingParams(
             logger=logger,
             service='auth',
@@ -149,17 +188,17 @@ class TestServiceLogging:
             message='Unauthorized',
         )
         log_service_exception(params_warning)
-        logger.log.assert_called_with(
-            logging.WARNING,
-            'Unauthorized',
-            exc_info=False,
-            extra={
-                'service': 'auth',
-                'operation': 'authenticate',
-                'status_code': HTTPStatus.UNAUTHORIZED,
-                'error': 'Unauthorized',
-            },
-        )
+        args, kwargs = logger.log.call_args
+        assert args[0] == logging.WARNING
+        assert args[1] == 'Unauthorized'
+        assert kwargs['exc_info'] is False
+        extra = kwargs['extra']
+        assert extra['service'] == 'auth'
+        assert extra['operation'] == 'authenticate'
+        assert extra['status_code'] == HTTPStatus.UNAUTHORIZED
+        assert extra['error'] == 'Unauthorized'
+        assert 'request_id' in extra
+        assert extra['request_id'] == 'test-id'
         logger.reset_mock()
         params_error = LoggingParams(
             logger=logger,
@@ -169,38 +208,39 @@ class TestServiceLogging:
             message='Internal error',
         )
         log_service_exception(params_error)
-        logger.log.assert_called_with(
-            logging.ERROR,
-            'Internal error',
-            exc_info=True,
-            extra={
-                'service': 'auth',
-                'operation': 'authenticate',
-                'status_code': HTTPStatus.INTERNAL_SERVER_ERROR,
-                'error': 'Internal error',
-            },
-        )
+        args, kwargs = logger.log.call_args
+        assert args[0] == logging.ERROR
+        assert args[1] == 'Internal error'
+        assert kwargs['exc_info'] is True
+        extra = kwargs['extra']
+        assert extra['service'] == 'auth'
+        assert extra['operation'] == 'authenticate'
+        assert extra['status_code'] == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert extra['error'] == 'Internal error'
+        assert 'request_id' in extra
+        assert extra['request_id'] == 'test-id'
 
     @staticmethod
     def test_log_service_exception_defaults_to_internal_server_error():
         """Should default to INTERNAL_SERVER_ERROR when no status_code is provided (ERROR)"""
         logger = MagicMock()
+        request_id_ctx.set('test-id')
         log_service_exception(
             logger=logger,
             service='auth',
             operation='authenticate',
         )
-        logger.log.assert_called_with(
-            logging.ERROR,
-            'Internal Server Error',
-            exc_info=True,
-            extra={
-                'service': 'auth',
-                'operation': 'authenticate',
-                'status_code': HTTPStatus.INTERNAL_SERVER_ERROR,
-                'error': 'Internal Server Error',
-            },
-        )
+        args, kwargs = logger.log.call_args
+        assert args[0] == logging.ERROR
+        assert args[1] == 'Internal Server Error'
+        assert kwargs['exc_info'] is True
+        extra = kwargs['extra']
+        assert extra['service'] == 'auth'
+        assert extra['operation'] == 'authenticate'
+        assert extra['status_code'] == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert extra['error'] == 'Internal Server Error'
+        assert 'request_id' in extra
+        assert extra['request_id'] == 'test-id'
 
     @staticmethod
     def test_log_service_success_with_keyword_args():
