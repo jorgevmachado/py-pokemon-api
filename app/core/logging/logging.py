@@ -11,16 +11,25 @@ from app.core.logging.schemas import LoggingParams
 DEFAULT_LOG_LEVEL = 'INFO'
 
 
-class ErrorHighlightFormatter(logging.Formatter):
+class HighlightFormatter(logging.Formatter):
     ERROR_STYLE = '\x1b[41;97m'
+    WARNING_STYLE = '\x1b[43;30m'
+    INFO_STYLE = '\x1b[42;30m'
     RESET_STYLE = '\x1b[0m'
-    FIELDS_TO_DISPLAY = {'service', 'operation', 'status_code', 'detail'}
+    FIELDS_TO_DISPLAY = {'service', 'operation', 'status_code', 'detail', 'error'}
+
+    LEVEL_STYLES = {
+        logging.ERROR: ERROR_STYLE,
+        logging.WARNING: WARNING_STYLE,
+        logging.INFO: INFO_STYLE,
+    }
 
     def format(self, record: logging.LogRecord) -> str:
         original_levelname = record.levelname
+        style = self.LEVEL_STYLES.get(record.levelno)
 
-        if record.levelno == logging.ERROR:
-            record.levelname = f'{self.ERROR_STYLE}{original_levelname}{self.RESET_STYLE}'
+        if style:
+            record.levelname = f'{style}{original_levelname}{self.RESET_STYLE}'
 
         try:
             base_format = super().format(record)
@@ -97,6 +106,7 @@ def log_service_exception(
     logging_params: 'LoggingParams | Mapping[str, Any] | None' = None,
     *,
     logger: Any = None,
+    error: str | None = None,
     service: str | None = None,
     operation: str | None = None,
     message: str | None = None,
@@ -112,13 +122,18 @@ def log_service_exception(
         default_status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
     )
 
-    params.logger.exception(
-        f'{params.service}.{params.operation}',
+    is_server_error = params.status_code >= HTTPStatus.INTERNAL_SERVER_ERROR
+    level = logging.ERROR if is_server_error else logging.WARNING
+
+    params.logger.log(
+        level,
+        params.message,
+        exc_info=is_server_error,
         extra={
             'service': params.service,
             'operation': params.operation,
             'status_code': params.status_code,
-            'detail': params.message,
+            'error': error or params.message,
         },
     )
 
@@ -168,7 +183,7 @@ def configure_logging() -> None:
         'disable_existing_loggers': False,
         'formatters': {
             'standard': {
-                '()': ErrorHighlightFormatter,
+                '()': HighlightFormatter,
                 'format': '%(levelname)s %(asctime)s:  %(name)s %(message)s ',
             },
         },

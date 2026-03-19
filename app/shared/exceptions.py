@@ -63,6 +63,7 @@ def handle_service_exception(
 
     log_service_exception(
         logger=logger,
+        error=str(exception),
         service=service,
         operation=operation,
         status_code=status_code,

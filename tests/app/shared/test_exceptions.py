@@ -25,7 +25,10 @@ class TestUnauthorizedException:
 class TestHandleServiceException:
     @staticmethod
     def test_handle_service_exception_returns_context_when_raise_disabled():
-        """Should return status and message without raising when raise_exception is false"""
+        """
+        Should return status and message without raising when raise_exception is false
+        and log error string
+        """
         logger = MagicMock()
         error = HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail='Bad request')
 
@@ -38,11 +41,13 @@ class TestHandleServiceException:
         )
 
         assert result == (HTTPStatus.BAD_REQUEST, 'Bad request')
-        logger.exception.assert_called_once()
+        logger.log.assert_called_once()
+        log_args, log_kwargs = logger.log.call_args
+        assert log_kwargs['extra']['error'] == str(error)
 
     @staticmethod
     def test_handle_service_exception_with_http_exception():
-        """Should preserve status code and detail from HTTPException"""
+        """Should preserve status code and detail from HTTPException and log error string"""
         logger = MagicMock()
         error = HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail='Bad request')
 
@@ -56,15 +61,17 @@ class TestHandleServiceException:
 
         assert exc_info.value.status_code == HTTPStatus.BAD_REQUEST
         assert exc_info.value.detail == 'Bad request'
-        logger.exception.assert_called_once()
-        result_status_code = logger.exception.call_args.kwargs['extra']['status_code']
-        (message,) = logger.exception.call_args.args
-        assert message == 'auth.authenticate'
-        assert result_status_code == HTTPStatus.BAD_REQUEST
+        logger.log.assert_called_once()
+        log_args, log_kwargs = logger.log.call_args
+        assert log_kwargs['extra']['status_code'] == HTTPStatus.BAD_REQUEST
+        assert log_kwargs['extra']['error'] == str(error)
 
     @staticmethod
     def test_handle_service_exception_with_invalid_http_status():
-        """Should fallback to internal server error when HTTPException status is invalid"""
+        """
+        Should fallback to internal server error when HTTPException status is invalid
+        and log error string
+        """
         logger = MagicMock()
         error = HTTPException(status_code=999, detail='Invalid')
 
@@ -76,16 +83,20 @@ class TestHandleServiceException:
                 operation='authenticate',
             )
 
-        result_status_code = logger.exception.call_args.kwargs['extra']['status_code']
-
+        log_args, log_kwargs = logger.log.call_args
+        result_status_code = log_kwargs['extra']['status_code']
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         assert exc_info.value.detail == 'Invalid'
         assert result_status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        logger.exception.assert_called_once()
+        assert log_kwargs['extra']['error'] == str(error)
+        logger.log.assert_called_once()
 
     @staticmethod
     def test_handle_service_exception_with_sqlalchemy_error():
-        """Should return internal server error when SQLAlchemyError occurs"""
+        """
+        Should return internal server error when SQLAlchemyError occurs
+        and log error string
+        """
         logger = MagicMock()
         error = SQLAlchemyError('boom')
 
@@ -99,11 +110,16 @@ class TestHandleServiceException:
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         assert exc_info.value.detail == 'Internal server error'
-        logger.exception.assert_called_once()
+        logger.log.assert_called_once()
+        log_args, log_kwargs = logger.log.call_args
+        assert log_kwargs['extra']['error'] == str(error)
 
     @staticmethod
     def test_handle_service_exception_with_unexpected_error():
-        """Should return internal server error when unexpected error occurs"""
+        """
+        Should return internal server error when unexpected error occurs
+        and log error string
+        """
         logger = MagicMock()
         error = Exception('boom')
 
@@ -117,4 +133,6 @@ class TestHandleServiceException:
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         assert exc_info.value.detail == 'Internal server error'
-        logger.exception.assert_called_once()
+        logger.log.assert_called_once()
+        log_args, log_kwargs = logger.log.call_args
+        assert log_kwargs['extra']['error'] == str(error)
