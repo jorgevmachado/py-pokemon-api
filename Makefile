@@ -1,21 +1,40 @@
 lint:
-	ruff check
+	poetry run ruff check
 lint-fix:
-	ruff check --fix
+	poetry run ruff check --fix
 lint-format:
-	ruff format
+	poetry run ruff format
 format:
-	make lint-fix
-	make lint-format
+	poetry run make lint-fix
+	poetry run make lint-format
 
 test-app:
-	pytest -x --cov=app -vv
+	poetry run pytest -x --cov=app -vv
 test-coverage:
-	coverage html
+	poetry run coverage html
 test:
 	make lint
 	make test-app
 	make test-coverage
 
 dev:
-	fastapi dev app/main.py
+	poetry run fastapi dev app/main.py
+
+run:
+	make dev
+
+create-migration:
+	@if [ -z "$(message)"]; then \
+  		echo "Error: message variable is required. Usage: make create-migration message='Your migration message'"; \
+		exit 1; \
+	fi
+	poetry run alembic revision --autogenerate -m "$(message)"
+
+rollback-migration:
+	poetry run alembic downgrade -1
+
+migrate:
+	poetry run alembic upgrade head
+
+
+

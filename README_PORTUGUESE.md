@@ -27,7 +27,9 @@
   <h3 align="center">Pokemon API</h3>
 
   <p align="center">
-    Uma API simples para obter informações sobre Pokémon.
+    <b>Descubra, capture e gerencie Pokémons como nunca antes!</b><br>
+    <br>
+    <i>py-pokemon-api</i> é uma API RESTful robusta, pronta para produção e pensada para cenários reais. Construída para performance, escalabilidade e segurança, ela permite que desenvolvedores criem, gerenciem e explorem um ecossistema completo de Pokémons com autenticação de usuários, cache avançado e uma arquitetura limpa e sustentável. Seja para jogos, plataformas educacionais ou aplicações orientadas a dados, este projeto oferece uma base sólida e as melhores práticas para desenvolvimento backend moderno.
     <br />
     <a href="https://github.com/jorgevmachado/py-pokemon-api"><strong>Explore a documentação »</strong></a>
     <br />
@@ -49,6 +51,7 @@
       <a href="#sobre-o-projeto">Sobre o Projeto</a>
       <ul>
         <li><a href="#construido-com">Construído Com</a></li>
+        <li><a href="#arquitetura">Arquitetura</a></li>
       </ul>
     </li>
     <li>
@@ -61,6 +64,8 @@
     <li><a href="#uso">Uso</a></li>
     <li><a href="#roteiro">Roteiro</a></li>
     <li><a href="#contribuindo">Contribuindo</a></li>
+    <li><a href="#decisoes-tecnicas">Decisões Técnicas</a></li>
+    <li><a href="#mapa-de-rotas-da-api">Mapa de Rotas da API</a></li>
     <li><a href="#licenca">Licença</a></li>
     <li><a href="#contato">Contato</a></li>
     <li><a href="#agradecimentos">Agradecimentos</a></li>
@@ -85,6 +90,91 @@ Principais pontos:
 
 <p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
 
+
+<!-- ARQUITETURA -->
+<a id="arquitetura"></a>
+## Arquitetura
+
+O projeto segue uma arquitetura limpa e orientada a domínios para garantir manutenibilidade, escalabilidade e separação clara de responsabilidades. Cada funcionalidade é organizada em seu próprio módulo de domínio dentro de `app/domain/<feature>`, contendo:
+
+- **Rotas**: Definem os endpoints da API e tratam as requisições HTTP.
+- **Serviços**: Funcionam como orquestradores, coordenando requisições e combinando operações entre as camadas de Business, Repositório e Schema. Os serviços não contêm regras de negócio, mas sim gerenciam o fluxo e integração entre os componentes.
+- **Business**: Centralizam as regras de negócio e lógica de domínio. Todas as validações críticas, cálculos e regras específicas do domínio são implementadas aqui, garantindo a integridade e consistência do comportamento da aplicação.
+- **Repositórios**: Abstraem o acesso e persistência dos dados, utilizando SQLAlchemy async para operações eficientes de I/O.
+- **Schemas**: Definem validação e serialização de dados usando modelos Pydantic.
+
+**Módulos core** (em `app/core/`) fornecem infraestrutura compartilhada, como configuração de banco, autenticação e gerenciamento de settings. O uso de SQLAlchemy async e FastAPI permite alta performance e tratamento não bloqueante das requisições, tornando a API adequada para ambientes de produção com alta concorrência.
+
+**Principais decisões arquiteturais:**
+- Isolamento de domínios: cada feature é autocontida, facilitando extensões e refatorações.
+- Async-first: todas as operações de banco e I/O são assíncronas para máximo desempenho.
+- Configuração via ambiente: todas as settings são gerenciadas por variáveis de ambiente e Pydantic Settings para flexibilidade e segurança.
+- Autenticação JWT: autenticação e autorização de usuários de forma segura.
+- Migrações Alembic: versionamento confiável do schema do banco de dados.
+- Cache (opcional): integração com Redis ou similar para consultas frequentes de baixa latência.
+
+Esta arquitetura é inspirada nas melhores práticas de sistemas backend corporativos, tornando o projeto tanto educativo quanto pronto para uso real.
+
+
+<!-- MAPA DE ROTAS DA API -->
+<a id="mapa-de-rotas-da-api"></a>
+
+## Mapa de Rotas da API
+
+Abaixo está um resumo das principais rotas da API para cada serviço, com uma breve explicação do que cada rota faz:
+
+### Serviço de Autenticação
+- `POST /auth/login` — Autentica o usuário e retorna o token JWT
+- `POST /auth/register` — Registra um novo usuário
+
+### Serviço de Pokémon (Necessita autenticação)
+- `GET /pokemon/` — Lista todos os Pokémons
+- `GET /pokemon/{id}` — Detalha um Pokémon específico
+
+### Serviço de Treinador (Necessita autenticação)
+- `GET /trainer/` — Lista todos os treinadores
+- `GET /trainer/{id}` — Detalha um treinador específico
+- `POST /initialize/` — Inicializa um treinador com Pokémon inicial
+
+### Serviço de Pokémons Capturados (Necessita autenticação)
+- `GET /captured-pokemons/` — Lista todos os Pokémons do treinador
+- `POST /captured-pokemons/capture` — Captura um Pokémon
+- `POST /captured-pokemons/heal` — Cura um Pokémon
+
+### Serviço de Pokedex (Necessita autenticação)
+- `GET /pokedex/` — Lista todos os Pokémons na Pokédex do treinador
+- `POST /pokedex/discover` — Descobre um Pokémon e completa sua Pokédex
+
+### Serviço de Batalha (Necessita autenticação)
+- `POST /battle/` — Cria uma nova batalha
+
+> Para a lista completa e detalhes de todos os endpoints, consulte a documentação interativa da API em `/docs` após rodar o projeto.
+
+### 📸 Visualização da API
+![Swagger UI](./public/swagger-ui.png)
+
+<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
+
+
+<!-- DECISÕES TÉCNICAS -->
+<a id="decisoes-tecnicas"></a>
+## ⚙️ Decisões Técnicas
+
+O projeto foi desenvolvido com foco em performance, manutenibilidade e aplicabilidade real. As principais decisões incluem:
+
+- **FastAPI**: escolhida pela alta performance, suporte a async e documentação OpenAPI automática.
+- **SQLAlchemy async**: permite controle eficiente de operações I/O-bound e alta concorrência.
+- **Alembic**: fornece migrações robustas e versionamento do banco.
+- **Pydantic Settings**: simplifica configuração e validação baseada em ambiente.
+- **Passlib (argon2)**: hashing seguro de senhas para autenticação de usuários.
+- **PyJWT**: gerenciamento de tokens JWT padrão de mercado para autenticação stateless.
+- **FastAPI Pagination**: paginação nativa e eficiente para grandes volumes de dados.
+- **aiosqlite/psycopg**: drivers assíncronos para SQLite e PostgreSQL, suportando bancos de desenvolvimento e produção.
+- **tzdata**: garante tratamento correto de timezone em todos os ambientes.
+
+Essas escolhas equilibram experiência do desenvolvedor, segurança e escalabilidade, tornando o projeto uma base forte para qualquer sistema backend que exija gestão robusta de dados e autenticação de usuários.
+
+<p align="right">(<a href="#readme-top">voltar ao topo</a>)</p>
 
 
 <a id="construido-com"></a>
@@ -253,6 +343,7 @@ ruff format .
 
 <!-- ROTEIRO -->
 <a id="roteiro"></a>
+
 ## Roteiro
 
 - [x] Estrutura por domínio

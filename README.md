@@ -28,7 +28,9 @@
   <h3 align="center">Pokemon API</h3>
 
   <p align="center">
-    A simple API to get information about Pokemon.
+    <b>Discover, capture, and manage Pokémon like never before!</b><br>
+    <br>
+    <i>py-pokemon-api</i> is a robust, production-grade RESTful API designed for real-world scenarios. Built for performance, scalability, and security, it empowers developers to create, manage, and explore a complete Pokémon ecosystem with user authentication, advanced caching, and a clean, maintainable architecture. Whether you're building a game, a learning platform, or a data-driven app, this project provides a solid foundation and best practices for modern backend development.
     <br />
     <a href="https://github.com/jorgevmachado/py-pokemon-api"><strong>Explore the docs »</strong></a>
     <br />
@@ -47,9 +49,13 @@
   <summary>Table of Contents</summary>
   <ol>
     <li>
+        <a href="#overview">Overview</a>
+    </li>
+    <li>
       <a href="#about-the-project">About The Project</a>
       <ul>
         <li><a href="#built-with">Built With</a></li>
+        <li><a href="#architecture">Architecture</a></li>
       </ul>
     </li>
     <li>
@@ -62,18 +68,26 @@
     <li><a href="#usage">Usage</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#technical-decisions">Technical Decisions</a></li>
+     <li><a href="#api-route-map">API Route Map</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
 
+<!-- OVERVIEW -->
+<a id="overview"></a>
+## 🚀 Overview
 
+RESTful API for managing a Pokémon ecosystem (trainers, battles, captures), built with FastAPI and async SQLAlchemy.
+
+Includes JWT authentication, pagination, caching support, and a layered architecture (domain, service, repository) designed for scalability and maintainability.
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-REST API for managing pokedex, trainers, battles, and pokemon capture.
+REST API for managing Pokédex, trainers, battles, and Pokémon captures.
 The project was built with FastAPI, async SQLAlchemy, and domain-driven architecture, keeping clear responsibilities between routes, services, repositories, and schemas.
 
 Main points:
@@ -85,6 +99,85 @@ Main points:
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+
+<!-- ARCHITECTURE -->
+## Architecture
+
+The project follows a clean, domain-driven architecture to ensure maintainability, scalability, and clear separation of concerns. Each feature is organized into its own domain module under `app/domain/<feature>`, containing:
+
+- **Routes**: Define the API endpoints and handle HTTP requests.
+- **Services**: Act as orchestrators, coordinating requests and integrating operations across Business, Repository, and Schema layers. They may contain application-level logic, while core business rules are encapsulated in the Business layer.
+- **Business**: Encapsulate the core business rules and domain logic. All critical validations, calculations, and domain-specific rules are implemented here, ensuring the integrity and consistency of the application's behavior.
+- **Repositories**: Abstract data access and persistence, using async SQLAlchemy for efficient I/O operations.
+- **Schemas**: Define data validation and serialization using Pydantic models.
+
+**Core modules** (in `app/core/`) provide shared infrastructure, such as database configuration, authentication, and settings management. The use of async SQLAlchemy and FastAPI enables high performance and non-blocking request handling, making the API suitable for production environments with high concurrency.
+
+**Key architectural decisions:**
+- Domain isolation: Each feature is self-contained, making it easy to extend or refactor.
+- Async-first: All database and I/O operations are asynchronous for maximum throughput.
+- Environment-driven configuration: All settings are managed via environment variables and Pydantic Settings for flexibility and security.
+- JWT authentication: Secure user authentication and authorization.
+- Alembic migrations: Reliable and versioned database schema management.
+- Caching layer (Redis): Designed to support low-latency reads for high-frequency queries.
+
+This architecture is inspired by best practices from enterprise backend systems, ensuring the project is both educational and ready for real-world use.
+
+
+<!-- API ROUTE MAP -->
+## API Route Map
+
+Below is a summary of the main API routes for each service, with a brief explanation of their purpose:
+
+### Auth Service
+- `POST /auth/login` — Authenticate user and return JWT token
+- `POST /auth/register` — Register a new user
+
+### Pokémon Service (Need authentication)
+- `GET /pokemon/` — List all Pokémon
+- `GET /pokemon/{id}` — Get details of a specific Pokémon
+
+### Trainer Service (Need authentication)
+- `GET /trainer/` — List all trainers
+- `GET /trainer/{id}` — Get details of a specific trainer
+- `POST /initialize/` — Initialize a trainer with starter Pokémon
+
+### Pokémon Captured Service (Need authentication)
+- `GET /captured-pokemons/` — List all Pokémon captured by a trainer.
+- `POST /captured-pokemons/capture` — Capture a Pokémon.
+- `POST /captured-pokemons/heal` — Heal a Pokémon.
+
+### Pokedex Service (Need authentication)
+- `GET /pokedex/` — List all Pokémon in the trainer's Pokédex.
+- `POST /pokedex/discover` — Discover a Pokémon and complete your Pokédex.
+
+### Battle Service (Need authentication)
+- `POST /battle/` — Create a new battle
+
+> For a complete list and details of all endpoints, see the interactive API docs at `/docs` after running the project.
+
+### 📸 API Preview
+![Swagger UI](./public/swagger-ui.png)
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- TECHNICAL DECISIONS -->
+## Technical Decisions
+
+This project was developed with a focus on performance, maintainability, and real-world applicability. Key decisions include:
+
+- **FastAPI**: Chosen for its high performance, async support, and automatic OpenAPI documentation.
+- **Async SQLAlchemy**: Enables efficient handling of I/O-bound operations and high concurrency.
+- **Alembic**: Provides robust database migrations and version control.
+- **Pydantic Settings**: Simplifies environment-based configuration and validation.
+- **Passlib (argon2)**: Secure password hashing for user authentication.
+- **PyJWT**: Industry-standard JWT token management for stateless authentication.
+- **FastAPI Pagination**: Native, efficient pagination for large datasets.
+- **aiosqlite/psycopg**: Async drivers for SQLite and PostgreSQL, supporting both development and production databases.
+- **tzdata**: Ensures correct timezone handling across environments.
+
+These choices were made to balance developer experience, security, and scalability, making the project a strong foundation for any backend system that requires robust data management and user authentication.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 ### Built With
@@ -289,21 +382,15 @@ Project Link: [https://github.com/jorgevmachado/py-pokemon-api](https://github.c
 
 Use this space to list resources you find helpful and would like to give credit to. I've included a few of my favorites to kick things off!
 
-* [Choose an Open Source License](https://choosealicense.com)
-* [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
-* [Malven's Flexbox Cheatsheet](https://flexbox.malven.co/)
-* [Malven's Grid Cheatsheet](https://grid.malven.co/)
+* [PokeAPI](https://pokeapi.co/)
 * [Img Shields](https://shields.io)
-* [GitHub Pages](https://pages.github.com)
-* [Font Awesome](https://fontawesome.com)
-* [React Icons](https://react-icons.github.io/react-icons/search)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
 [contributors-shield]: https://img.shields.io/github/contributors/jorgevmachado/py-pokemon-api.svg?style=for-the-badge
 [contributors-url]: https://github.com/jorgevmachado/py-pokemon-api/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/jorgevmachado/py-pokemon-api.svg?style=for-the-badge
