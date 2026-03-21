@@ -11,7 +11,7 @@ from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
 import app.core.redis as core_redis
-import app.shared.cache.cache as cache_module
+import app.shared.cache as cache_module
 from app.core.base import table_registry
 from app.core.database import get_session
 from app.core.security import get_password_hash
@@ -74,6 +74,12 @@ async def redis_client(monkeypatch, redis_container):
     finally:
         await client.flushdb()
         await client.aclose()
+
+
+@pytest_asyncio.fixture
+def redis_cache(redis_client):
+    """Fixture para uso explícito do Redis em testes unitários de cache."""
+    yield redis_client
 
 
 @contextmanager

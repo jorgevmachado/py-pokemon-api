@@ -1,16 +1,15 @@
-from datetime import datetime
-from typing import Any
+from typing import Annotated
+
+from fastapi import Query
+from fastapi_pagination import LimitOffsetPage
 
 from app.core.logging import LoggingParams, log_service_success
-from app.core.settings import Settings
 from app.domain.pokemon.business import PokemonBusiness
-from app.domain.pokemon.model import Pokemon
-from app.domain.pokemon.schema import PokemonSchema
-from app.shared.cache import CacheService
-from app.shared.exceptions import handle_service_exception
+from app.domain.pokemon.schema import PokemonFilterPage, PokemonSchema
+from app.shared.cache import build_key, get_cache, set_cache
 
 
-class PokemonCacheService(CacheService):
+class PokemonCacheService:
     def __init__(
         self,
         *,
@@ -18,119 +17,105 @@ class PokemonCacheService(CacheService):
     ):
         self.logger_params = logger_params
         self.business = PokemonBusiness()
-        super().__init__(prefix='pokemon')
+        self.prefix = 'pokemon'
 
-    def build_catalog_key(self) -> str:
-        return self.build_key('catalog')
+    def build_key_all(self, page_filter: Annotated[PokemonFilterPage, Query()] = None):
+        log_service_success(
+            self.logger_params,
+            operation='cache_build_key_all',
+            message='The Pokémon list cache key was successfully created.',
+        )
+        return build_key(self.prefix, 'list', page_filter.model_dump())
 
-    async def cache_catalog(self, pokemons: list[Pokemon]) -> None:
-        if not pokemons:
-            return
+    async def get_all(
+        self, key: str
+    ) -> list[PokemonSchema] | LimitOffsetPage[PokemonSchema] | None:
+        cached = await get_cache(key)
 
-        try:
-            key = self.build_catalog_key()
-            await self.set_json(
-                key,
-                value=self.business.serialize_catalog(pokemons),
-                ttl_seconds=None,
-            )
+        if cached and 'type' in cached and cached['type'] == 'list':
+            list_pokemons_deserialized: list[PokemonSchema] = []
+            for pokemon in cached['data']:
+                if not isinstance(pokemon, dict):
+                    continue
+                list_pokemons_deserialized.append(PokemonSchema.model_validate(pokemon))
             log_service_success(
                 self.logger_params,
-                operation='cache_catalog',
-                message='Pokemon catalog cached successfully',
+                operation='cache_get_all',
+                message='List of Pokémon stored in cache.',
             )
-        except Exception as exception:
-            handle_service_exception(
-                exception,
-                logger=self.logger_params.logger,
-                service=self.logger_params.service,
-                operation='cache_catalog',
-                raise_exception=False,
-            )
+            return list_pokemons_deserialized
 
-    async def cache_catalog_append(self, pokemons: list[Pokemon]) -> None:
-        if not pokemons:
-            return
-
-        try:
-            current_catalog = await self.get_catalog()
-            catalog_map = {pokemon.name.lower(): pokemon for pokemon in current_catalog}
-
-            for pokemon in pokemons:
-                serialized = PokemonSchema.model_validate(pokemon)
-                catalog_map[serialized.name.lower()] = serialized
-
-            ordered_catalog = sorted(catalog_map.values(), key=lambda item: item.order)
-
-            await self.set_json(
-                key=self.build_catalog_key(),
-                value=[pokemon.model_dump(mode='json') for pokemon in ordered_catalog],
-                ttl_seconds=None,
-            )
+        if cached and 'type' in cached and cached['type'] == 'paginate':
             log_service_success(
                 self.logger_params,
-                operation='cache_catalog_append',
-                message='Pokemon catalog appended successfully',
+                operation='cache_get_all',
+                message='Paginated list of cached Pokémon',
             )
-        except Exception as exception:
-            handle_service_exception(
-                exception,
-                logger=self.logger_params.logger,
-                service=self.logger_params.service,
-                operation='cache_catalog_append',
-                raise_exception=False,
-            )
+            return LimitOffsetPage[PokemonSchema].model_validate(cached['data'])
 
-    async def get_catalog(self) -> list[PokemonSchema]:
-        key = self.build_catalog_key()
-        payload = await self.get_json(key)
+        log_service_success(
+            self.logger_params,
+            operation='cache_get_all',
+            message=' No Pokémon data is cached.',
+        )
 
-        if not payload:
-            return []
+        return None
 
-        return self.business.deserialize_catalog(payload)
-
-    async def delete_catalog(self) -> None:
-        key = self.build_catalog_key()
-        await self.delete(key)
-
-    def build_meta_key(self) -> str:
-        return self.build_key('meta')
-
-    async def cache_meta(self, *, db_total: int, external_total: int) -> bool:
-        try:
-            was_cached = await self.set_json(
-                key=self.build_meta_key(),
-                value={
-                    'db_total': db_total,
-                    'external_total': external_total,
-                    'last_sync_at': datetime.now().isoformat(),
-                },
-                ttl_seconds=Settings().REDIS_POKEMON_SYNC_CHECK_SECONDS,
-            )
-            if not was_cached:
-                return False
-
+    async def set_all(
+        self, key: str, data: list[PokemonSchema] | LimitOffsetPage[PokemonSchema]
+    ) -> None:
+        if isinstance(data, list):
+            list_pokemons_serialized = [
+                PokemonSchema.model_validate(pokemon).serialize() for pokemon in data
+            ]
+            await set_cache(key, {'type': 'list', 'data': list_pokemons_serialized})
             log_service_success(
                 self.logger_params,
-                operation='cache_meta',
-                message='Pokemon sync metadata cached successfully',
+                operation='cache_set_all',
+                message='List of Pokémon successfully cached.',
             )
-            return True
-        except Exception as exception:
-            handle_service_exception(
-                exception,
-                logger=self.logger_params.logger,
-                service=self.logger_params.service,
-                operation='cache_meta',
-                raise_exception=False,
-            )
-            return False
-
-    async def get_meta(self) -> dict[str, Any] | None:
-        key = self.build_meta_key()
-        payload = await self.get_json(key)
-
-        if not payload:
             return None
-        return payload
+        if isinstance(data, LimitOffsetPage):
+            pokemons_serialized = (
+                LimitOffsetPage[PokemonSchema].model_validate(data).model_dump(mode='json')
+            )
+            await set_cache(key, {'type': 'paginate', 'data': pokemons_serialized})
+            log_service_success(
+                self.logger_params,
+                operation='cache_set_all',
+                message='Paginated list of Pokémon successfully cached.',
+            )
+            return None
+
+        log_service_success(
+            self.logger_params,
+            operation='cache_set_all',
+            message='No Pokémon data was cached..',
+        )
+        return None
+
+    def build_key_meta(self):
+        log_service_success(
+            self.logger_params,
+            operation='cache_build_key_meta',
+            message='The Pokémon metadata cache key was successfully created.',
+        )
+        return build_key(self.prefix, 'meta')
+
+    async def get_meta(self) -> dict | None:
+        log_service_success(
+            self.logger_params,
+            operation='cache_get_meta',
+            message='Cached Pokémon metadata.',
+        )
+        return await get_cache(self.build_key_meta())
+
+    async def set_meta(self, db_total: int, external_total: int) -> None:
+        log_service_success(
+            self.logger_params,
+            operation='cache_set_meta',
+            message='Pokémon metadata successfully cached.',
+        )
+        await set_cache(
+            self.build_key_meta(), {'db_total': db_total, 'external_total': external_total}
+        )

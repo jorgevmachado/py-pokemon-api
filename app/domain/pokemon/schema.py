@@ -4,8 +4,11 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 from app.domain.ability.model import PokemonAbility
+from app.domain.ability.schema import PokemonAbilitySchema
 from app.domain.growth_rate.model import PokemonGrowthRate
+from app.domain.growth_rate.schema import PokemonGrowthRateSchema
 from app.domain.move.model import PokemonMove
+from app.domain.move.schema import PokemonMoveSchema
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
     PokemonExternalBaseAbilitySchemaResponse,
@@ -106,10 +109,38 @@ class PokemonSchema(BaseModel):
     updated_at: datetime
     deleted_at: Optional[datetime] = None
     types: list[PokemonTypeSchema] = []
-    moves: list[PokemonMove] = []
-    abilities: list[PokemonAbility] = []
+    moves: list[PokemonMoveSchema] = []
+    abilities: list[PokemonAbilitySchema] = []
     evolutions: list[PokemonEvolutionSchema] = []
-    growth_rate: Optional[PokemonGrowthRate] = None
+    growth_rate: Optional[PokemonGrowthRateSchema] = None
+
+    def serialize(self) -> dict:
+        serialized = self.model_dump(mode='json')
+        if 'evolutions' in serialized and serialized['evolutions']:
+            serialized['evolutions'] = [
+                PokemonEvolutionSchema.model_validate(evo).model_dump(mode='json')
+                for evo in serialized['evolutions']
+            ]
+        if 'types' in serialized and serialized['types']:
+            serialized['types'] = [
+                PokemonTypeSchema.model_validate(pt).model_dump(mode='json')
+                for pt in serialized['types']
+            ]
+        if 'abilities' in serialized and serialized['abilities']:
+            serialized['abilities'] = [
+                PokemonAbilitySchema.model_validate(ab).model_dump(mode='json')
+                for ab in serialized['abilities']
+            ]
+        if 'moves' in serialized and serialized['moves']:
+            serialized['moves'] = [
+                PokemonMoveSchema.model_validate(mv).model_dump(mode='json')
+                for mv in serialized['moves']
+            ]
+        if 'growth_rate' in serialized and serialized['growth_rate']:
+            serialized['growth_rate'] = PokemonGrowthRateSchema.model_validate(
+                serialized['growth_rate']
+            ).model_dump(mode='json')
+        return serialized
 
 
 class PokemonListSchema(BaseModel):
