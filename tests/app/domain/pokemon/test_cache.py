@@ -1,8 +1,10 @@
 import logging
 from datetime import datetime
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
+from fastapi_pagination import LimitOffsetPage
 
 from app.core.logging import LoggingParams
 from app.domain.pokemon.cache import PokemonCacheService
@@ -102,6 +104,106 @@ async def test_set_and_get_meta(pokemon_cache_service):
     result = await pokemon_cache_service.get_meta()
     assert result['db_total'] == POKEMON_DB_TOTAL
     assert result['external_total'] == POKEMON_EXTERNAL_TOTAL
+
+
+@pytest.mark.asyncio
+async def test_get_all_skips_non_dict_entries(pokemon_cache_service):
+    key = 'pokemon:list:test'
+    cached_data = {
+        'type': 'list',
+        'data': [
+            {
+                'id': '1',
+                'name': 'bulbasaur',
+                'url': '',
+                'order': 1,
+                'status': StatusEnum.COMPLETE,
+                'external_image': '',
+                'created_at': datetime.now(),
+                'updated_at': datetime.now(),
+            },
+            'not_a_dict',
+            {
+                'id': '2',
+                'name': 'ivysaur',
+                'url': '',
+                'order': 2,
+                'status': StatusEnum.COMPLETE,
+                'external_image': '',
+                'created_at': datetime.now(),
+                'updated_at': datetime.now(),
+            },
+        ],
+    }
+    with patch('app.domain.pokemon.cache.get_cache', new=AsyncMock(return_value=cached_data)):
+        result = await pokemon_cache_service.get_all(key)
+        assert isinstance(result, list)
+        assert len(result) == POKEMON_LIST_LENGTH
+        assert all(isinstance(p, PokemonSchema) for p in result)
+
+
+@pytest.mark.asyncio
+async def test_get_all_paginate_type(pokemon_cache_service):
+    key = 'pokemon:list:paginate'
+    page_obj = LimitOffsetPage[PokemonSchema](
+        items=[
+            PokemonSchema(
+                id='1',
+                url='',
+                name='bulbasaur',
+                order=1,
+                status=StatusEnum.COMPLETE,
+                external_image='',
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+        ],
+        limit=10,
+        offset=0,
+        total=1,
+    )
+    cached_data = {'type': 'paginate', 'data': page_obj.model_dump(mode='json')}
+    with patch('app.domain.pokemon.cache.get_cache', new=AsyncMock(return_value=cached_data)):
+        result = await pokemon_cache_service.get_all(key)
+        assert isinstance(result, LimitOffsetPage)
+        assert result.total == 1
+        assert result.items[0].name == 'bulbasaur'
+
+
+@pytest.mark.asyncio
+async def test_set_all_with_paginate(pokemon_cache_service):
+    key = 'pokemon:list:paginate'
+    page_obj = LimitOffsetPage[PokemonSchema](
+        items=[
+            PokemonSchema(
+                id='1',
+                url='',
+                name='bulbasaur',
+                order=1,
+                status=StatusEnum.COMPLETE,
+                external_image='',
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+        ],
+        limit=10,
+        offset=0,
+        total=1,
+    )
+    with patch('app.domain.pokemon.cache.set_cache', new=AsyncMock()) as mock_set_cache:
+        result = await pokemon_cache_service.set_all(key, page_obj)
+        mock_set_cache.assert_awaited_once()
+        assert result is None
+
+
+@pytest.mark.asyncio
+async def test_set_all_with_invalid_type(pokemon_cache_service):
+    key = 'pokemon:list:invalid'
+    invalid_data = object()
+    with patch('app.domain.pokemon.cache.set_cache', new=AsyncMock()) as mock_set_cache:
+        result = await pokemon_cache_service.set_all(key, invalid_data)
+        mock_set_cache.assert_not_awaited()
+        assert result is None
 
 
 # Removidos todos os testes antigos não compatíveis com a interface atual
