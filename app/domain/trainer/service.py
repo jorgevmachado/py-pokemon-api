@@ -69,7 +69,7 @@ class TrainerService:
                 )
             )
 
-            await self.pokemon_service.initialize()
+            await self.pokemon_service.list_all()
             log_service_success(
                 self.logger_params, operation='create', message='Trainer created successfully'
             )

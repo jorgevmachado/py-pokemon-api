@@ -23,7 +23,6 @@ from app.domain.pokemon.schema import (
 from app.domain.type.service import PokemonTypeService
 from app.shared.enums.status_enum import StatusEnum
 from app.shared.exceptions import handle_service_exception
-from app.shared.schemas import FilterPage
 from app.shared.utils.pagination import exception_pagination
 
 POKEMON_TOTAL_LIMIT = 1302
@@ -60,10 +59,10 @@ class PokemonService:
         )
         return await self.repository.total()
 
-    async def list_sync(self) -> None:
+    async def list_sync(self) -> bool:
         cached_meta = await self.pokemon_cache_service.get_meta()
         if cached_meta:
-            return None
+            return False
         db_total = await self.repository.total()
         external_total = await self.external_service.pokemon_external_total()
         await self.pokemon_cache_service.set_meta(
@@ -75,7 +74,7 @@ class PokemonService:
                 total=0,
                 external_total=external_total,
             )
-            return None
+            return True
 
         if external_total > db_total:
             await self.initialize_database(
@@ -86,9 +85,9 @@ class PokemonService:
             await self.pokemon_cache_service.set_meta(
                 db_total=new_db_total, external_total=external_total
             )
-            return None
+            return True
 
-        return None
+        return False
 
     async def list_all(
         self,
@@ -120,32 +119,6 @@ class PokemonService:
         list_pokemons = await self.list_all(page_filter=page_filter)
         await self.pokemon_cache_service.set_all(key, list_pokemons)
         return list_pokemons
-
-    async def initialize(
-        self,
-        page_filter: Annotated[FilterPage, Query()] = None,
-    ):
-        try:
-            total = await self.repository.total()
-            if total != POKEMON_TOTAL_LIMIT:
-                await self.initialize_database(total=total)
-
-            log_service_success(
-                self.logger_params,
-                operation='initialize',
-                message='Initialize all Pokémon successfully',
-            )
-            return await self.repository.list_all(page_filter=page_filter)
-
-        except Exception as exception:
-            handle_service_exception(
-                exception,
-                logger=self.logger_params.logger,
-                service=self.logger_params.service,
-                operation='initialize',
-                raise_exception=False,
-            )
-        return exception_pagination(page_filter)
 
     async def initialize_database(
         self,

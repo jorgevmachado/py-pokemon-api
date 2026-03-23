@@ -1,98 +1,154 @@
 from datetime import datetime
 from http import HTTPStatus
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
 
-from app.domain.ability.model import PokemonAbility
-from app.domain.growth_rate.model import PokemonGrowthRate
-from app.domain.move.model import PokemonMove
-from app.domain.pokemon.external.schemas import PokemonExternalBase
 from app.domain.pokemon.model import Pokemon
-from app.domain.pokemon.schema import (
-    GeneratePokemonRelationshipSchema,
-    PokemonFilterPage,
-    PokemonSchema,
-)
-from app.domain.type.model import PokemonType
+from app.domain.pokemon.schema import PokemonFilterPage
 from app.shared.enums.status_enum import StatusEnum
-from tests.app.domain.pokemon.external.mocks.business_mock import (
-    MOCK_ATTRIBUTES_ATTACK,
-    MOCK_ATTRIBUTES_DEFENSE,
-    MOCK_ATTRIBUTES_HP,
-    MOCK_ATTRIBUTES_SPEED,
-)
-from tests.app.domain.pokemon.mock import MOCK_ENTITY_ORDER
-
-MOCK_POKEMON_MOVE_LIST = [
-    PokemonMove(
-        name='tackle',
-        order=1,
-        pp=35,
-        url='https://pokeapi.co/api/v2/move/1/',
-        type='normal',
-        power=40,
-        target='selected-pokemon',
-        effect='Inflicts regular damage with no additional effect.',
-        priority=0,
-        accuracy=100,
-        short_effect='Inflicts regular damage.',
-        damage_class='physical',
-        effect_chance=0,
-    )
-]
-MOCK_POKEMON_TYPES_LIST = [
-    PokemonType(
-        name='grass',
-        order=1,
-        url='https://pokeapi.co/api/v2/type/12/',
-        text_color='#ffffff',
-        background_color='#78c850',
-    )
-]
-
-MOCK_POKEMON_ABILITIES_LIST = [
-    PokemonAbility(
-        name='overgrow',
-        order=1,
-        url='https://pokeapi.co/api/v2/ability/65/',
-        slot=1,
-        is_hidden=False,
-    )
-]
-
-MOCK_POKEMON_GROWTH_RATE = PokemonGrowthRate(
-    name='medium-slow',
-    order=1,
-    url='https://pokeapi.co/api/v2/growth-rate/4/',
-    formula='x^3',
-    description='Slowly decreases in strength.',
+from tests.app.domain.pokemon.mock import (
+    MOCK_ENTITY_ORDER,
+    MOCK_POKEMON_ABILITIES_LIST,
+    MOCK_POKEMON_GROWTH_RATE,
+    MOCK_POKEMON_MOVE_LIST,
+    MOCK_POKEMON_TYPES_LIST,
+    MOCK_RELATIONSHIPS,
 )
 
-MOCK_RELATIONSHIPS = GeneratePokemonRelationshipSchema(
-    moves=[],
-    types=[],
-    abilities=[],
-    growth_rate=PokemonExternalBase(
-        url='https://pokeapi.co/api/v2/growth-rate/medium-slow/', name='medium-slow'
-    ),
-)
 
-LIST_LIMIT = 10
-LIST_OFFSET = 0
-TOTAL_COUNT = 3
-
-
-class TestPokemonServiceInitializeDatabase:
-    """Test scope for initialize_database method"""
+class TestPokemonServiceTotal:
+    """Test scope for total method"""
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_initialize_database_with_zero_total_success(pokemon_service):
-        """Should create all pokemon when database is empty"""
+    async def test_pokemon_service_total_success(pokemon, pokemon_service):
+        """Should return total pokemon count when query is successful"""
+        result = await pokemon_service.total()
+        assert result == 1
+
+
+class TestPokemonServiceListSync:
+    """Test scope for list_sync method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_service_list_sync_with_cached(pokemon, pokemon_service):
+        pokemon_service.pokemon_cache_service.get_meta = AsyncMock(
+            return_value='{"db_total": 1351, "external_total": 1350}'
+        )
+        result = await pokemon_service.list_sync()
+        assert not result
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_service_list_sync_not_cached_total_0(pokemon, pokemon_service):
+        pokemon_service.pokemon_cache_service.get_meta = AsyncMock(return_value=None)
+        pokemon_service.repository.total = AsyncMock(return_value=0)
+        pokemon_service.external_service.pokemon_external_total = AsyncMock(return_value=1350)
+        pokemon_service.initialize_database = AsyncMock(return_value=[pokemon])
+        result = await pokemon_service.list_sync()
+        assert result
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_service_list_sync_not_cached_total_different_external_total(
+        pokemon, pokemon_service
+    ):
+        with patch('app.shared.cache.redis_client.setex', new_callable=AsyncMock):
+            pokemon_service.pokemon_cache_service.get_meta = AsyncMock(return_value=None)
+            pokemon_service.repository.total = AsyncMock(return_value=1349)
+            pokemon_service.external_service.pokemon_external_total = AsyncMock(
+                return_value=1350
+            )
+            pokemon_service.initialize_database = AsyncMock(return_value=[pokemon])
+            result = await pokemon_service.list_sync()
+            assert result
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_service_list_sync_not_cached_and_not_different(
+        pokemon, pokemon_service
+    ):
+        with patch('app.shared.cache.redis_client.setex', new_callable=AsyncMock):
+            pokemon_service.pokemon_cache_service.get_meta = AsyncMock(return_value=None)
+            pokemon_service.repository.total = AsyncMock(return_value=1350)
+            pokemon_service.external_service.pokemon_external_total = AsyncMock(
+                return_value=1350
+            )
+            pokemon_service.initialize_database = AsyncMock(return_value=[pokemon])
+            result = await pokemon_service.list_sync()
+            assert not result
+
+
+class TestPokemonServiceList:
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_service_list_success(pokemon, pokemon_service):
+        """Should return list of pokemon when query is successful"""
+        pokemon_service.list_sync = AsyncMock(return_value=False)
+        pokemon_service.repository.list_all = AsyncMock(return_value=[pokemon])
+
+        result = await pokemon_service.list_all()
+        assert isinstance(result, list)
+        assert len(result) == 1
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_service_list_raises_exception(pokemon, pokemon_service):
+        pokemon_service.list_sync = AsyncMock(return_value=False)
+        pokemon_service.repository.list_all = AsyncMock(side_effect=Exception('boom'))
+
+        page_filter = PokemonFilterPage(offset=0, limit=3)
+        result = await pokemon_service.list_all(page_filter=page_filter)
+
+        assert hasattr(result, 'items')
+        assert len(result.items) == 0
+        assert result.total == 0
+
+
+class TestPokemonServiceListAllCached:
+    """Test scope for list_all_cached method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_service_list_all_cached_success(pokemon, pokemon_service):
+        """Should return list of pokemon when query is successful"""
+        pokemon_service.pokemon_cache_service.build_key_all = AsyncMock(
+            return_value='pokemon:list'
+        )
+        pokemon_service.pokemon_cache_service.get_all = AsyncMock(return_value=[pokemon])
+
+        result = await pokemon_service.list_all_cached()
+        assert isinstance(result, list)
+        assert len(result) == 1
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_service_list_all_cached_not_cached(pokemon, pokemon_service):
+        with patch('app.shared.cache.redis_client.setex', new_callable=AsyncMock):
+            pokemon_service.pokemon_cache_service.build_key_all = AsyncMock(
+                return_value='pokemon:list'
+            )
+            pokemon_service.pokemon_cache_service.get_all = AsyncMock(return_value=None)
+
+            pokemon_service.list_all = AsyncMock(return_value=[pokemon])
+
+            result = await pokemon_service.list_all_cached()
+            assert isinstance(result, list)
+            assert len(result) == 1
+
+
+class TestPokemonServiceInitializeDatabase:
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_initialize_database_with_zero_total_success(
+        pokemon_service,
+    ):
+        total_result = 2
         external_pokemon_list = [
             SimpleNamespace(
                 name='Bulbasaur',
@@ -107,7 +163,7 @@ class TestPokemonServiceInitializeDatabase:
                 external_image='https://raw.githubusercontent.com/PokeAPI/sprites/2.png',
             ),
         ]
-        total_result = 2
+
         created_pokemons = [
             SimpleNamespace(
                 id=1,
@@ -122,11 +178,11 @@ class TestPokemonServiceInitializeDatabase:
                 status=StatusEnum.INCOMPLETE,
             ),
         ]
+        pokemon_service.repository.save = AsyncMock(side_effect=created_pokemons)
 
         pokemon_service.external_service.pokemon_external_list = AsyncMock(
             return_value=external_pokemon_list
         )
-        pokemon_service.repository.save = AsyncMock(side_effect=created_pokemons)
 
         result = await pokemon_service.initialize_database(total=0)
 
@@ -390,263 +446,6 @@ class TestPokemonServiceInitializeDatabase:
         )
 
 
-class TestPokemonServiceInitialize:
-    """Test scope for fetch_all method"""
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_success_with_complete_database(pokemon_service):
-        """Should return pokemon list when database has all pokemon"""
-        pokemon_list = [
-            SimpleNamespace(
-                id=1,
-                name='Bulbasaur',
-                order=1,
-                status=StatusEnum.COMPLETE,
-            ),
-            SimpleNamespace(
-                id=2,
-                name='Ivysaur',
-                order=2,
-                status=StatusEnum.COMPLETE,
-            ),
-        ]
-        total_list = 2
-
-        pokemon_service.repository.total = AsyncMock(return_value=1302)
-        pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
-
-        page_filter = PokemonFilterPage(offset=0, limit=10)
-        result = await pokemon_service.initialize(page_filter=page_filter)
-
-        assert len(result) == total_list
-        assert result[0].name == 'Bulbasaur'
-        assert result[1].name == 'Ivysaur'
-        pokemon_service.repository.total.assert_called_once()
-        pokemon_service.repository.list_all.assert_called_once_with(page_filter=page_filter)
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_initializes_database_when_incomplete(pokemon_service):
-        """Should initialize database and return pokemon when total is less than limit"""
-        pokemon_list = [
-            SimpleNamespace(
-                id=1,
-                name='Charizard',
-                order=6,
-                status=StatusEnum.COMPLETE,
-            ),
-        ]
-
-        pokemon_service.repository.total = AsyncMock(return_value=100)
-        pokemon_service.initialize_database = AsyncMock(return_value=[])
-        pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
-
-        page_filter = PokemonFilterPage(offset=0, limit=10)
-        result = await pokemon_service.initialize(page_filter=page_filter)
-
-        assert len(result) == 1
-        assert result[0].name == 'Charizard'
-        pokemon_service.repository.total.assert_called_once()
-        pokemon_service.initialize_database.assert_called_once_with(total=100)
-        pokemon_service.repository.list_all.assert_called_once_with(page_filter=page_filter)
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_with_offset_and_limit(pokemon_service):
-        """Should apply offset and limit filters correctly"""
-        pokemon_list = [
-            SimpleNamespace(
-                id=11,
-                name='Pidgeot',
-                order=11,
-                status=StatusEnum.COMPLETE,
-            ),
-        ]
-
-        pokemon_service.repository.total = AsyncMock(return_value=1302)
-        pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
-
-        page_filter = PokemonFilterPage(offset=10, limit=1)
-        result = await pokemon_service.initialize(page_filter=page_filter)
-
-        assert len(result) == 1
-        assert result[0].name == 'Pidgeot'
-        pokemon_service.repository.list_all.assert_called_once_with(page_filter=page_filter)
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_returns_empty_list_on_error(pokemon_service):
-        """Should return empty page when repository raises exception"""
-
-        pokemon_service.repository.total = AsyncMock(side_effect=Exception('Database error'))
-
-        page_filter = PokemonFilterPage(offset=0, limit=10)
-        result = await pokemon_service.initialize(page_filter=page_filter)
-
-        # Deve retornar LimitOffsetPage vazio com paginação
-        assert hasattr(result, 'items')
-        assert len(result.items) == 0
-        assert result.total == 0
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_returns_empty_list_on_list_error(pokemon_service):
-        """Should return empty page when list query fails"""
-
-        pokemon_service.repository.total = AsyncMock(return_value=1302)
-        pokemon_service.repository.list_all = AsyncMock(side_effect=Exception('Query error'))
-
-        page_filter = PokemonFilterPage(offset=0, limit=10)
-        result = await pokemon_service.initialize(page_filter=page_filter)
-
-        # Deve retornar LimitOffsetPage vazio com paginação
-        assert hasattr(result, 'items')
-        assert len(result.items) == 0
-        assert result.total == 0
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_returns_empty_list_when_initialization_fails(pokemon_service):
-        """Should return empty page when initialize_database fails"""
-
-        pokemon_service.repository.total = AsyncMock(return_value=100)
-        pokemon_service.initialize_database = AsyncMock(
-            side_effect=Exception('Initialization error')
-        )
-
-        page_filter = PokemonFilterPage(offset=0, limit=10)
-        result = await pokemon_service.initialize(page_filter=page_filter)
-
-        # Deve retornar LimitOffsetPage vazio com paginação
-        assert hasattr(result, 'items')
-        assert len(result.items) == 0
-        assert result.total == 0
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_empty_result_when_no_pokemon(pokemon_service):
-        """Should return empty list when no pokemon exists"""
-
-        pokemon_service.repository.total = AsyncMock(return_value=1302)
-        pokemon_service.repository.list_all = AsyncMock(return_value=[])
-
-        page_filter = PokemonFilterPage(offset=0, limit=10)
-        result = await pokemon_service.initialize(page_filter=page_filter)
-
-        assert result == []
-        assert isinstance(result, list)
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_with_large_offset(pokemon_service):
-        """Should handle large offset correctly"""
-        pokemon_list = []
-
-        pokemon_service.repository.total = AsyncMock(return_value=1302)
-        pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
-
-        page_filter = PokemonFilterPage(offset=1300, limit=10)
-        result = await pokemon_service.initialize(page_filter=page_filter)
-
-        assert result == []
-        pokemon_service.repository.list_all.assert_called_once_with(page_filter=page_filter)
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_preserves_pokemon_attributes(pokemon_service):
-        """Should preserve all pokemon attributes in result"""
-        total_list = 1
-        pokemon_list = [
-            SimpleNamespace(
-                id='8742059c-fa5d-41c8-b95c-fb51bf60f5aa',
-                name='Pikachu',
-                order=MOCK_ENTITY_ORDER,
-                status=StatusEnum.COMPLETE,
-                hp=MOCK_ATTRIBUTES_HP,
-                attack=MOCK_ATTRIBUTES_ATTACK,
-                defense=MOCK_ATTRIBUTES_DEFENSE,
-                speed=MOCK_ATTRIBUTES_SPEED,
-            ),
-        ]
-
-        pokemon_service.repository.total = AsyncMock(return_value=1302)
-        pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
-
-        page_filter = PokemonFilterPage(offset=0, limit=10)
-        result = await pokemon_service.initialize(page_filter=page_filter)
-
-        assert len(result) == total_list
-        assert result[0].name == 'Pikachu'
-        assert result[0].order == MOCK_ENTITY_ORDER
-        assert result[0].hp == MOCK_ATTRIBUTES_HP
-        assert result[0].attack == MOCK_ATTRIBUTES_ATTACK
-        assert result[0].defense == MOCK_ATTRIBUTES_DEFENSE
-        assert result[0].speed == MOCK_ATTRIBUTES_SPEED
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_does_not_initialize_when_total_equals_limit(pokemon_service):
-        """Should not call initialize_database when total equals POKEMON_TOTAL_LIMIT"""
-        pokemon_list = [
-            SimpleNamespace(
-                id=1,
-                name='Bulbasaur',
-                order=1,
-                status=StatusEnum.COMPLETE,
-            ),
-        ]
-
-        pokemon_service.repository.total = AsyncMock(return_value=1302)
-        pokemon_service.initialize_database = AsyncMock()
-        pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
-
-        page_filter = PokemonFilterPage(offset=0, limit=10)
-        result = await pokemon_service.initialize(page_filter=page_filter)
-
-        assert len(result) == 1
-        pokemon_service.initialize_database.assert_not_called()
-        pokemon_service.repository.list_all.assert_called_once()
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_initializes_when_total_less_than_limit(pokemon_service):
-        """Should call initialize_database when total is less than POKEMON_TOTAL_LIMIT"""
-        pokemon_list = []
-
-        pokemon_service.repository.total = AsyncMock(return_value=500)
-        pokemon_service.initialize_database = AsyncMock(return_value=[])
-        pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
-
-        page_filter = PokemonFilterPage(offset=0, limit=10)
-        result = await pokemon_service.initialize(page_filter=page_filter)
-
-        assert result == []
-        pokemon_service.initialize_database.assert_called_once_with(total=500)
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_with_different_filter_configs(pokemon_service):
-        """Should respect different PokemonFilterPage configurations"""
-        pokemon_list = [SimpleNamespace(name='Venusaur')]
-        total_call_count = 3
-
-        pokemon_service.repository.total = AsyncMock(return_value=1302)
-        pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
-
-        filters = [
-            PokemonFilterPage(offset=0, limit=20),
-            PokemonFilterPage(offset=50, limit=100),
-            PokemonFilterPage(offset=1200, limit=102),
-        ]
-
-        for page_filter in filters:
-            result = await pokemon_service.initialize(page_filter=page_filter)
-            assert len(result) == 1
-
-        assert pokemon_service.repository.list_all.call_count == total_call_count
-
-
 class TestPokemonServiceFetchOne:
     """Test scope for fetch_one method"""
 
@@ -801,206 +600,6 @@ class TestPokemonServiceValidateEntity:
         )
 
 
-class TestPokemonServiceAddEvolutions:
-    """Test scope for add_evolutions method"""
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_add_evolutions_returns_empty_when_url_is_none(pokemon_service):
-        """Should return empty list when evolution_chain_url is None"""
-
-        result = await pokemon_service.add_evolutions(evolution_chain_url=None)
-
-        assert result == []
-        assert isinstance(result, list)
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_add_evolutions_returns_empty_when_chain_is_none(pokemon_service):
-        """Should return empty list when external pokemon_service returns None"""
-
-        pokemon_service.external_service.pokemon_external_evolution_by_url = AsyncMock(
-            return_value=None
-        )
-
-        result = await pokemon_service.add_evolutions(
-            evolution_chain_url='https://pokeapi.co/api/v2/evolution-chain/1/'
-        )
-
-        assert result == []
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_add_evolutions_success_with_single_evolution(pokemon_service):
-        """Should return evolution list when chain exists"""
-        evolution_chain = SimpleNamespace(
-            chain=SimpleNamespace(
-                species=SimpleNamespace(name='bulbasaur'),
-                evolves_to=[],
-            )
-        )
-
-        pokemon = Pokemon(
-            name='bulbasaur',
-            order=1,
-            url='https://pokeapi.co/api/v2/pokemon/1/',
-            status=StatusEnum.COMPLETE,
-            external_image='https://example.com/1.png',
-        )
-
-        pokemon_service.external_service.pokemon_external_evolution_by_url = AsyncMock(
-            return_value=evolution_chain
-        )
-        pokemon_service.business.ensure_evolution = lambda x: ['bulbasaur']
-        pokemon_service.validate_entity = AsyncMock(return_value=pokemon)
-
-        result = await pokemon_service.add_evolutions(
-            evolution_chain_url='https://pokeapi.co/api/v2/evolution-chain/1/'
-        )
-
-        assert len(result) == 1
-        assert result[0].name == 'bulbasaur'
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_add_evolutions_handles_exception(pokemon_service):
-        """Should return empty list when exception occurs"""
-
-        pokemon_service.external_service.pokemon_external_evolution_by_url = AsyncMock(
-            side_effect=Exception('API error')
-        )
-
-        result = await pokemon_service.add_evolutions(
-            evolution_chain_url='https://pokeapi.co/api/v2/evolution-chain/1/'
-        )
-
-        assert result == []
-
-
-class TestPokemonServiceGenerateRelationships:
-    """Test scope for generate_relationships method"""
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_generate_relationships_success_with_all_data(pokemon_service):
-        """Should return complete relationships when all data is valid"""
-
-        relationships = GeneratePokemonRelationshipSchema(
-            moves=[],
-            types=[],
-            abilities=[],
-            growth_rate=PokemonExternalBase(
-                url='https://pokeapi.co/api/v2/growth-rate/medium-slow/', name='medium-slow'
-            ),
-        )
-
-        pokemon_service.pokemon_move_service.verify_pokemon_move = AsyncMock(
-            return_value=MOCK_POKEMON_MOVE_LIST
-        )
-        pokemon_service.pokemon_type_service.verify_pokemon_type = AsyncMock(
-            return_value=MOCK_POKEMON_TYPES_LIST
-        )
-        pokemon_service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
-            return_value=MOCK_POKEMON_ABILITIES_LIST
-        )
-        pokemon_service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
-            return_value=MOCK_POKEMON_GROWTH_RATE
-        )
-
-        result = await pokemon_service.generate_relationships(relationships=relationships)
-
-        assert result.status == StatusEnum.COMPLETE
-        assert len(result.moves) == 1
-        assert len(result.types) == 1
-        assert len(result.abilities) == 1
-        assert result.growth_rate is not None
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_generate_relationships_incomplete_when_moves_empty(pokemon_service):
-        """Should return incomplete status when moves is empty"""
-
-        pokemon_service.pokemon_move_service.verify_pokemon_move = AsyncMock(return_value=[])
-        pokemon_service.pokemon_type_service.verify_pokemon_type = AsyncMock(
-            return_value=MOCK_POKEMON_TYPES_LIST
-        )
-        pokemon_service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
-            return_value=MOCK_POKEMON_ABILITIES_LIST
-        )
-        pokemon_service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
-            return_value=MOCK_POKEMON_GROWTH_RATE
-        )
-
-        result = await pokemon_service.generate_relationships(relationships=MOCK_RELATIONSHIPS)
-
-        assert result.status == StatusEnum.INCOMPLETE
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_generate_relationships_incomplete_when_types_empty(pokemon_service):
-        """Should return incomplete status when types is empty"""
-
-        pokemon_service.pokemon_move_service.verify_pokemon_move = AsyncMock(
-            return_value=MOCK_POKEMON_MOVE_LIST
-        )
-        pokemon_service.pokemon_type_service.verify_pokemon_type = AsyncMock(return_value=[])
-        pokemon_service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
-            return_value=MOCK_POKEMON_ABILITIES_LIST
-        )
-        pokemon_service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
-            return_value=MOCK_POKEMON_GROWTH_RATE
-        )
-
-        result = await pokemon_service.generate_relationships(relationships=MOCK_RELATIONSHIPS)
-
-        assert result.status == StatusEnum.INCOMPLETE
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_generate_relationships_incomplete_when_abilities_empty(pokemon_service):
-        """Should return incomplete status when abilities is empty"""
-
-        pokemon_service.pokemon_move_service.verify_pokemon_move = AsyncMock(
-            return_value=MOCK_POKEMON_MOVE_LIST
-        )
-        pokemon_service.pokemon_type_service.verify_pokemon_type = AsyncMock(
-            return_value=MOCK_POKEMON_TYPES_LIST
-        )
-        pokemon_service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
-            return_value=[]
-        )
-        pokemon_service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
-            return_value=MOCK_POKEMON_GROWTH_RATE
-        )
-
-        result = await pokemon_service.generate_relationships(relationships=MOCK_RELATIONSHIPS)
-
-        assert result.status == StatusEnum.INCOMPLETE
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_generate_relationships_incomplete_when_growth_rate_none(pokemon_service):
-        """Should return complete status when growth_rate is None but other data is valid"""
-
-        pokemon_service.pokemon_move_service.verify_pokemon_move = AsyncMock(
-            return_value=MOCK_POKEMON_MOVE_LIST
-        )
-        pokemon_service.pokemon_type_service.verify_pokemon_type = AsyncMock(
-            return_value=MOCK_POKEMON_TYPES_LIST
-        )
-        pokemon_service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
-            return_value=MOCK_POKEMON_ABILITIES_LIST
-        )
-        pokemon_service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
-            return_value=None
-        )
-
-        result = await pokemon_service.generate_relationships(relationships=MOCK_RELATIONSHIPS)
-
-        assert result.status == StatusEnum.COMPLETE
-        assert result.growth_rate is None
-
-
 class TestPokemonServiceCompletePokemonData:
     """Test scope for complete_pokemon_data method"""
 
@@ -1019,13 +618,7 @@ class TestPokemonServiceCompletePokemonData:
         pokemon.id = 'pokemon-id-1'
         pokemon.created_at = now
         pokemon.updated_at = now
-        growth_rate = PokemonGrowthRate(
-            name='medium-slow',
-            order=1,
-            url='https://pokeapi.co/api/v2/growth-rate/4/',
-            formula='x^3',
-            description='Growth rate for medium-slow Pokémon',
-        )
+        growth_rate = MOCK_POKEMON_GROWTH_RATE
         growth_rate.id = 'growth-rate-id'
         external_pokemon = SimpleNamespace(
             name='bulbasaur',
@@ -1235,6 +828,199 @@ class TestPokemonServiceCompletePokemonData:
 
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         assert exc_info.value.detail == 'Internal server error'
+
+
+class TestPokemonServiceAddEvolutions:
+    """Test scope for add_evolutions method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_add_evolutions_returns_empty_when_url_is_none(pokemon_service):
+        """Should return empty list when evolution_chain_url is None"""
+
+        result = await pokemon_service.add_evolutions(evolution_chain_url=None)
+
+        assert result == []
+        assert isinstance(result, list)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_add_evolutions_returns_empty_when_chain_is_none(pokemon_service):
+        """Should return empty list when external pokemon_service returns None"""
+
+        pokemon_service.external_service.pokemon_external_evolution_by_url = AsyncMock(
+            return_value=None
+        )
+
+        result = await pokemon_service.add_evolutions(
+            evolution_chain_url='https://pokeapi.co/api/v2/evolution-chain/1/'
+        )
+
+        assert result == []
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_add_evolutions_success_with_single_evolution(pokemon_service):
+        """Should return evolution list when chain exists"""
+        evolution_chain = SimpleNamespace(
+            chain=SimpleNamespace(
+                species=SimpleNamespace(name='bulbasaur'),
+                evolves_to=[],
+            )
+        )
+
+        pokemon = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+
+        pokemon_service.external_service.pokemon_external_evolution_by_url = AsyncMock(
+            return_value=evolution_chain
+        )
+        pokemon_service.business.ensure_evolution = lambda x: ['bulbasaur']
+        pokemon_service.validate_entity = AsyncMock(return_value=pokemon)
+
+        result = await pokemon_service.add_evolutions(
+            evolution_chain_url='https://pokeapi.co/api/v2/evolution-chain/1/'
+        )
+
+        assert len(result) == 1
+        assert result[0].name == 'bulbasaur'
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_add_evolutions_handles_exception(pokemon_service):
+        """Should return empty list when exception occurs"""
+
+        pokemon_service.external_service.pokemon_external_evolution_by_url = AsyncMock(
+            side_effect=Exception('API error')
+        )
+
+        result = await pokemon_service.add_evolutions(
+            evolution_chain_url='https://pokeapi.co/api/v2/evolution-chain/1/'
+        )
+
+        assert result == []
+
+
+class TestPokemonServiceGenerateRelationships:
+    """Test scope for generate_relationships method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_generate_relationships_success_with_all_data(pokemon_service):
+        """Should return complete relationships when all data is valid"""
+
+        relationships = MOCK_RELATIONSHIPS
+
+        pokemon_service.pokemon_move_service.verify_pokemon_move = AsyncMock(
+            return_value=MOCK_POKEMON_MOVE_LIST
+        )
+        pokemon_service.pokemon_type_service.verify_pokemon_type = AsyncMock(
+            return_value=MOCK_POKEMON_TYPES_LIST
+        )
+        pokemon_service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
+            return_value=MOCK_POKEMON_ABILITIES_LIST
+        )
+        pokemon_service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
+            return_value=MOCK_POKEMON_GROWTH_RATE
+        )
+
+        result = await pokemon_service.generate_relationships(relationships=relationships)
+
+        assert result.status == StatusEnum.COMPLETE
+        assert len(result.moves) == 1
+        assert len(result.types) == 1
+        assert len(result.abilities) == 1
+        assert result.growth_rate is not None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_generate_relationships_incomplete_when_moves_empty(pokemon_service):
+        """Should return incomplete status when moves is empty"""
+
+        pokemon_service.pokemon_move_service.verify_pokemon_move = AsyncMock(return_value=[])
+        pokemon_service.pokemon_type_service.verify_pokemon_type = AsyncMock(
+            return_value=MOCK_POKEMON_TYPES_LIST
+        )
+        pokemon_service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
+            return_value=MOCK_POKEMON_ABILITIES_LIST
+        )
+        pokemon_service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
+            return_value=MOCK_POKEMON_GROWTH_RATE
+        )
+
+        result = await pokemon_service.generate_relationships(relationships=MOCK_RELATIONSHIPS)
+
+        assert result.status == StatusEnum.INCOMPLETE
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_generate_relationships_incomplete_when_types_empty(pokemon_service):
+        """Should return incomplete status when types is empty"""
+
+        pokemon_service.pokemon_move_service.verify_pokemon_move = AsyncMock(
+            return_value=MOCK_POKEMON_MOVE_LIST
+        )
+        pokemon_service.pokemon_type_service.verify_pokemon_type = AsyncMock(return_value=[])
+        pokemon_service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
+            return_value=MOCK_POKEMON_ABILITIES_LIST
+        )
+        pokemon_service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
+            return_value=MOCK_POKEMON_GROWTH_RATE
+        )
+
+        result = await pokemon_service.generate_relationships(relationships=MOCK_RELATIONSHIPS)
+
+        assert result.status == StatusEnum.INCOMPLETE
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_generate_relationships_incomplete_when_abilities_empty(pokemon_service):
+        """Should return incomplete status when abilities is empty"""
+
+        pokemon_service.pokemon_move_service.verify_pokemon_move = AsyncMock(
+            return_value=MOCK_POKEMON_MOVE_LIST
+        )
+        pokemon_service.pokemon_type_service.verify_pokemon_type = AsyncMock(
+            return_value=MOCK_POKEMON_TYPES_LIST
+        )
+        pokemon_service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
+            return_value=[]
+        )
+        pokemon_service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
+            return_value=MOCK_POKEMON_GROWTH_RATE
+        )
+
+        result = await pokemon_service.generate_relationships(relationships=MOCK_RELATIONSHIPS)
+
+        assert result.status == StatusEnum.INCOMPLETE
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_generate_relationships_incomplete_when_growth_rate_none(pokemon_service):
+        """Should return complete status when growth_rate is None but other data is valid"""
+
+        pokemon_service.pokemon_move_service.verify_pokemon_move = AsyncMock(
+            return_value=MOCK_POKEMON_MOVE_LIST
+        )
+        pokemon_service.pokemon_type_service.verify_pokemon_type = AsyncMock(
+            return_value=MOCK_POKEMON_TYPES_LIST
+        )
+        pokemon_service.pokemon_ability_service.verify_pokemon_abilities = AsyncMock(
+            return_value=MOCK_POKEMON_ABILITIES_LIST
+        )
+        pokemon_service.pokemon_growth_rate_service.verify_pokemon_growth_rate = AsyncMock(
+            return_value=None
+        )
+
+        result = await pokemon_service.generate_relationships(relationships=MOCK_RELATIONSHIPS)
+
+        assert result.status == StatusEnum.COMPLETE
+        assert result.growth_rate is None
 
 
 class TestPokemonServiceFirstPokemon:
@@ -1469,59 +1255,3 @@ class TestPokemonServiceFirstPokemon:
         assert result is not None
         assert result.pokemon is not None
         pokemon_service.fetch_one.assert_called_once_with(name='bulbasaur')
-
-
-class TestPokemonServiceListAll:
-    """Test scope for list_all method"""
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_list_all_returns_repository_results_not_cached(pokemon_service, pokemon):
-        """Should return repository list when no error occurs"""
-        pokemon_list = [
-            PokemonSchema(
-                name=pokemon.name,
-                order=pokemon.order,
-                url=pokemon.url,
-                status=pokemon.status,
-                external_image=pokemon.external_image,
-                id=pokemon.id,
-                created_at=datetime.now(),
-                updated_at=datetime.now(),
-            )
-        ]
-        # Mock repository.list_all to return a plain list, not a paginated object
-        page_filter = PokemonFilterPage(offset=LIST_OFFSET, limit=LIST_LIMIT)
-        pokemon_service.repository.list_all = AsyncMock(return_value=pokemon_list)
-
-        result = await pokemon_service.list_all(page_filter=page_filter)
-
-        # The service may return a list or a paginated object depending on implementation
-        # Accept both for robustness
-        if hasattr(result, 'items'):
-            assert result.items == pokemon_list
-        else:
-            assert result == pokemon_list
-
-
-class TestPokemonServiceTotal:
-    """Test scope for total method"""
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_total_returns_repository_total(pokemon_service):
-        """Should return repository total"""
-        pokemon_service.repository.total = AsyncMock(return_value=TOTAL_COUNT)
-
-        result = await pokemon_service.total()
-
-        assert result == TOTAL_COUNT
-        pokemon_service.repository.total.assert_awaited_once()
-
-
-class TestPokemonServiceRebuildCatalogCache:
-    """Test scope for rebuild_catalog_cache method"""
-
-
-class TestPokemonServiceEnsureListSynced:
-    """Test scope for rebuild_catalog_cache method"""

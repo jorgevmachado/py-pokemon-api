@@ -17,6 +17,13 @@ test:
 	make test-app
 	make test-coverage
 
+test-file:
+	@if [ -z "$(file)"]; then \
+  		echo "Error: file variable is required. Usage: make test-file file=tests/app/domain/pokemon/test_service.py"; \
+		exit 1; \
+	fi
+	poetry run pytest -s --cov=app --cov-report=html $(file)
+
 dev:
 	poetry run fastapi dev app/main.py
 

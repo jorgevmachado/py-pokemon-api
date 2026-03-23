@@ -36,7 +36,7 @@ class TestTrainerServiceCreate:
             date_of_birth=datetime(2000, 1, 1),
         )
 
-        trainer_service.pokemon_service.initialize = AsyncMock()
+        trainer_service.pokemon_service.list_all = AsyncMock()
         trainer_service.captured_pokemon_service.create = AsyncMock()
         result = await trainer_service.create(create_trainer=trainer_data)
 
@@ -82,7 +82,7 @@ class TestTrainerServiceCreate:
 
         trainer_service.find_one_by_email = AsyncMock(return_value=None)
         trainer_service.repository.save = AsyncMock(side_effect=Exception('boom'))
-        trainer_service.pokemon_service.initialize = AsyncMock()
+        trainer_service.pokemon_service.list_all = AsyncMock()
 
         with pytest.raises(HTTPException) as exc_info:
             await trainer_service.create(create_trainer=trainer_data)
