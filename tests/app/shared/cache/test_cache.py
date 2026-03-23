@@ -4,62 +4,73 @@ import redis.exceptions
 from app.shared.cache import build_key, get_cache, set_cache
 
 
-@pytest.mark.asyncio
-async def test_build_key_normalizes_parts():
-    key = build_key('pokemon', ' By-Name ', ' Pikachu ')
+class TestCacheBuildKey:
+    @staticmethod
+    def test_cache_build_key_with_no_parts():
+        key = build_key('cache')
+        assert key == 'cache'
 
-    assert key == 'pokemon:by-name:pikachu'
+    @staticmethod
+    def test_build_key_normalizes_with_none_in_parts():
+        key = build_key('cache', ' By-Name ', ' name ', None)
+        assert key == 'cache:by-name:name'
 
+    @staticmethod
+    def test_build_key_returns_prefix_when_parts_are_empty():
+        key = build_key('cache', '', '   ')
 
-@pytest.mark.asyncio
-async def test_build_key_returns_prefix_when_parts_are_empty():
-    key = build_key('pokemon', '', '   ')
+        assert key == 'cache'
 
-    assert key == 'pokemon'
+    @staticmethod
+    def test_build_key_with_dict_part():
+        key = build_key('cache', {'name': 'Thomas', 'order': 25})
 
+        valid_keys = {
+            'cache:name=thomas&order=25',
+            'cache:order=25&name=thomas',
+            'cache:name=Thomas&order=25',
+            'cache:order=25&name=Thomas',
+        }
+        assert key in valid_keys
 
-@pytest.mark.asyncio
-async def test_build_key_with_dict_part():
-    key = build_key('pokemon', {'name': 'Pikachu', 'order': 25})
+    @staticmethod
+    def test_build_key_with_dict_none_in_part():
+        key = build_key('cache', {'change': None})
 
-    # Accept both lowercased and non-lowercased string values in the key
-    valid_keys = {
-        'pokemon:name=pikachu&order=25',
-        'pokemon:order=25&name=pikachu',
-        'pokemon:name=Pikachu&order=25',
-        'pokemon:order=25&name=Pikachu',
-    }
-    assert key in valid_keys
-
-
-@pytest.mark.asyncio
-async def test_set_and_get_cache(redis_client):
-    key = build_key('pokemon', 'by-name', 'bulbasaur')
-    payload = {'name': 'bulbasaur', 'order': 1}
-
-    await set_cache(key, payload, ttl=10)
-    result = await get_cache(key)
-
-    assert result == payload
+        assert key == 'cache'
 
 
-@pytest.mark.asyncio
-async def test_set_cache_with_zero_ttl(redis_client):
-    key = build_key('pokemon', 'meta')
+class TestCacheGetCache:
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_set_and_get_cache(redis_client):
+        key = build_key('cache', 'by-name', 'name')
+        payload = {'name': 'name', 'order': 1}
 
-    # Redis does not allow zero expire time, so we expect a ResponseError
-    with pytest.raises(redis.exceptions.ResponseError):
-        await set_cache(key, {'total': 1302}, ttl=0)
-    # Redis pode não armazenar se ttl=0, então resultado pode ser None
-    result = await get_cache(key)
+        await set_cache(key, payload, ttl=10)
+        result = await get_cache(key)
 
-    assert result is None or result == {'total': 1302}
+        assert result == payload
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_get_cache_returns_none_for_missing_key(redis_client):
+        key = build_key('name', 'not-exist')
+
+        result = await get_cache(key)
+
+        assert result is None
 
 
-@pytest.mark.asyncio
-async def test_get_cache_returns_none_for_missing_key(redis_client):
-    key = build_key('pokemon', 'not-exist')
+class TestCacheSetCache:
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_set_cache_with_zero_ttl(redis_client):
+        key = build_key('name', 'meta')
 
-    result = await get_cache(key)
+        with pytest.raises(redis.exceptions.ResponseError):
+            await set_cache(key, {'total': 1302}, ttl=0)
 
-    assert result is None
+        result = await get_cache(key)
+
+        assert result is None or result == {'total': 1302}
