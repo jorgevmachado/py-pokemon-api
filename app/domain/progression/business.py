@@ -84,7 +84,6 @@ class PokemonProgressionBusiness:
     def apply_attack_result(
         attacker: BattleSchema, defender: BattleSchema, attack_result: AttackResult
     ) -> ProgressionListResult:
-        print(f'# => attack_result => {attack_result}')
         # 1️⃣ Atualizar HP do defensor
         new_defender_hp = max(defender.hp - attack_result.damage, 0)
 
@@ -109,9 +108,6 @@ class PokemonProgressionBusiness:
                 formula=attacker.formula,
                 current_level=attacker.level,
             )
-
-            print(f'# => old_level => {old_level}')
-            print(f'# => new_level => {new_level}')
 
             attacker_wins = attacker.wins + 1
 
@@ -157,7 +153,6 @@ class PokemonProgressionBusiness:
         special_defense = pokemon.special_defense
         special_attack = pokemon.special_attack
 
-        print('# => SPEEED')
         speed_calculated = PokemonProgressionBusiness._calculate_stat(
             level=level,
             iv_stat=stats_schema.iv_speed,
@@ -165,7 +160,6 @@ class PokemonProgressionBusiness:
             base_stat=speed,
         )
 
-        print('ATTACK')
         attack_calculated = PokemonProgressionBusiness._calculate_stat(
             level=level,
             iv_stat=stats_schema.iv_attack,
@@ -173,7 +167,6 @@ class PokemonProgressionBusiness:
             base_stat=attack,
         )
 
-        print('DEFENSE')
         defense_calculated = PokemonProgressionBusiness._calculate_stat(
             level=level,
             iv_stat=stats_schema.iv_defense,
@@ -181,7 +174,6 @@ class PokemonProgressionBusiness:
             base_stat=defense,
         )
 
-        print('SPECIAL ATTACK')
         special_attack_calculated = PokemonProgressionBusiness._calculate_stat(
             level=level,
             iv_stat=stats_schema.iv_special_attack,
@@ -189,7 +181,6 @@ class PokemonProgressionBusiness:
             base_stat=special_attack,
         )
 
-        print('SPECIAL DEFENSE')
         special_defense_calculated = PokemonProgressionBusiness._calculate_stat(
             level=level,
             iv_stat=stats_schema.iv_special_defense,
@@ -247,26 +238,16 @@ class PokemonProgressionBusiness:
 
     @staticmethod
     def _calculate_stat(
-        level: int,  # 1
-        iv_stat: int,  # 5
-        ev_stat: int,  # 3
-        base_stat: int,  # 6
+        level: int,
+        iv_stat: int,
+        ev_stat: int,
+        base_stat: int,
         nature_multiple: float = 1.0,
     ) -> int:
-        print('# => _calculate_stat ')
-        print(f'# => level => {level}')
-        print(f'# => iv_stat => {iv_stat}')
-        print(f'# => ev_stat => {ev_stat}')
-        print(f'# => base_stat => {base_stat}')
-        base_calc = 2 * base_stat + iv_stat + (ev_stat // 4)  # 17.75
-        print(f'# => base_calc => {base_calc}')
-        scaled = (base_calc * level) / 100  # 0.1775
-        print(f'# => scaled => {scaled}')
-        stat = math.floor(scaled) + 5  # 5.1775
-        print(f'# => stat => {stat}')
-
+        base_calc = 2 * base_stat + iv_stat + (ev_stat // 4)
+        scaled = (base_calc * level) / 100
+        stat = math.floor(scaled) + 5
         final_stat = math.floor(stat * nature_multiple)
-        print(f'# => final_stat => {final_stat}')
         return final_stat
 
     @staticmethod
@@ -354,11 +335,8 @@ class PokemonProgressionBusiness:
             The new level based on the experience accumulated.
         """
         level = current_level
-        print(f'# => experience => {experience}')
         while True:
             experience_for_next_level = calculate_by_formula(formula, level + 1)
-            print(f'# => next_level => {level + 1}')
-            print(f'# => experience_for_next_level => {experience_for_next_level}')
 
             if experience_for_next_level > experience:
                 return level
