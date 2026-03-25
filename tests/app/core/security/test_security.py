@@ -2,7 +2,8 @@ from http import HTTPStatus
 
 from jwt import decode
 
-from app.core.security import create_access_token, settings
+from app.core.security import create_access_token
+from app.core.settings import Settings
 
 
 def test_jwt():
@@ -10,7 +11,7 @@ def test_jwt():
 
     token = create_access_token(data)
 
-    decoded = decode(token, settings.SECRET_KEY, algorithms=settings.ALGORITHM)
+    decoded = decode(token, Settings().SECRET_KEY, algorithms=Settings().ALGORITHM)
 
     assert decoded['test'] == 'test'
     assert 'exp' in decoded
