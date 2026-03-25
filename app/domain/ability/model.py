@@ -4,7 +4,7 @@ from uuid import uuid4
 from sqlalchemy import UUID, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.base import table_registry
+from app.core.database import table_registry
 
 
 @table_registry.mapped_as_dataclass

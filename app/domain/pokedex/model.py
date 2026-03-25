@@ -4,7 +4,7 @@ from uuid import uuid4
 from sqlalchemy import UUID, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.base import default_lazy, table_registry
+from app.core.database import default_lazy, table_registry
 from app.domain.pokemon.model import Pokemon
 from app.domain.trainer.model import Trainer
 

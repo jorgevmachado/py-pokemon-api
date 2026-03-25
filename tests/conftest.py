@@ -12,8 +12,7 @@ from testcontainers.redis import RedisContainer
 
 import app.core.redis as core_redis
 import app.shared.cache as cache_module
-from app.core.base import table_registry
-from app.core.database import get_session
+from app.core.database import get_session, table_registry
 from app.core.security import get_password_hash
 from app.main import app
 from tests.factories.trainer import TrainerFactory
