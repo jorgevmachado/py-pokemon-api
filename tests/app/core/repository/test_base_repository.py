@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from sqlalchemy.orm import selectinload
 
+from app.core.repository import BaseRepository
 from app.domain.pokedex.model import Pokedex
 from app.domain.pokemon.model import Pokemon
-from app.shared.base_repository import BaseRepository
 from app.shared.schemas import FilterPage
 
 
@@ -92,7 +92,7 @@ class TestBaseRepositoryListAll:
 
         repository = PokemonBaseRepository(session=mock_session)
 
-        with patch('app.shared.base_repository.is_paginate', return_value=False):
+        with patch('app.core.repository.base.is_paginate', return_value=False):
             result = await repository.list_all()
 
         assert result == expected_items
@@ -108,10 +108,10 @@ class TestBaseRepositoryListAll:
         page_filter = FilterPage(offset=0, limit=50)
 
         with (
-            patch('app.shared.base_repository.is_paginate', return_value=True),
-            patch('app.shared.base_repository.limit_paginate', return_value=25),
+            patch('app.core.repository.base.is_paginate', return_value=True),
+            patch('app.core.repository.base.limit_paginate', return_value=25),
             patch(
-                'app.shared.base_repository.paginate', new_callable=AsyncMock
+                'app.core.repository.base.paginate', new_callable=AsyncMock
             ) as paginate_mock,
         ):
             paginate_mock.return_value = expected_page
@@ -141,7 +141,7 @@ class TestBaseRepositoryListAll:
 
         repository = PokemonBaseRepository(session=mock_session)
 
-        with patch('app.shared.base_repository.is_paginate', return_value=False):
+        with patch('app.core.repository.base.is_paginate', return_value=False):
             result = await repository.list_all(page_filter=FilterPage.build(name='pikachu'))
 
         query = mock_session.scalars.await_args.args[0]

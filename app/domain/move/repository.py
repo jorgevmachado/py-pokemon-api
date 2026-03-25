@@ -1,5 +1,5 @@
+from app.core.repository import BaseRepository
 from app.domain.move.model import PokemonMove
-from app.shared.base_repository import BaseRepository
 
 
 class PokemonMoveRepository(BaseRepository[PokemonMove]):

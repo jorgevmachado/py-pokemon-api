@@ -1,7 +1,7 @@
 from sqlalchemy.orm import selectinload
 
+from app.core.repository import BaseRepository
 from app.domain.trainer.model import Trainer
-from app.shared.base_repository import BaseRepository
 
 
 class TrainerRepository(BaseRepository[Trainer]):
