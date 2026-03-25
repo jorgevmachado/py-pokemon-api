@@ -82,6 +82,36 @@ class TestPokedexServiceInitialize:
 
         assert result == []
 
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_initialize_handles_none_existing_pokemon_ids(
+        pokedex_service,
+        trainer,
+        pokemon,
+    ):
+        """Should treat None from repository.find_by as empty list and create entries."""
+        created_entry = SimpleNamespace(
+            pokemon_id=pokemon.id,
+            trainer_id=trainer.id,
+            discovered=True,
+        )
+        pokedex_service.repository.find_by = AsyncMock(return_value=None)
+        pokedex_service.initialize_pokemon = AsyncMock(return_value=created_entry)
+
+        result = await pokedex_service.initialize(
+            trainer=trainer,
+            pokemon=pokemon,
+            pokemons=[pokemon],
+        )
+
+        assert result == [created_entry]
+        pokedex_service.repository.find_by.assert_awaited_once_with(trainer_id=trainer.id)
+        pokedex_service.initialize_pokemon.assert_awaited_once_with(
+            pokemon=pokemon,
+            trainer_id=trainer.id,
+            discovered=True,
+        )
+
 
 class TestPokedexServiceFetchAll:
     """Test scope for fetch_all method."""
@@ -356,3 +386,18 @@ class TestPokedexServiceInitializePokemon:
         )
 
         assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_initialize_pokemon_sets_discovered_at_when_discovered_true(
+        pokedex_service, pokemon, trainer
+    ):
+        """Should set discovered_at when discovered is True."""
+
+        result = await pokedex_service.initialize_pokemon(
+            pokemon=pokemon,
+            trainer_id=trainer.id,
+            discovered=True,
+        )
+
+        assert result.discovered_at is not None

@@ -36,45 +36,46 @@ class PokedexService:
         try:
             stats = self.business.initialize_stats(pokemon=pokemon)
 
+            pokedex = Pokedex(
+                hp=stats.hp,
+                wins=stats.wins,
+                level=stats.level,
+                iv_hp=stats.iv_hp,
+                ev_hp=stats.ev_hp,
+                losses=stats.losses,
+                max_hp=stats.max_hp,
+                battles=stats.battles,
+                nickname=pokemon.name,
+                speed=stats.speed,
+                iv_speed=stats.iv_speed,
+                ev_speed=stats.ev_speed,
+                attack=stats.attack,
+                iv_attack=stats.iv_attack,
+                ev_attack=stats.ev_attack,
+                defense=stats.defense,
+                iv_defense=stats.iv_defense,
+                ev_defense=stats.ev_defense,
+                experience=stats.experience,
+                special_attack=stats.special_attack,
+                iv_special_attack=stats.iv_special_attack,
+                ev_special_attack=stats.ev_special_attack,
+                special_defense=stats.special_defense,
+                iv_special_defense=stats.iv_special_defense,
+                ev_special_defense=stats.ev_special_defense,
+                discovered=discovered,
+                pokemon_id=pokemon.id,
+                trainer_id=trainer_id,
+                formula=stats.formula,
+            )
+            if discovered:
+                pokedex.discovered_at = datetime.now()
+
             log_service_success(
                 self.logger_params,
                 operation='initialize_pokemon',
                 message='Initialize Pokedex successfully',
             )
-            return await self.repository.save(
-                entity=Pokedex(
-                    hp=stats.hp,
-                    wins=stats.wins,
-                    level=stats.level,
-                    iv_hp=stats.iv_hp,
-                    ev_hp=stats.ev_hp,
-                    losses=stats.losses,
-                    max_hp=stats.max_hp,
-                    battles=stats.battles,
-                    nickname=pokemon.name,
-                    speed=stats.speed,
-                    iv_speed=stats.iv_speed,
-                    ev_speed=stats.ev_speed,
-                    attack=stats.attack,
-                    iv_attack=stats.iv_attack,
-                    ev_attack=stats.ev_attack,
-                    defense=stats.defense,
-                    iv_defense=stats.iv_defense,
-                    ev_defense=stats.ev_defense,
-                    experience=stats.experience,
-                    special_attack=stats.special_attack,
-                    iv_special_attack=stats.iv_special_attack,
-                    ev_special_attack=stats.ev_special_attack,
-                    special_defense=stats.special_defense,
-                    iv_special_defense=stats.iv_special_defense,
-                    ev_special_defense=stats.ev_special_defense,
-                    discovered=discovered,
-                    discovered_at=None,
-                    pokemon_id=pokemon.id,
-                    trainer_id=trainer_id,
-                    formula=stats.formula,
-                )
-            )
+            return await self.repository.save(entity=pokedex)
         except Exception as exception:
             handle_service_exception(
                 exception,
@@ -96,6 +97,8 @@ class PokedexService:
             pokemon_name = pokemon.name if pokemon else None
 
             existing_pokemon_ids = await self.repository.find_by(trainer_id=trainer.id)
+            if existing_pokemon_ids is None:
+                existing_pokemon_ids = []
 
             for item in pokemons:
                 if item.id in existing_pokemon_ids:
