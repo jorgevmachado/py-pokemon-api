@@ -11,8 +11,8 @@ from app.domain.battle.schema import (
     GetBattlePokemonSchema,
 )
 from app.domain.battle.service import PokemonBattleService
-from app.domain.move.model import PokemonMove
 from app.domain.progression.schema import StatBlock
+from app.models.pokemon_move import PokemonMove
 from tests.factories.pokemon import MOCK_POKEMON_BULBASAUR
 
 MOCK_BATTLE_SCHEMA = BattleSchema(

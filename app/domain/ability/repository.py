@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.repository import BaseRepository
-from app.domain.ability.model import PokemonAbility
+from app.models.pokemon_ability import PokemonAbility
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 

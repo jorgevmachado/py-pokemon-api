@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from app.core.security import get_current_user
 from app.domain.battle.schema import BattlePokemonSchema, BattleResult
 from app.domain.battle.service import PokemonBattleService
-from app.domain.trainer.model import Trainer
+from app.models.trainer import Trainer
 
 router = APIRouter(prefix='/battle', tags=['battle'])
 Service = Annotated[PokemonBattleService, Depends()]

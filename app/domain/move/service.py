@@ -6,12 +6,12 @@ from fastapi import Depends
 from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.domain.move.business import PokemonMoveBusiness
-from app.domain.move.model import PokemonMove
 from app.domain.move.repository import PokemonMoveRepository
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseMoveSchemaResponse,
 )
 from app.domain.pokemon.external.service import PokemonExternalService
+from app.models.pokemon_move import PokemonMove
 from app.shared.utils.number import ensure_order_number
 
 Repository = Annotated[PokemonMoveRepository, Depends()]

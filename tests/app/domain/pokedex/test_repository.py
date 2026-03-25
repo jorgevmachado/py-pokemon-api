@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.domain.pokedex.model import Pokedex
+from app.models.pokedex import Pokedex
 from app.shared.schemas import FilterPage
 from tests.factories.pokedex import MOCK_POKEDEX, PokedexFactory
 

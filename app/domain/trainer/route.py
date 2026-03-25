@@ -4,13 +4,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from app.core.security import get_current_user
-from app.domain.trainer.model import Trainer
 from app.domain.trainer.schema import (
     CreateTrainerSchema,
     InitializeTrainerSchema,
     TrainerPublicSchema,
 )
 from app.domain.trainer.service import TrainerService
+from app.models.trainer import Trainer
 
 router = APIRouter(prefix='/trainers', tags=['trainers'])
 Service = Annotated[TrainerService, Depends()]

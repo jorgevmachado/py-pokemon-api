@@ -4,7 +4,7 @@ from uuid import uuid4
 import factory
 from factory import Faker
 
-from app.domain.pokedex.model import Pokedex
+from app.models.pokedex import Pokedex
 
 MOCK_POKEDEX = Pokedex(
     nickname='bulbasaur',

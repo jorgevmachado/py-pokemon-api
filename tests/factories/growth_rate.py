@@ -1,7 +1,7 @@
 import factory
 from factory import Faker
 
-from app.domain.growth_rate.model import PokemonGrowthRate
+from app.models.pokemon_growth_rate import PokemonGrowthRate
 
 
 class PokemonGrowthRateFactory(factory.Factory):

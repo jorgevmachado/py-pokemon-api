@@ -5,8 +5,8 @@ import pytest
 from sqlalchemy.orm import selectinload
 
 from app.core.repository import BaseRepository
-from app.domain.pokedex.model import Pokedex
-from app.domain.pokemon.model import Pokemon
+from app.models.pokedex import Pokedex
+from app.models.pokemon import Pokemon
 from app.shared.schemas import FilterPage
 
 

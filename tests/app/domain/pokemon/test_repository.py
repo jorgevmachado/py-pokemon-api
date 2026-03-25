@@ -2,8 +2,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.repository import PokemonRepository
+from app.models.pokemon import Pokemon
 from app.shared.enums.status_enum import StatusEnum
 from app.shared.schemas import FilterPage
 from tests.app.domain.pokemon.mock import MOCK_ENTITY_POKEMON

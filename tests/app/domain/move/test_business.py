@@ -1,11 +1,11 @@
 from unittest.mock import MagicMock
 
 from app.domain.move.business import EffectEntry, PokemonMoveBusiness
-from app.domain.move.model import PokemonMove
 from app.domain.pokemon.external.schemas import (
     PokemonExternalLanguage,
     PokemonExternalMoveEffectEntriesSchemaResponse,
 )
+from app.models.pokemon_move import PokemonMove
 
 
 class TestPokemonMoveBusinessEnsureEffectMessage:

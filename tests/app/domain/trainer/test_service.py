@@ -8,8 +8,8 @@ from fastapi import HTTPException
 
 from app.core.security import verify_password
 from app.domain.pokemon.schema import FirstPokemonSchemaResult
-from app.domain.trainer.model import Trainer
 from app.domain.trainer.schema import CreateTrainerSchema, InitializeTrainerSchema
+from app.models.trainer import Trainer
 from app.shared.enums.gender_enum import GenderEnum
 from app.shared.enums.role_enum import RoleEnum
 from app.shared.enums.status_enum import StatusEnum

@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.core.security import create_access_token, get_current_user
 from app.domain.auth.schema import Login, Token
 from app.domain.auth.service import AuthService
-from app.domain.trainer.model import Trainer
+from app.models.trainer import Trainer
 
 router = APIRouter(prefix='/auth', tags=['auth'])
 OAUTH2Form = Annotated[OAuth2PasswordRequestForm, Depends()]

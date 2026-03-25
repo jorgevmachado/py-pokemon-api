@@ -7,15 +7,15 @@ from fastapi import Depends, HTTPException, Query
 
 from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
-from app.domain.pokedex.model import Pokedex
 from app.domain.pokedex.repository import PokedexRepository
 from app.domain.pokedex.schema import (
     PartialPokedexSchema,
 )
-from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.service import PokemonService
 from app.domain.progression.business import PokemonProgressionBusiness
-from app.domain.trainer.model import Trainer
+from app.models.pokedex import Pokedex
+from app.models.pokemon import Pokemon
+from app.models.trainer import Trainer
 from app.shared.schemas import FilterPage
 
 Repository = Annotated[PokedexRepository, Depends()]

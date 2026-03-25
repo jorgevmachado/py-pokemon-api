@@ -3,10 +3,10 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
-from app.domain.move.model import PokemonMove
-from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.schema import PublicPokemonSchema
-from app.domain.trainer.model import Trainer
+from app.models.pokemon import Pokemon
+from app.models.pokemon_move import PokemonMove
+from app.models.trainer import Trainer
 
 
 class CreateCapturedPokemonSchema(BaseModel):

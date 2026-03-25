@@ -1,7 +1,7 @@
 import factory
 from factory import Faker
 
-from app.domain.move.model import PokemonMove
+from app.models.pokemon_move import PokemonMove
 
 
 class PokemonMoveFactory(factory.Factory):

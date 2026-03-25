@@ -3,7 +3,7 @@ import random
 import factory
 from factory import Faker
 
-from app.domain.ability.model import PokemonAbility
+from app.models.pokemon_ability import PokemonAbility
 
 
 class PokemonAbilityFactory(factory.Factory):

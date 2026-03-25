@@ -6,7 +6,7 @@ from fastapi_pagination import LimitOffsetPage
 from app.core.security import get_current_user
 from app.domain.pokedex.schema import PokedexDiscover, PokedexFilterPage, PokedexPublicSchema
 from app.domain.pokedex.service import PokedexService
-from app.domain.trainer.model import Trainer
+from app.models.trainer import Trainer
 
 router = APIRouter(prefix='/pokedex', tags=['pokedex'])
 Service = Annotated[PokedexService, Depends()]

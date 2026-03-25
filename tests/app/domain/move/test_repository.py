@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.domain.move.model import PokemonMove
+from app.models.pokemon_move import PokemonMove
 
 MOCK_POKEMON_MOVE_PP = 35
 MOCK_POKEMON_MOVE_POWER = 40

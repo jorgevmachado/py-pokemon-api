@@ -10,7 +10,7 @@ from app.domain.captured_pokemon.schema import (
     CapturePokemonSchema,
 )
 from app.domain.captured_pokemon.service import CapturedPokemonService
-from app.domain.trainer.model import Trainer
+from app.models.trainer import Trainer
 from app.shared.schemas import FilterPage
 
 router = APIRouter(prefix='/captured-pokemons', tags=['captured-pokemons'])

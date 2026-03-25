@@ -12,7 +12,6 @@ from app.domain.move.service import PokemonMoveService
 from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.cache import PokemonCacheService
 from app.domain.pokemon.external.service import PokemonExternalService
-from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.repository import PokemonRepository
 from app.domain.pokemon.schema import (
     FirstPokemonSchemaResult,
@@ -22,6 +21,7 @@ from app.domain.pokemon.schema import (
     PokemonSchema,
 )
 from app.domain.type.service import PokemonTypeService
+from app.models.pokemon import Pokemon
 from app.shared.enums.status_enum import StatusEnum
 from app.shared.utils.pagination import exception_pagination
 

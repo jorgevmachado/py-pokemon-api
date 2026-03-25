@@ -3,10 +3,10 @@ from typing import Sequence
 
 from pydantic import BaseModel
 
-from app.domain.move.model import PokemonMove
 from app.domain.pokemon.external.schemas import (
     PokemonExternalMoveEffectEntriesSchemaResponse,
 )
+from app.models.pokemon_move import PokemonMove
 
 
 class EffectEntry(BaseModel):

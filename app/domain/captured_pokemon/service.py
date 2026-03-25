@@ -9,7 +9,6 @@ from fastapi import Depends, HTTPException
 
 from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
-from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.captured_pokemon.repository import CapturedPokemonRepository
 from app.domain.captured_pokemon.schema import (
     CapturePokemonHealSchema,
@@ -18,9 +17,10 @@ from app.domain.captured_pokemon.schema import (
 )
 from app.domain.move.business import PokemonMoveBusiness
 from app.domain.pokedex.service import PokemonService
-from app.domain.pokemon.model import Pokemon
 from app.domain.progression.business import PokemonProgressionBusiness
-from app.domain.trainer.model import Trainer
+from app.models.captured_pokemon import CapturedPokemon
+from app.models.pokemon import Pokemon
+from app.models.trainer import Trainer
 from app.shared.schemas import FilterPage
 
 Repository = Annotated[CapturedPokemonRepository, Depends()]

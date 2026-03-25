@@ -5,9 +5,9 @@ from sqlalchemy import UUID, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import default_lazy, table_registry
-from app.domain.move.model import PokemonMove
-from app.domain.pokemon.model import Pokemon
-from app.domain.trainer.model import Trainer
+from app.models.pokemon import Pokemon
+from app.models.pokemon_move import PokemonMove
+from app.models.trainer import Trainer
 
 
 @table_registry.mapped_as_dataclass

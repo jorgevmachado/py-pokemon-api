@@ -5,10 +5,10 @@ from sqlalchemy import UUID, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import default_lazy, table_registry
-from app.domain.ability.model import PokemonAbility
-from app.domain.growth_rate.model import PokemonGrowthRate
-from app.domain.move.model import PokemonMove
 from app.domain.type.model import PokemonType
+from app.models.pokemon_ability import PokemonAbility
+from app.models.pokemon_growth_rate import PokemonGrowthRate
+from app.models.pokemon_move import PokemonMove
 from app.shared.enums.status_enum import StatusEnum
 
 

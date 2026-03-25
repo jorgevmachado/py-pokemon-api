@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.domain.growth_rate.model import PokemonGrowthRate
+from app.models.pokemon_growth_rate import PokemonGrowthRate
 
 MOCK_GROWTH_RATE_ORDER = 1
 MOCK_GROWTH_RATE_ORDER_2 = 2

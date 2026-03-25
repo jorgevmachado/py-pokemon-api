@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.domain.ability.model import PokemonAbility
+from app.models.pokemon_ability import PokemonAbility
 
 MOCK_POKEMON_ABILITY_SLOT = 1
 MOCK_POKEMON_ABILITY_SLOT_2 = 2

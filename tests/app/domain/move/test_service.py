@@ -3,11 +3,11 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.domain.move.business import EffectEntry, PokemonMoveBusiness
-from app.domain.move.model import PokemonMove
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
     PokemonExternalBaseMoveSchemaResponse,
 )
+from app.models.pokemon_move import PokemonMove
 
 MOCK_POKEMON_MOVE_POWER = 40
 MOCK_POKEMON_MOVE_PP = 35

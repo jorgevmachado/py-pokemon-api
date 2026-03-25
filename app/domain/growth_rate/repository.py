@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.repository import BaseRepository
-from app.domain.growth_rate.model import PokemonGrowthRate
+from app.models.pokemon_growth_rate import PokemonGrowthRate
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 

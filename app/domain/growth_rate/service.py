@@ -6,12 +6,12 @@ from fastapi import Depends
 from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.domain.growth_rate.business import PokemonGrowthRateBusiness
-from app.domain.growth_rate.model import PokemonGrowthRate
 from app.domain.growth_rate.repository import PokemonGrowthRateRepository
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
 )
 from app.domain.pokemon.external.service import PokemonExternalService
+from app.models.pokemon_growth_rate import PokemonGrowthRate
 from app.shared.utils.number import ensure_order_number
 
 Repository = Annotated[PokemonGrowthRateRepository, Depends()]

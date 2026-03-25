@@ -13,8 +13,8 @@ from app.shared.enums.role_enum import RoleEnum
 from app.shared.enums.status_enum import StatusEnum
 
 if TYPE_CHECKING:
-    from app.domain.captured_pokemon.model import CapturedPokemon
-    from app.domain.pokedex.model import Pokedex
+    from app.models.captured_pokemon import CapturedPokemon
+    from app.models.pokedex import Pokedex
 
 
 @table_registry.mapped_as_dataclass

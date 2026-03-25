@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.settings import Settings
-from app.domain.trainer.model import Trainer
+from app.models.trainer import Trainer
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/token', refreshUrl='auth/refresh')
 

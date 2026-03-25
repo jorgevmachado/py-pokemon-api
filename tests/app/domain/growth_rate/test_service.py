@@ -3,11 +3,11 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.domain.growth_rate.business import PokemonGrowthRateBusiness
-from app.domain.growth_rate.model import PokemonGrowthRate
 from app.domain.pokemon.external.schemas import PokemonExternalBase
 from app.domain.pokemon.external.schemas.growth_rate import (
     PokemonExternalGrowthRateSchemaResponse,
 )
+from app.models.pokemon_growth_rate import PokemonGrowthRate
 
 MOCK_GROWTH_RATE_ORDER = 1
 

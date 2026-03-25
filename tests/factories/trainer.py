@@ -1,6 +1,6 @@
 import factory
 
-from app.domain.trainer.model import Trainer
+from app.models.trainer import Trainer
 from app.shared.enums.gender_enum import GenderEnum
 from app.shared.enums.role_enum import RoleEnum
 from app.shared.enums.status_enum import StatusEnum

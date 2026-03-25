@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.domain.captured_pokemon.model import CapturedPokemon
+from app.models.captured_pokemon import CapturedPokemon
 from app.shared.schemas import FilterPage
 from tests.factories.captured_pokemon import MOCK_CAPTURED_POKEMON, CapturedPokemonFactory
 

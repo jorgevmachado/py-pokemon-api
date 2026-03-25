@@ -7,8 +7,8 @@ from app.domain.pokemon.external.schemas.evolution import (
     PokemonExternalEvolutionChainEvolvesToSchemaResponse,
     PokemonExternalEvolutionChainSchemaResponse,
 )
-from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.schema import PokemonFilterPage, PokemonSchema
+from app.models.pokemon import Pokemon
 from app.shared.enums.status_enum import StatusEnum
 from app.shared.utils.pagination import is_paginate, limit_paginate
 

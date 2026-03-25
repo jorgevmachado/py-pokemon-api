@@ -11,12 +11,12 @@ from app.domain.battle.business import PokemonBattleBusiness
 from app.domain.captured_pokemon.service import CapturedPokemonService
 from app.domain.pokedex.service import PokedexService
 from app.domain.pokemon.service import PokemonService
-from app.domain.trainer.model import Trainer
 from app.domain.trainer.repository import TrainerRepository
 from app.domain.trainer.schema import (
     CreateTrainerSchema,
     InitializeTrainerSchema,
 )
+from app.models.trainer import Trainer
 from app.shared.enums.role_enum import RoleEnum
 from app.shared.enums.status_enum import StatusEnum
 

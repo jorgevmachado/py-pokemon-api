@@ -7,8 +7,8 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from app.domain.pokemon.model import Pokemon
 from app.domain.pokemon.schema import PokemonFilterPage
+from app.models.pokemon import Pokemon
 from app.shared.enums.status_enum import StatusEnum
 from tests.app.domain.pokemon.mock import (
     MOCK_ENTITY_ORDER,

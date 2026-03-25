@@ -16,13 +16,13 @@ from app.domain.captured_pokemon.schema import (
 )
 from app.domain.captured_pokemon.service import CapturedPokemonService, PokemonService
 from app.domain.move.business import PokemonMoveBusiness
-from app.domain.move.model import PokemonMove
-from app.domain.pokedex.model import Pokedex
 from app.domain.pokedex.schema import PartialPokedexSchema
 from app.domain.pokedex.service import PokedexService
 from app.domain.progression.business import PokemonProgressionBusiness
 from app.domain.progression.schema import StatBlock
-from app.domain.trainer.model import Trainer
+from app.models.pokedex import Pokedex
+from app.models.pokemon_move import PokemonMove
+from app.models.trainer import Trainer
 
 PokemonService = Annotated[PokemonService, Depends()]
 CapturedPokemonService = Annotated[CapturedPokemonService, Depends()]

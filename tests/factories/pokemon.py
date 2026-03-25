@@ -3,7 +3,7 @@ import random
 import factory
 from factory import Faker
 
-from app.domain.pokemon.model import Pokemon
+from app.models.pokemon import Pokemon
 from app.shared.enums.status_enum import StatusEnum
 
 

@@ -2,9 +2,9 @@ import random
 from typing import Optional
 
 from app.domain.battle.schema import AttackResult, BattleSchema, ValidatPreconditions
-from app.domain.captured_pokemon.model import CapturedPokemon
-from app.domain.move.model import PokemonMove
-from app.domain.pokedex.model import Pokedex
+from app.models.captured_pokemon import CapturedPokemon
+from app.models.pokedex import Pokedex
+from app.models.pokemon_move import PokemonMove
 
 
 class PokemonBattleBusiness:

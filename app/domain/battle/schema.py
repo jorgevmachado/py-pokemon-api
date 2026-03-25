@@ -2,9 +2,9 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
-from app.domain.move.model import PokemonMove
-from app.domain.pokemon.model import Pokemon
 from app.domain.progression.schema import StatBlock
+from app.models.pokemon import Pokemon
+from app.models.pokemon_move import PokemonMove
 
 
 class AttackResult(BaseModel):

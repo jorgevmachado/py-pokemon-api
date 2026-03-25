@@ -6,8 +6,8 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_session
 from app.core.repository import BaseRepository
-from app.domain.pokedex.model import Pokedex
-from app.domain.pokemon.model import Pokemon
+from app.models.pokedex import Pokedex
+from app.models.pokemon import Pokemon
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
