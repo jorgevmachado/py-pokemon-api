@@ -38,12 +38,14 @@ class TestHandleServiceException:
             service='auth',
             operation='authenticate',
             raise_exception=False,
+            user_request='ash',
         )
 
         assert result == (HTTPStatus.BAD_REQUEST, 'Bad request')
         logger.log.assert_called_once()
         log_args, log_kwargs = logger.log.call_args
         assert log_kwargs['extra']['error'] == str(error)
+        assert log_kwargs['extra']['user_request'] == 'ash'
 
     @staticmethod
     def test_handle_service_exception_with_http_exception():
@@ -65,6 +67,7 @@ class TestHandleServiceException:
         log_args, log_kwargs = logger.log.call_args
         assert log_kwargs['extra']['status_code'] == HTTPStatus.BAD_REQUEST
         assert log_kwargs['extra']['error'] == str(error)
+        assert not log_kwargs['extra']['user_request']
 
     @staticmethod
     def test_handle_service_exception_with_invalid_http_status():

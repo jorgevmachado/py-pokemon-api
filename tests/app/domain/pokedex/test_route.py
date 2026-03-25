@@ -55,12 +55,12 @@ class TestPokedexRoute:
     @staticmethod
     @pytest.mark.asyncio
     async def test_get_pokedex_route_calls_service(client, token):
-        """Should call fetch_all and return 200"""
+        """Should call list_all and return 200"""
         trainer = build_trainer()
         pokedex = build_pokedex_response()
 
         mock_service = PokedexService(repository=None, pokemon_service=None)
-        mock_service.fetch_all = AsyncMock(return_value=[pokedex])
+        mock_service.list_all = AsyncMock(return_value=[pokedex])
 
         def override_service():
             return mock_service
@@ -80,8 +80,8 @@ class TestPokedexRoute:
         app.dependency_overrides.clear()
 
         assert response.status_code == HTTPStatus.OK
-        mock_service.fetch_all.assert_awaited_once()
-        assert mock_service.fetch_all.await_args.kwargs['trainer_id'] == trainer.id
+        mock_service.list_all.assert_awaited_once()
+        assert mock_service.list_all.await_args.kwargs['trainer_id'] == trainer.id
 
     @staticmethod
     @pytest.mark.asyncio

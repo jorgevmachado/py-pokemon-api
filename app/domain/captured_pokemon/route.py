@@ -28,7 +28,11 @@ async def get_captured_pokemons(
     trainer: CurrentTrainer,
     page_filter: Annotated[FilterPage, Depends()],
 ):
-    return await service.fetch_all(trainer_id=trainer.id, page_filter=page_filter)
+    return await service.list_all(
+        page_filter=page_filter,
+        user_request=trainer.name,
+        trainer_id=trainer.id,
+    )
 
 
 @router.post('/capture', response_model=CapturedPokemonPublicSchema)

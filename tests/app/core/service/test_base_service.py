@@ -1,0 +1,195 @@
+from http import HTTPStatus
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastapi import HTTPException
+
+from app.core.logging import LoggingParams
+from app.core.service.base import BaseService
+from app.shared.schemas import FilterPage
+
+
+@pytest.fixture
+def mock_repository():
+    repo = MagicMock()
+    repo.list_all = AsyncMock()
+    repo.find_by = AsyncMock()
+    return repo
+
+
+@pytest.fixture
+def logger_params():
+    return LoggingParams(
+        logger=MagicMock(),
+        service='test_service',
+        operation='test_operation',
+    )
+
+
+@pytest.fixture
+def base_service(mock_repository, logger_params):
+    service = BaseService(mock_repository, logger_params)
+    service.alias = 'test_service'
+    return service
+
+
+MOCK_RESULT = {'id': '123e4567-e89b-12d3-a456-426614174000', 'name': 'name'}
+
+
+class TestBaseServiceListAll:
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_list_all_success(base_service, mock_repository):
+        mock_repository.list_all.return_value = ['item1', 'item2']
+        filter_page = FilterPage(limit=10, offset=1)
+        with patch('app.core.service.base.log_service_success') as mock_log_success:
+            result = await base_service.list_all(page_filter=filter_page, user_request='user1')
+            assert result == ['item1', 'item2']
+            mock_repository.list_all.assert_awaited_once_with(page_filter=filter_page)
+            mock_log_success.assert_called_once()
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_list_all_exception(base_service, mock_repository):
+        mock_repository.list_all.side_effect = Exception('Repo error')
+        filter_page = FilterPage(limit=10, offset=1)
+        with (
+            patch('app.core.service.base.handle_service_exception') as mock_handle_exc,
+            patch('app.core.service.base.log_service_success') as mock_log_success,
+        ):
+            result = await base_service.list_all(page_filter=filter_page, user_request='user2')
+            assert result == []
+            mock_handle_exc.assert_called_once()
+            mock_log_success.assert_called_once()
+
+
+class TestBaseServiceFindOne:
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_one_by_name_success(base_service, mock_repository):
+        mock_repository.find_by.return_value = MOCK_RESULT
+        result = await base_service.find_one(param=MOCK_RESULT['name'])
+        assert result['id'] == MOCK_RESULT['id']
+        assert result['name'] == MOCK_RESULT['name']
+        mock_repository.find_by.assert_awaited_once_with(name=MOCK_RESULT['name'])
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_one_by_id_success(base_service, mock_repository):
+        mock_repository.find_by.return_value = MOCK_RESULT
+        result = await base_service.find_one(param=MOCK_RESULT['id'])
+        assert result['id'] == MOCK_RESULT['id']
+        assert result['name'] == MOCK_RESULT['name']
+        mock_repository.find_by.assert_awaited_once_with(id=MOCK_RESULT['id'])
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_one_not_found(base_service, mock_repository):
+        mock_repository.find_by.return_value = None
+        with pytest.raises(HTTPException) as exc_info:
+            await base_service.find_one(param='not_found')
+        assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
+        assert exc_info.value.detail == 'test_service not found'
+
+
+class TestBaseServiceFindBy:
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_success(base_service, mock_repository):
+        mock_repository.find_by.return_value = MOCK_RESULT
+        result = await base_service.find_by(name=MOCK_RESULT['name'])
+        assert result['id'] == MOCK_RESULT['id']
+        assert result['name'] == MOCK_RESULT['name']
+        mock_repository.find_by.assert_awaited_once_with(name=MOCK_RESULT['name'])
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_find_by_not_found(base_service, mock_repository):
+        mock_repository.find_by.return_value = None
+        with pytest.raises(HTTPException) as exc_info:
+            await base_service.find_by(name=MOCK_RESULT['name'])
+        assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
+        assert exc_info.value.detail == 'test_service not found'
+
+
+class MockUpdateSchema:
+    def __init__(self, data):
+        self._data = data
+
+    def model_dump(self, exclude_unset=True):
+        return self._data
+
+
+class TestBaseServiceUpdate:
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_update_success(base_service, mock_repository):
+        entity = {'id': '123', 'name': 'old_name', 'value': 1}
+        mock_repository.find_by.return_value = entity
+        mock_repository.update = AsyncMock(
+            return_value={**entity, 'name': 'new_name', 'value': 2}
+        )
+        update_data = {'name': 'new_name', 'value': 2}
+        update_schema = MockUpdateSchema(update_data)
+        with patch('app.core.service.base.log_service_success') as mock_log_success:
+            result = await base_service.update(param='123', update_schema=update_schema)
+            assert result['name'] == 'new_name'
+            assert result['value'] == update_data['value']
+            mock_repository.update.assert_awaited_once()
+            mock_log_success.assert_any_call(
+                base_service.logger_params,
+                operation='update',
+                message=f'Update {base_service.alias} successfully',
+                user_request=None,
+            )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_update_partial_success(base_service, mock_repository):
+        entity = {'id': '123', 'name': 'old_name', 'value': 1}
+        mock_repository.find_by.return_value = entity
+        mock_repository.update = AsyncMock(return_value={**entity, 'name': 'partial_update'})
+        update_data = {'name': 'partial_update'}
+        update_schema = MockUpdateSchema(update_data)
+        with patch('app.core.service.base.log_service_success') as mock_log_success:
+            result = await base_service.update(param='123', update_schema=update_schema)
+            assert result['name'] == 'partial_update'
+            assert result['value'] == 1
+            mock_repository.update.assert_awaited_once()
+            mock_log_success.assert_any_call(
+                base_service.logger_params,
+                operation='update',
+                message=f'Update {base_service.alias} successfully',
+                user_request=None,
+            )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_update_not_found(base_service, mock_repository):
+        base_service.find_one = AsyncMock(return_value=None)
+        update_schema = MockUpdateSchema({'name': 'irrelevant'})
+        with pytest.raises(HTTPException) as exc_info:
+            await base_service.update(param='not_found', update_schema=update_schema)
+        assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
+        assert 'not found' in str(exc_info.value.detail)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_update_exception(base_service, mock_repository):
+        entity = {'id': '123', 'name': 'old_name'}
+        mock_repository.find_by.return_value = entity
+        mock_repository.update = AsyncMock(side_effect=Exception('DB error'))
+        update_schema = MockUpdateSchema({'name': 'fail_update'})
+        with (
+            patch('app.core.service.base.handle_service_exception') as mock_handle_exc,
+            patch('app.core.service.base.log_service_success') as mock_log_success,
+        ):
+            await base_service.update(param='123', update_schema=update_schema)
+            mock_handle_exc.assert_called_once()
+            # Verifica se a chamada de update foi feita
+            mock_log_success.assert_any_call(
+                base_service.logger_params,
+                operation='update',
+                message=f'Update {base_service.alias} successfully',
+                user_request=None,
+            )

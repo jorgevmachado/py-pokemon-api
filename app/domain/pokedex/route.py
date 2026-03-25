@@ -22,7 +22,9 @@ async def get_pokedex(
     trainer: CurrentTrainer,
     page_filter: Annotated[PokedexFilterPage, Depends()],
 ):
-    return await service.fetch_all(trainer_id=trainer.id, page_filter=page_filter)
+    return await service.list_all(
+        page_filter=page_filter, user_request=trainer.name, trainer_id=trainer.id
+    )
 
 
 @router.post('/discover', response_model=PokedexPublicSchema)

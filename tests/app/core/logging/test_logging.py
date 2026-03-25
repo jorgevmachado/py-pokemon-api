@@ -152,6 +152,7 @@ class TestServiceLogging:
         assert extra['operation'] == 'authenticate'
         assert extra['status_code'] == HTTPStatus.BAD_REQUEST
         assert extra['error'] == 'Bad request'
+        assert not extra['user_request']
         assert 'request_id' in extra
         assert extra['request_id'] == 'test-id'
         logger.reset_mock()
@@ -162,6 +163,7 @@ class TestServiceLogging:
             operation='authenticate',
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             message='Server error',
+            user_request='ash',
         )
         args, kwargs = logger.log.call_args
         assert args[0] == logging.ERROR
@@ -172,6 +174,7 @@ class TestServiceLogging:
         assert extra['operation'] == 'authenticate'
         assert extra['status_code'] == HTTPStatus.INTERNAL_SERVER_ERROR
         assert extra['error'] == 'Server error'
+        assert extra['user_request'] == 'ash'
         assert 'request_id' in extra
         assert extra['request_id'] == 'test-id'
 

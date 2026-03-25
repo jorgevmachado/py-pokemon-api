@@ -9,11 +9,11 @@ from fastapi import Depends, HTTPException
 
 from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
+from app.core.service import BaseService
 from app.domain.captured_pokemon.repository import CapturedPokemonRepository
 from app.domain.captured_pokemon.schema import (
     CapturePokemonHealSchema,
     CapturePokemonSchema,
-    PartialCapturedPokemonSchema,
 )
 from app.domain.move.business import PokemonMoveBusiness
 from app.domain.pokedex.service import PokemonService
@@ -28,14 +28,14 @@ PokemonService = Annotated[PokemonService, Depends()]
 logger = logging.getLogger(__name__)
 
 
-class CapturedPokemonService:
+class CapturedPokemonService(BaseService[Repository, CapturedPokemon]):
+    alias = 'Captured Pokemon'
+
     def __init__(self, repository: Repository, pokemon_service: PokemonService):
         self.business = PokemonProgressionBusiness()
         self.pokemon_service = pokemon_service
-        self.repository = repository
-        self.logger_params = LoggingParams(
-            logger=logger, service='captured_pokemon', operation=''
-        )
+        logger_params = LoggingParams(logger=logger, service='captured_pokemon', operation='')
+        super().__init__(repository, logger_params)
 
     async def create(
         self,
@@ -172,59 +172,11 @@ class CapturedPokemonService:
                 operation='capture',
             )
 
-    async def update(
-        self, captured_pokemon_id: str, captured_pokemon_update: PartialCapturedPokemonSchema
-    ):
-        captured_pokemon = await self.repository.find_by(id=captured_pokemon_id)
-        if not captured_pokemon:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, detail='Captured Pokemon not found'
-            )
-
-        log_service_success(
-            self.logger_params,
-            operation='update',
-            message='Update Captured Pokemon successfully',
-        )
-
-        if captured_pokemon_update.level is not None:
-            captured_pokemon.level = captured_pokemon_update.level
-
-        if captured_pokemon_update.wins is not None:
-            captured_pokemon.wins = captured_pokemon_update.wins
-
-        if captured_pokemon_update.losses is not None:
-            captured_pokemon.losses = captured_pokemon_update.losses
-
-        if captured_pokemon_update.hp is not None:
-            captured_pokemon.hp = captured_pokemon_update.hp
-
-        if captured_pokemon_update.speed is not None:
-            captured_pokemon.speed = captured_pokemon_update.speed
-
-        if captured_pokemon_update.attack is not None:
-            captured_pokemon.attack = captured_pokemon_update.attack
-
-        if captured_pokemon_update.defense is not None:
-            captured_pokemon.defense = captured_pokemon_update.defense
-
-        if captured_pokemon_update.attack is not None:
-            captured_pokemon.attack = captured_pokemon_update.attack
-
-        if captured_pokemon_update.special_attack is not None:
-            captured_pokemon.special_attack = captured_pokemon_update.special_attack
-
-        if captured_pokemon_update.special_defense is not None:
-            captured_pokemon.special_defense = captured_pokemon_update.special_defense
-
-        if captured_pokemon_update.experience is not None:
-            captured_pokemon.experience = captured_pokemon_update.experience
-
-        return await self.repository.update(captured_pokemon)
-
     async def heal(self, trainer_id: str, heal_pokemons: CapturePokemonHealSchema):
         if heal_pokemons.all:
-            pokemons_to_heal = await self.repository.list_all(trainer_id=trainer_id)
+            pokemons_to_heal = await self.repository.list_all(
+                page_filter=FilterPage.build(trainer_id=trainer_id)
+            )
         else:
             pokemons_to_heal = []
             for pokemon_id in heal_pokemons.pokemons:

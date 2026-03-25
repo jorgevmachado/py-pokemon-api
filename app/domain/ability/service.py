@@ -5,6 +5,7 @@ from fastapi import Depends
 
 from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
+from app.core.service import BaseService
 from app.domain.ability.repository import PokemonAbilityRepository
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseAbilitySchemaResponse,
@@ -16,12 +17,14 @@ Repository = Annotated[PokemonAbilityRepository, Depends()]
 logger = logging.getLogger(__name__)
 
 
-class PokemonAbilityService:
+class PokemonAbilityService(BaseService[Repository, PokemonAbility]):
+    alias = 'ability'
+
     def __init__(self, repository: Repository):
-        self.repository = repository
-        self.logger_params = LoggingParams(
+        logger_params = LoggingParams(
             logger=logger, service='ability', operation='verify_pokemon_abilities'
         )
+        super().__init__(repository, logger_params)
 
     async def verify_pokemon_abilities(
         self, abilities: list[PokemonExternalBaseAbilitySchemaResponse]

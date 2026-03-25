@@ -113,40 +113,6 @@ class TestPokedexServiceInitialize:
         )
 
 
-class TestPokedexServiceFetchAll:
-    """Test scope for fetch_all method."""
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_passes_trainer_filter(pokedex_service, trainer):
-        """Should pass trainer_id merged into page_filter when listing pokedex."""
-        expected_result = ['entry']
-        pokedex_service.repository.list_all = AsyncMock(return_value=expected_result)
-
-        result = await pokedex_service.fetch_all(trainer_id=trainer.id)
-
-        assert result == expected_result
-        pokedex_service.repository.list_all.assert_awaited_once()
-        call_args = pokedex_service.repository.list_all.await_args.kwargs
-        page_filter = call_args['page_filter']
-        assert page_filter.model_dump(exclude_none=True) == {'trainer_id': trainer.id}
-
-    @staticmethod
-    @pytest.mark.asyncio
-    async def test_fetch_all_raises_http_exception_on_repository_error(
-        pokedex_service,
-        trainer,
-    ):
-        """Should raise HTTPException when repository fails."""
-        pokedex_service.repository.list_all = AsyncMock(side_effect=Exception('boom'))
-
-        with pytest.raises(HTTPException) as exc_info:
-            await pokedex_service.fetch_all(trainer_id=trainer.id)
-
-        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        assert exc_info.value.detail == 'Internal server error'
-
-
 class TestPokedexServiceRefresh:
     """Test scope for refresh method."""
 
@@ -346,8 +312,8 @@ class TestPokedexServiceUpdate:
 
         with pytest.raises(HTTPException) as exc_info:
             await pokedex_service.update(
-                pokedex_id='missing-id',
-                pokedex_update=PartialPokedexSchema(hp=1),
+                param='missing-id',
+                update_schema=PartialPokedexSchema(hp=1),
             )
 
         assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
@@ -362,8 +328,8 @@ class TestPokedexServiceUpdate:
         pokedex_service.repository.update = AsyncMock(return_value=pokedex)
 
         result = await pokedex_service.update(
-            pokedex_id='pokedex-id',
-            pokedex_update=PartialPokedexSchema(hp=MOCK_UPDATED_HP),
+            param='pokedex-id',
+            update_schema=PartialPokedexSchema(hp=MOCK_UPDATED_HP),
         )
 
         assert result.hp == MOCK_UPDATED_HP

@@ -267,8 +267,8 @@ class TestCapturedPokemonServiceUpdate:
 
         with pytest.raises(HTTPException) as exc_info:
             await captured_pokemon_service.update(
-                captured_pokemon_id='missing-id',
-                captured_pokemon_update=PartialCapturedPokemonSchema(hp=10),
+                param='missing-id',
+                update_schema=PartialCapturedPokemonSchema(hp=10),
             )
 
         assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
@@ -312,8 +312,8 @@ class TestCapturedPokemonServiceUpdate:
         )
 
         result = await captured_pokemon_service.update(
-            captured_pokemon_id='captured-id',
-            captured_pokemon_update=update_schema,
+            param='captured-id',
+            update_schema=update_schema,
         )
 
         assert result.level == TestCapturedPokemonServiceUpdate.EXPECTED_LEVEL

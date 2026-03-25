@@ -27,6 +27,7 @@ class HighlightFormatter(logging.Formatter):
         'path',
         'duration',
         'request_id',
+        'user_request',
     }
 
     LEVEL_STYLES = {
@@ -91,6 +92,7 @@ def build_logger_params(
     operation: str | None = None,
     message: str | None = None,
     status_code: HTTPStatus | None = None,
+    user_request: str | None = None,
     default_status_code: HTTPStatus = HTTPStatus.INTERNAL_SERVER_ERROR,
 ) -> LoggingParams:
     base = _extract_base_fields(logging_params)
@@ -118,6 +120,7 @@ def build_logger_params(
         operation=operation_name,
         message=final_message or final_status_code.phrase,
         status_code=final_status_code,
+        user_request=user_request or '',
     )
 
 
@@ -130,6 +133,7 @@ def log_service_exception(
     operation: str | None = None,
     message: str | None = None,
     status_code: HTTPStatus | None = None,
+    user_request: str | None = None,
 ) -> None:
     params = build_logger_params(
         logging_params,
@@ -138,6 +142,7 @@ def log_service_exception(
         operation=operation,
         message=message,
         status_code=status_code,
+        user_request=user_request,
         default_status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
     )
 
@@ -154,6 +159,7 @@ def log_service_exception(
             'status_code': params.status_code,
             'error': error or params.message,
             'request_id': request_id_ctx.get(),
+            'user_request': params.user_request,
         },
     )
 
@@ -166,6 +172,7 @@ def log_service_success(
     operation: str | None = None,
     message: str | None = None,
     status_code: HTTPStatus | None = None,
+    user_request: str | None = None,
 ) -> None:
     params = build_logger_params(
         logging_params,
@@ -174,6 +181,7 @@ def log_service_success(
         operation=operation,
         message=message,
         status_code=status_code,
+        user_request=user_request,
         default_status_code=HTTPStatus.OK,
     )
 
@@ -185,6 +193,7 @@ def log_service_success(
             'status_code': params.status_code,
             'detail': params.message,
             'request_id': request_id_ctx.get(),
+            'user_request': params.user_request,
         },
     )
 

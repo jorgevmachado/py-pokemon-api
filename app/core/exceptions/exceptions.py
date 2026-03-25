@@ -56,6 +56,7 @@ def handle_service_exception(
     service: str,
     operation: str,
     raise_exception: bool = True,
+    user_request: str | None = None,
 ) -> tuple[HTTPStatus, str] | None:
 
     status_code = _resolve_status_code(exception)
@@ -68,6 +69,7 @@ def handle_service_exception(
         operation=operation,
         status_code=status_code,
         message=error_message,
+        user_request=user_request,
     )
 
     if not raise_exception:

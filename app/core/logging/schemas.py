@@ -12,6 +12,7 @@ class LoggingParams(BaseModel):
     operation: str
     message: Optional[str] = None
     status_code: Optional[HTTPStatus] = None
+    user_request: Optional[str] = None
 
     @field_validator('logger')
     @classmethod
