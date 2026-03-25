@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
@@ -15,7 +16,6 @@ from app.domain.type.repository import PokemonTypeRepository
 from app.domain.type.schema import (
     ValidatePokemonTypeDamageRelationSchema,
 )
-from app.shared.exceptions import handle_service_exception
 from app.shared.utils.number import ensure_order_number
 
 Repository = Annotated[PokemonTypeRepository, Depends()]

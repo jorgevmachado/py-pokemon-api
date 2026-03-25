@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException
 
+from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.core.security import get_password_hash
 from app.domain.battle.business import PokemonBattleBusiness
@@ -18,7 +19,6 @@ from app.domain.trainer.schema import (
 )
 from app.shared.enums.role_enum import RoleEnum
 from app.shared.enums.status_enum import StatusEnum
-from app.shared.exceptions import handle_service_exception
 
 Repository = Annotated[TrainerRepository, Depends()]
 PokemonService = Annotated[PokemonService, Depends()]

@@ -4,6 +4,7 @@ from http import HTTPStatus
 import httpx
 from fastapi import HTTPException
 
+from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams
 from app.domain.pokemon.external.business import PokemonExternalBusiness
 from app.domain.pokemon.external.schemas import (
@@ -24,7 +25,6 @@ from app.domain.pokemon.external.schemas.specie import (
 )
 from app.domain.pokemon.schema import PokemonSchema
 from app.shared.enums.status_enum import StatusEnum
-from app.shared.exceptions import handle_service_exception
 from app.shared.utils.image import ensure_external_image
 from app.shared.utils.number import ensure_order_number
 

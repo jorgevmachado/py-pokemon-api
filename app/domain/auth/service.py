@@ -6,11 +6,11 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
+from app.core.exceptions.exceptions import UnauthorizedException, handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.core.security import create_access_token, verify_password
 from app.domain.auth.schema import Token
 from app.domain.trainer.service import TrainerService
-from app.shared.exceptions import UnauthorizedException, handle_service_exception
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 Service = Annotated[TrainerService, Depends()]

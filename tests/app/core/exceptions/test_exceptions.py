@@ -5,7 +5,7 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.shared.exceptions import (
+from app.core.exceptions import (
     AppHTTPException,
     UnauthorizedException,
     handle_service_exception,

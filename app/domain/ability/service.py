@@ -3,13 +3,13 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.domain.ability.model import PokemonAbility
 from app.domain.ability.repository import PokemonAbilityRepository
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseAbilitySchemaResponse,
 )
-from app.shared.exceptions import handle_service_exception
 from app.shared.utils.number import ensure_order_number
 
 Repository = Annotated[PokemonAbilityRepository, Depends()]

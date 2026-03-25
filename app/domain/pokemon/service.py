@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query
 
+from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.domain.ability.service import PokemonAbilityService
 from app.domain.growth_rate.service import PokemonGrowthRateService
@@ -22,7 +23,6 @@ from app.domain.pokemon.schema import (
 )
 from app.domain.type.service import PokemonTypeService
 from app.shared.enums.status_enum import StatusEnum
-from app.shared.exceptions import handle_service_exception
 from app.shared.utils.pagination import exception_pagination
 
 POKEMON_TOTAL_LIMIT = 1302

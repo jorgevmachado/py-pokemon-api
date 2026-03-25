@@ -7,6 +7,7 @@ from typing import Annotated, Optional
 
 from fastapi import Depends, HTTPException
 
+from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.domain.captured_pokemon.model import CapturedPokemon
 from app.domain.captured_pokemon.repository import CapturedPokemonRepository
@@ -20,7 +21,6 @@ from app.domain.pokedex.service import PokemonService
 from app.domain.pokemon.model import Pokemon
 from app.domain.progression.business import PokemonProgressionBusiness
 from app.domain.trainer.model import Trainer
-from app.shared.exceptions import handle_service_exception
 from app.shared.schemas import FilterPage
 
 Repository = Annotated[CapturedPokemonRepository, Depends()]
