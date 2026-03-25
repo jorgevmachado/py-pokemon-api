@@ -3,10 +3,10 @@ from typing import Annotated
 from fastapi import Query
 from fastapi_pagination import LimitOffsetPage
 
+from app.core.cache.manager import CacheManager
 from app.core.logging import LoggingParams, log_service_success
 from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.schema import PokemonFilterPage, PokemonSchema
-from app.shared.cache import build_key, get_cache, set_cache
 
 
 class PokemonCacheService:
@@ -18,6 +18,7 @@ class PokemonCacheService:
         self.logger_params = logger_params
         self.business = PokemonBusiness()
         self.prefix = 'pokemon'
+        self.cache = CacheManager()
 
     def build_key_all(self, page_filter: Annotated[PokemonFilterPage, Query()] = None):
         log_service_success(
@@ -25,12 +26,12 @@ class PokemonCacheService:
             operation='cache_build_key_all',
             message='The Pokémon list cache key was successfully created.',
         )
-        return build_key(self.prefix, 'list', page_filter.model_dump())
+        return self.cache.build_key(self.prefix, 'list', page_filter.model_dump())
 
     async def get_all(
         self, key: str
     ) -> list[PokemonSchema] | LimitOffsetPage[PokemonSchema] | None:
-        cached = await get_cache(key)
+        cached = await self.cache.get_cache(key)
 
         if cached and 'type' in cached and cached['type'] == 'list':
             list_pokemons_deserialized: list[PokemonSchema] = []
@@ -68,7 +69,7 @@ class PokemonCacheService:
             list_pokemons_serialized = [
                 PokemonSchema.model_validate(pokemon).serialize() for pokemon in data
             ]
-            await set_cache(key, {'type': 'list', 'data': list_pokemons_serialized})
+            await self.cache.set_cache(key, {'type': 'list', 'data': list_pokemons_serialized})
             log_service_success(
                 self.logger_params,
                 operation='cache_set_all',
@@ -79,7 +80,7 @@ class PokemonCacheService:
             pokemons_serialized = (
                 LimitOffsetPage[PokemonSchema].model_validate(data).model_dump(mode='json')
             )
-            await set_cache(key, {'type': 'paginate', 'data': pokemons_serialized})
+            await self.cache.set_cache(key, {'type': 'paginate', 'data': pokemons_serialized})
             log_service_success(
                 self.logger_params,
                 operation='cache_set_all',
@@ -100,7 +101,7 @@ class PokemonCacheService:
             operation='cache_build_key_meta',
             message='The Pokémon metadata cache key was successfully created.',
         )
-        return build_key(self.prefix, 'meta')
+        return self.cache.build_key(self.prefix, 'meta')
 
     async def get_meta(self) -> dict | None:
         log_service_success(
@@ -108,7 +109,7 @@ class PokemonCacheService:
             operation='cache_get_meta',
             message='Cached Pokémon metadata.',
         )
-        return await get_cache(self.build_key_meta())
+        return await self.cache.get_cache(self.build_key_meta())
 
     async def set_meta(self, db_total: int, external_total: int) -> None:
         log_service_success(
@@ -116,6 +117,6 @@ class PokemonCacheService:
             operation='cache_set_meta',
             message='Pokémon metadata successfully cached.',
         )
-        await set_cache(
+        await self.cache.set_cache(
             self.build_key_meta(), {'db_total': db_total, 'external_total': external_total}
         )

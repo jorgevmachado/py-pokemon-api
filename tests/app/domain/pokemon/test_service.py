@@ -58,30 +58,31 @@ class TestPokemonServiceListSync:
     async def test_pokemon_service_list_sync_not_cached_total_different_external_total(
         pokemon, pokemon_service
     ):
-        with patch('app.shared.cache.redis_client.setex', new_callable=AsyncMock):
-            pokemon_service.pokemon_cache_service.get_meta = AsyncMock(return_value=None)
-            pokemon_service.repository.total = AsyncMock(return_value=1349)
-            pokemon_service.external_service.pokemon_external_total = AsyncMock(
-                return_value=1350
-            )
-            pokemon_service.initialize_database = AsyncMock(return_value=[pokemon])
-            result = await pokemon_service.list_sync()
-            assert result
+        # Injeta o mock diretamente na instância do cache manager
+        mock_redis_client = AsyncMock()
+        mock_redis_client.setex.return_value = None
+        pokemon_service.pokemon_cache_service.cache.redis_client = mock_redis_client
+        pokemon_service.pokemon_cache_service.get_meta = AsyncMock(return_value=None)
+        pokemon_service.repository.total = AsyncMock(return_value=1349)
+        pokemon_service.external_service.pokemon_external_total = AsyncMock(return_value=1350)
+        pokemon_service.initialize_database = AsyncMock(return_value=[pokemon])
+        result = await pokemon_service.list_sync()
+        assert result
 
     @staticmethod
     @pytest.mark.asyncio
     async def test_pokemon_service_list_sync_not_cached_and_not_different(
         pokemon, pokemon_service
     ):
-        with patch('app.shared.cache.redis_client.setex', new_callable=AsyncMock):
-            pokemon_service.pokemon_cache_service.get_meta = AsyncMock(return_value=None)
-            pokemon_service.repository.total = AsyncMock(return_value=1350)
-            pokemon_service.external_service.pokemon_external_total = AsyncMock(
-                return_value=1350
-            )
-            pokemon_service.initialize_database = AsyncMock(return_value=[pokemon])
-            result = await pokemon_service.list_sync()
-            assert not result
+        mock_redis_client = AsyncMock()
+        mock_redis_client.setex.return_value = None
+        pokemon_service.pokemon_cache_service.cache.redis_client = mock_redis_client
+        pokemon_service.pokemon_cache_service.get_meta = AsyncMock(return_value=None)
+        pokemon_service.repository.total = AsyncMock(return_value=1350)
+        pokemon_service.external_service.pokemon_external_total = AsyncMock(return_value=1350)
+        pokemon_service.initialize_database = AsyncMock(return_value=[pokemon])
+        result = await pokemon_service.list_sync()
+        assert not result
 
 
 class TestPokemonServiceList:
@@ -129,7 +130,10 @@ class TestPokemonServiceListAllCached:
     @staticmethod
     @pytest.mark.asyncio
     async def test_pokemon_service_list_all_cached_not_cached(pokemon, pokemon_service):
-        with patch('app.shared.cache.redis_client.setex', new_callable=AsyncMock):
+        with patch(
+            'app.core.cache.redis.redis_client', new_callable=AsyncMock
+        ) as mock_redis_client:
+            mock_redis_client.setex.return_value = None
             pokemon_service.pokemon_cache_service.build_key_all = AsyncMock(
                 return_value='pokemon:list'
             )
@@ -137,9 +141,13 @@ class TestPokemonServiceListAllCached:
 
             pokemon_service.list_all = AsyncMock(return_value=[pokemon])
 
-            result = await pokemon_service.list_all_cached()
-            assert isinstance(result, list)
-            assert len(result) == 1
+            with patch(
+                'app.core.cache.manager.CacheManager.set_cache', new_callable=AsyncMock
+            ) as mock_set_cache:
+                mock_set_cache.return_value = None
+                result = await pokemon_service.list_all_cached()
+                assert isinstance(result, list)
+                assert len(result) == 1
 
 
 class TestPokemonServiceInitializeDatabase:

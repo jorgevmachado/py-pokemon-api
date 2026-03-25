@@ -1,6 +1,6 @@
 import pytest
 
-import app.core.redis as core_redis
+import app.core.cache.redis as core_redis
 
 
 @pytest.mark.asyncio

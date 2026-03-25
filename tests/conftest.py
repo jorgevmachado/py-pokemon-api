@@ -10,8 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
-import app.core.redis as core_redis
-import app.shared.cache as cache_module
+import app.core.cache.redis as core_redis
 from app.core.database import get_session, table_registry
 from app.core.security import get_password_hash
 from app.main import app
@@ -55,7 +54,7 @@ async def session(engine):
         await conn.run_sync(table_registry.metadata.drop_all)
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope='function')
 async def redis_client(monkeypatch, redis_container):
     client = redis.Redis(
         host=redis_container.get_container_host_ip(),
@@ -64,15 +63,18 @@ async def redis_client(monkeypatch, redis_container):
     )
 
     monkeypatch.setattr(core_redis, 'redis_client', client)
-    monkeypatch.setattr(cache_module, 'redis_client', client)
 
     await client.flushdb()
+    yield client
+    await client.flushdb()
+    await client.aclose()
 
-    try:
-        yield client
-    finally:
-        await client.flushdb()
-        await client.aclose()
+
+@pytest_asyncio.fixture(autouse=True)
+async def flush_redis(redis_client):
+    await redis_client.flushdb()
+    yield
+    await redis_client.flushdb()
 
 
 @pytest_asyncio.fixture
