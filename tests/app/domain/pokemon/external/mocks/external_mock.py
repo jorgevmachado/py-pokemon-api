@@ -115,7 +115,7 @@ MOCK_RESPONSE_BY_NAME_DATA = {
             'slot': 1,
             'type': {
                 'name': 'grass',
-                'url': 'https://pokeapi.co/api/v2/type/12/',
+                'url': f'{MOCK_EXTERNAL_API_URL}/type/12/',
             },
         }
     ],
@@ -1727,7 +1727,7 @@ MOCK_RESPONSE_BY_MOVE_DATA = {
         {
             'language': {
                 'name': 'fr',
-                'url': 'https://pokeapi.co/api/v2/language/5/',
+                'url': f'{MOCK_EXTERNAL_API_URL}/language/5/',
             },
             'name': 'Coupe',
         },

@@ -23,10 +23,10 @@ class TestLoggingParams:
 
         class CustomLogger:
             def info(self, *args, **kwargs) -> None:
-                pass
+                pass # comment explaining why the method is empty
 
             def exception(self, *args, **kwargs) -> None:
-                pass
+                pass # comment explaining why the method is empty
 
         params = LoggingParams(
             logger=CustomLogger(),
@@ -42,7 +42,7 @@ class TestLoggingParams:
 
         class InvalidLogger:
             def exception(self, *args, **kwargs) -> None:
-                pass
+                pass # comment explaining why the method is empty
 
         with pytest.raises(
             ValueError, match='logger must implement info\\(\\) and exception\\(\\)'
@@ -59,7 +59,7 @@ class TestLoggingParams:
 
         class InvalidLogger:
             def info(self, *args, **kwargs) -> None:
-                pass
+                pass # comment explaining why the method is empty
 
         with pytest.raises(
             ValueError, match='logger must implement info\\(\\) and exception\\(\\)'
