@@ -325,7 +325,7 @@ class TestBuildLoggerParams:
 
         class InvalidLogger:
             def exception(self) -> None:
-                pass
+                pass  # comment explaining why the method is empty
 
         with pytest.raises(TypeError, match='logger is required'):
             build_logger_params(

@@ -24,6 +24,7 @@ from tests.app.domain.pokemon.external.mocks.business_mock import (
     MOCK_ATTRIBUTES_SPEED,
 )
 
+MOCK_EXTERNAL_API_URL = 'https://pokeapi.co/api/v2'
 MOCK_POKEMON_NAME = 'bulbasaur'
 MOCK_POKEMON_IMAGE = 'https://example.com/bulbasaur.png'
 MOCK_POKEMON_HEIGHT = 7
@@ -67,7 +68,7 @@ MOCK_RESPONSE_TYPE = PokemonExternalBaseTypeSchemaResponse(
     slot=1,
     type=PokemonExternalBase(
         name='grass',
-        url='https://pokeapi.co/api/v2/type/12/',
+        url=f'{MOCK_EXTERNAL_API_URL}/type/12/',
     ),
 )
 MOCK_RESPONSE_MOVE = PokemonExternalBaseMoveSchemaResponse(
@@ -134,7 +135,7 @@ MOCK_RESPONSE_BY_NAME_DATA = {
                     'order': None,
                     'version_group': {
                         'name': 'gold-silver',
-                        'url': 'https://pokeapi.co/api/v2/version-group/3/',
+                        'url': f'{MOCK_EXTERNAL_API_URL}/version-group/3/',
                     },
                 },
                 {
@@ -360,7 +361,7 @@ MOCK_RESPONSE_BY_MOVE_DATA = {
             'effect': 'Inflige des [dégats réguliers.',
             'language': {
                 'name': 'fr',
-                'url': 'https://pokeapi.co/api/v2/language/5/',
+                'url': f'{MOCK_EXTERNAL_API_URL}/language/5/',
             },
             'short_effect': 'Inflige des dégâts réguliers.',
         },
@@ -368,7 +369,7 @@ MOCK_RESPONSE_BY_MOVE_DATA = {
             'effect': 'Inflicts regular damage.',
             'language': {
                 'name': 'en',
-                'url': 'https://pokeapi.co/api/v2/language/9/',
+                'url': f'{MOCK_EXTERNAL_API_URL}/language/9/',
             },
             'short_effect': 'Inflicts regular damage.',
         },
@@ -378,7 +379,7 @@ MOCK_RESPONSE_BY_MOVE_DATA = {
             'flavor_text': 'Cuts using claws,\nscythes, etc.',
             'language': {
                 'name': 'en',
-                'url': 'https://pokeapi.co/api/v2/language/9/',
+                'url': f'{MOCK_EXTERNAL_API_URL}/language/9/',
             },
             'version_group': {
                 'name': 'gold-silver',
@@ -388,7 +389,7 @@ MOCK_RESPONSE_BY_MOVE_DATA = {
     ],
     'generation': {
         'name': 'generation-i',
-        'url': 'https://pokeapi.co/api/v2/generation/1/',
+        'url': f'{MOCK_EXTERNAL_API_URL}/generation/1/',
     },
     'id': 15,
     'learned_by_pokemon': [

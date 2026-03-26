@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.domain.type.model import PokemonType
+from app.models.pokemon_type import PokemonType
 
 
 class TestPokemonTypeRepositorySave:

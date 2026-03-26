@@ -196,7 +196,7 @@ class PokemonService(BaseService[Repository, Pokemon]):
             )
             return []
 
-    async def fetch_one(self, name: str, user_request: str) -> Pokemon | None:
+    async def fetch_one(self, name: str, user_request: str | None = None) -> Pokemon | None:
         log_service_success(
             self.logger_params,
             operation='initialize_database',

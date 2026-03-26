@@ -43,7 +43,7 @@ class TestHandleServiceException:
 
         assert result == (HTTPStatus.BAD_REQUEST, 'Bad request')
         logger.log.assert_called_once()
-        log_args, log_kwargs = logger.log.call_args
+        _, log_kwargs = logger.log.call_args
         assert log_kwargs['extra']['error'] == str(error)
         assert log_kwargs['extra']['user_request'] == 'ash'
 
@@ -64,7 +64,7 @@ class TestHandleServiceException:
         assert exc_info.value.status_code == HTTPStatus.BAD_REQUEST
         assert exc_info.value.detail == 'Bad request'
         logger.log.assert_called_once()
-        log_args, log_kwargs = logger.log.call_args
+        _, log_kwargs = logger.log.call_args
         assert log_kwargs['extra']['status_code'] == HTTPStatus.BAD_REQUEST
         assert log_kwargs['extra']['error'] == str(error)
         assert not log_kwargs['extra']['user_request']
@@ -86,7 +86,7 @@ class TestHandleServiceException:
                 operation='authenticate',
             )
 
-        log_args, log_kwargs = logger.log.call_args
+        _, log_kwargs = logger.log.call_args
         result_status_code = log_kwargs['extra']['status_code']
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         assert exc_info.value.detail == 'Invalid'
@@ -114,7 +114,7 @@ class TestHandleServiceException:
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         assert exc_info.value.detail == 'Internal server error'
         logger.log.assert_called_once()
-        log_args, log_kwargs = logger.log.call_args
+        _, log_kwargs = logger.log.call_args
         assert log_kwargs['extra']['error'] == str(error)
 
     @staticmethod
@@ -137,5 +137,5 @@ class TestHandleServiceException:
         assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
         assert exc_info.value.detail == 'Internal server error'
         logger.log.assert_called_once()
-        log_args, log_kwargs = logger.log.call_args
+        _, log_kwargs = logger.log.call_args
         assert log_kwargs['extra']['error'] == str(error)

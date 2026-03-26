@@ -5,11 +5,13 @@ from sqlalchemy import UUID, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import default_lazy, table_registry
-from app.domain.type.model import PokemonType
 from app.models.pokemon_ability import PokemonAbility
 from app.models.pokemon_growth_rate import PokemonGrowthRate
 from app.models.pokemon_move import PokemonMove
+from app.models.pokemon_type import PokemonType
 from app.shared.enums.status_enum import StatusEnum
+
+TABLE_NAME = 'pokemon'
 
 
 @table_registry.mapped_as_dataclass
@@ -17,7 +19,7 @@ class PokemonMoveFK:
     __tablename__ = 'pokemon_moves'
 
     pokemon_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True
+        UUID(as_uuid=False), ForeignKey(f'{TABLE_NAME}.id'), primary_key=True
     )
     move_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False), ForeignKey('moves.id'), primary_key=True
@@ -29,7 +31,7 @@ class PokemonAbilityFK:
     __tablename__ = 'pokemon_abilities'
 
     pokemon_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True
+        UUID(as_uuid=False), ForeignKey(f'{TABLE_NAME}.id'), primary_key=True
     )
     ability_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False), ForeignKey('abilities.id'), primary_key=True
@@ -40,7 +42,7 @@ class PokemonAbilityFK:
 class PokemonTypeFK:
     __tablename__ = 'pokemon_types'
     pokemon_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True
+        UUID(as_uuid=False), ForeignKey(f'{TABLE_NAME}.id'), primary_key=True
     )
     type_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True
@@ -51,10 +53,10 @@ class PokemonTypeFK:
 class PokemonEvolutionFK:
     __tablename__ = 'pokemon_evolutions'
     pokemon_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True
+        UUID(as_uuid=False), ForeignKey(f'{TABLE_NAME}.id'), primary_key=True
     )
     evolution_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey('pokemon.id'), primary_key=True
+        UUID(as_uuid=False), ForeignKey(f'{TABLE_NAME}.id'), primary_key=True
     )
 
 

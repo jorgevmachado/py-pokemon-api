@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
-from app.domain.type.model import PokemonType
+from app.models.pokemon_type import PokemonType
 
 
 class PokemonTypeDamageSchema(BaseModel):

@@ -3,7 +3,7 @@ import random
 import factory
 from factory import Faker
 
-from app.domain.type.model import PokemonType
+from app.models.pokemon_type import PokemonType
 
 
 class PokemonTypeFactory(factory.Factory):

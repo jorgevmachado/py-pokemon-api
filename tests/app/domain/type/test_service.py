@@ -9,7 +9,7 @@ from app.domain.pokemon.external.schemas import (
     PokemonExternalTypeSchemaResponse,
 )
 from app.domain.type.business import PokemonTypeBusiness, TypeColor
-from app.domain.type.model import PokemonType
+from app.models.pokemon_type import PokemonType
 
 MOCK_RESULT_ORDER = 10
 

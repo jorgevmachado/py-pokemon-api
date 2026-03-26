@@ -1,10 +1,10 @@
 from app.domain.pokemon.external.schemas import PokemonExternalBase
 from app.domain.pokemon.schema import GeneratePokemonRelationshipSchema
-from app.domain.type.model import PokemonType
 from app.models.pokemon import Pokemon
 from app.models.pokemon_ability import PokemonAbility
 from app.models.pokemon_growth_rate import PokemonGrowthRate
 from app.models.pokemon_move import PokemonMove
+from app.models.pokemon_type import PokemonType
 from app.shared.enums.status_enum import StatusEnum
 
 MOCK_ENTITY_ORDER = 1

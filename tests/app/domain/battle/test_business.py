@@ -548,7 +548,7 @@ class TestPokemonBattleBusinessCalculateDamageWithZeroEffectiveness:
         """Should calculate damage with normal effectiveness"""
         business = PokemonBattleBusiness()
 
-        damage, critical, effectiveness, stab = business._calculate_damage(
+        damage, _, effectiveness, _ = business._calculate_damage(
             MOCK_ATTACKER_BATTLE_SCHEMA,
             MOCK_DEFENDER_BATTLE_SCHEMA,
             MOCK_POKEMON_MOVE_MEGA_DRAIN,
@@ -563,7 +563,7 @@ class TestPokemonBattleBusinessCalculateDamageWithZeroEffectiveness:
         business = PokemonBattleBusiness()
 
         move_water = replace(MOCK_POKEMON_MOVE_MEGA_DRAIN, type='water')
-        damage, critical, effectiveness, stab = business._calculate_damage(
+        damage, _, effectiveness, _ = business._calculate_damage(
             MOCK_ATTACKER_BATTLE_SCHEMA,
             MOCK_DEFENDER_BATTLE_SCHEMA,
             move_water,

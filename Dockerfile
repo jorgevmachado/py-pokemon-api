@@ -4,12 +4,10 @@ ENV POETRY_VIRTUALENVS_CREATE=false
 WORKDIR app/
 COPY . .
 
-RUN pip install poetry
-
-RUN poetry config installer.max-workers 10
-RUN poetry install --no-interaction --no-ansi --without dev
-
-RUN chmod +x entrypoint.sh
+RUN pip install poetry \
+&& poetry config installer.max-workers 10 \
+&& poetry install --no-interaction --no-ansi --without dev \
+&& chmod +x entrypoint.sh
 
 EXPOSE 8000
-CMD poetry run uvicorn --host 0.0.0.0 fast_zero.app:app
+CMD ["poetry", "run", "uvicorn", "--host", "0.0.0.0", "fast_zero.app:app"]

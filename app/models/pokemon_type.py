@@ -6,15 +6,17 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import default_lazy, table_registry
 
+TABLE_NAME = 'types'
+
 
 @table_registry.mapped_as_dataclass
 class TypeWeaknessFK:
     __tablename__ = 'type_weaknesses'
     type_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True
+        UUID(as_uuid=False), ForeignKey(f'{TABLE_NAME}.id'), primary_key=True
     )
     weakness_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True
+        UUID(as_uuid=False), ForeignKey(f'{TABLE_NAME}.id'), primary_key=True
     )
 
 
@@ -22,10 +24,10 @@ class TypeWeaknessFK:
 class TypeStrengthsFK:
     __tablename__ = 'type_strengths'
     type_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True
+        UUID(as_uuid=False), ForeignKey(f'{TABLE_NAME}.id'), primary_key=True
     )
     strengths_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), ForeignKey('types.id'), primary_key=True
+        UUID(as_uuid=False), ForeignKey(f'{TABLE_NAME}.id'), primary_key=True
     )
 
 

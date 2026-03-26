@@ -1,8 +1,8 @@
 from sqlalchemy.orm import selectinload
 
 from app.core.repository import BaseRepository
-from app.domain.type.model import PokemonType
 from app.models.pokemon import Pokemon
+from app.models.pokemon_type import PokemonType
 
 
 class PokemonRepository(BaseRepository[Pokemon]):

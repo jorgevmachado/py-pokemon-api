@@ -12,11 +12,11 @@ from app.domain.pokemon.external.schemas import (
 )
 from app.domain.pokemon.external.service import PokemonExternalService
 from app.domain.type.business import PokemonTypeBusiness
-from app.domain.type.model import PokemonType
 from app.domain.type.repository import PokemonTypeRepository
 from app.domain.type.schema import (
     ValidatePokemonTypeDamageRelationSchema,
 )
+from app.models.pokemon_type import PokemonType
 from app.shared.utils.number import ensure_order_number
 
 Repository = Annotated[PokemonTypeRepository, Depends()]
