@@ -58,7 +58,14 @@ class TestBaseServiceListAll:
             patch('app.core.service.base.log_service_success') as mock_log_success,
         ):
             result = await base_service.list_all(page_filter=filter_page, user_request='user2')
-            assert result == []
+            assert hasattr(result, 'items')
+            assert hasattr(result, 'total')
+            assert hasattr(result, 'limit')
+            assert hasattr(result, 'offset')
+            assert result.total == 0
+            assert result.items == []
+            assert result.limit == filter_page.limit
+            assert result.offset == filter_page.offset
             mock_handle_exc.assert_called_once()
             mock_log_success.assert_called_once()
 

@@ -1,5 +1,3 @@
-"""Captured Pokemon Service - Manages trainer's caught pokemon collection."""
-
 import logging
 from datetime import datetime
 from http import HTTPStatus

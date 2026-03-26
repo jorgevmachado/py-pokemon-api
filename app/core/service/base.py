@@ -6,6 +6,7 @@ from fastapi import HTTPException, Query
 from app.core.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.shared.schemas import FilterPage
+from app.shared.utils.pagination import exception_pagination
 from app.shared.utils.string import is_valid_uuid
 
 RepositoryT = TypeVar('RepositoryT')
@@ -38,7 +39,7 @@ class BaseService(Generic[RepositoryT, ModelT]):
                 user_request=user_request,
                 raise_exception=False,
             )
-            return []
+            return exception_pagination(page_filter)
         finally:
             log_service_success(
                 self.logger_params,

@@ -104,7 +104,7 @@ class TestPokemonServiceList:
         pokemon_service.repository.list_all = AsyncMock(side_effect=Exception('boom'))
 
         page_filter = PokemonFilterPage(offset=0, limit=3)
-        result = await pokemon_service.list_all(page_filter=page_filter)
+        result = await pokemon_service.list_all(page_filter=page_filter, user_request='ash')
 
         assert hasattr(result, 'items')
         assert len(result.items) == 0
@@ -123,7 +123,7 @@ class TestPokemonServiceListAllCached:
         )
         pokemon_service.pokemon_cache_service.get_all = AsyncMock(return_value=[pokemon])
 
-        result = await pokemon_service.list_all_cached()
+        result = await pokemon_service.list_all_cached(user_request='guy')
         assert isinstance(result, list)
         assert len(result) == 1
 
@@ -145,7 +145,7 @@ class TestPokemonServiceListAllCached:
                 'app.core.cache.manager.CacheManager.set_cache', new_callable=AsyncMock
             ) as mock_set_cache:
                 mock_set_cache.return_value = None
-                result = await pokemon_service.list_all_cached()
+                result = await pokemon_service.list_all_cached(user_request='rubens')
                 assert isinstance(result, list)
                 assert len(result) == 1
 
@@ -471,7 +471,7 @@ class TestPokemonServiceFetchOne:
 
         pokemon_service.repository.find_by = AsyncMock(return_value=pokemon)
 
-        result = await pokemon_service.fetch_one(name='pikachu')
+        result = await pokemon_service.fetch_one(name='pikachu', user_request='ash')
 
         assert result is not None
         assert result.name == 'pikachu'
@@ -486,7 +486,7 @@ class TestPokemonServiceFetchOne:
         pokemon_service.repository.find_by = AsyncMock(return_value=None)
 
         with pytest.raises(HTTPException) as exc_info:
-            await pokemon_service.fetch_one(name='nonexistent')
+            await pokemon_service.fetch_one(name='nonexistent', user_request='john')
 
         assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
         assert exc_info.value.detail == 'Pokemon not found'
@@ -515,7 +515,7 @@ class TestPokemonServiceFetchOne:
         pokemon_service.repository.find_by = AsyncMock(return_value=incomplete_pokemon)
         pokemon_service.complete_pokemon_data = AsyncMock(return_value=completed_pokemon)
 
-        result = await pokemon_service.fetch_one(name='bulbasaur')
+        result = await pokemon_service.fetch_one(name='bulbasaur', user_request='judy')
 
         assert result is not None
         assert result.status == StatusEnum.COMPLETE

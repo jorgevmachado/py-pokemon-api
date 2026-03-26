@@ -5,6 +5,7 @@ from fastapi import Depends
 
 from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
+from app.core.service import BaseService
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
     PokemonExternalBaseTypeSchemaResponse,
@@ -22,13 +23,13 @@ Repository = Annotated[PokemonTypeRepository, Depends()]
 logger = logging.getLogger(__name__)
 
 
-class PokemonTypeService:
+class PokemonTypeService(BaseService[Repository, PokemonType]):
     def __init__(self, repository: Repository):
-        self.repository = repository
         self.external_service = PokemonExternalService()
-        self.logger_params = LoggingParams(
+        logger_params = LoggingParams(
             logger=logger, service='type', operation='verify_pokemon_type'
         )
+        super().__init__(repository, logger_params)
 
     async def verify_pokemon_type(
         self, types: list[PokemonExternalBaseTypeSchemaResponse]

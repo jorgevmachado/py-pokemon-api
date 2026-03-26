@@ -5,6 +5,7 @@ from fastapi import Depends
 
 from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
+from app.core.service import BaseService
 from app.domain.move.business import PokemonMoveBusiness
 from app.domain.move.repository import PokemonMoveRepository
 from app.domain.pokemon.external.schemas import (
@@ -18,13 +19,15 @@ Repository = Annotated[PokemonMoveRepository, Depends()]
 logger = logging.getLogger(__name__)
 
 
-class PokemonMoveService:
+class PokemonMoveService(BaseService[PokemonMoveRepository, PokemonExternalService]):
+    alias = 'Pokemon Move'
+
     def __init__(self, repository: Repository):
-        self.repository = repository
         self.external_service = PokemonExternalService()
-        self.logger_params = LoggingParams(
+        logger_params = LoggingParams(
             logger=logger, service='move', operation='verify_pokemon_move'
         )
+        super().__init__(repository, logger_params)
 
     async def verify_pokemon_move(
         self, moves: list[PokemonExternalBaseMoveSchemaResponse]

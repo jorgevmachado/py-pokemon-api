@@ -7,6 +7,7 @@ from fastapi import Depends, HTTPException
 from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.core.security import get_password_hash
+from app.core.service import BaseService
 from app.domain.battle.business import PokemonBattleBusiness
 from app.domain.captured_pokemon.service import CapturedPokemonService
 from app.domain.pokedex.service import PokedexService
@@ -27,7 +28,7 @@ CapturedPokemonService = Annotated[CapturedPokemonService, Depends()]
 logger = logging.getLogger(__name__)
 
 
-class TrainerService:
+class TrainerService(BaseService[Repository, Trainer]):
     def __init__(
         self,
         repository: Repository,
@@ -35,12 +36,12 @@ class TrainerService:
         pokedex_service: PokedexService,
         captured_pokemon_service: CapturedPokemonService,
     ):
-        self.repository = repository
         self.pokemon_service = pokemon_service
         self.pokedex_service = pokedex_service
         self.captured_pokemon_service = captured_pokemon_service
         self.battle_business = PokemonBattleBusiness()
-        self.logger_params = LoggingParams(logger=logger, service='trainer', operation='')
+        logger_params = LoggingParams(logger=logger, service='trainer', operation='')
+        super().__init__(repository, logger_params)
 
     async def create(self, create_trainer: CreateTrainerSchema) -> Trainer:
         try:

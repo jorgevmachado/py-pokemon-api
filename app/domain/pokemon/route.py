@@ -19,7 +19,7 @@ async def list_pokemons(
     trainer: CurrentTrainer,
     page_filter: Annotated[PokemonFilterPage, Depends()],
 ):
-    return await service.list_all_cached(page_filter=page_filter)
+    return await service.list_all_cached(page_filter=page_filter, user_request=trainer.name)
 
 
 @router.get('/{pokemon_name}', response_model=PokemonSchema)
@@ -28,6 +28,5 @@ async def find_one_pokemon(
     service: Service,
     trainer: CurrentTrainer,
 ):
-    pokemon = await service.fetch_one(name=pokemon_name)
-    # Convert ORM to Pydantic schema to avoid lazy-loading issues
+    pokemon = await service.fetch_one(name=pokemon_name, user_request=trainer.name)
     return PokemonSchema.model_validate(pokemon)

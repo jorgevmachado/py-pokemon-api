@@ -5,6 +5,7 @@ from fastapi import Depends
 
 from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
+from app.core.service import BaseService
 from app.domain.growth_rate.business import PokemonGrowthRateBusiness
 from app.domain.growth_rate.repository import PokemonGrowthRateRepository
 from app.domain.pokemon.external.schemas import (
@@ -18,13 +19,15 @@ Repository = Annotated[PokemonGrowthRateRepository, Depends()]
 logger = logging.getLogger(__name__)
 
 
-class PokemonGrowthRateService:
+class PokemonGrowthRateService(BaseService[Repository, PokemonGrowthRate]):
+    alias = 'Pokemon Growth Rate'
+
     def __init__(self, repository: Repository):
-        self.repository = repository
         self.external_service = PokemonExternalService()
-        self.logger_params = LoggingParams(
+        logger_params = LoggingParams(
             logger=logger, service='growth_rate', operation='verify_pokemon_growth_rate'
         )
+        super().__init__(repository, logger_params)
 
     async def verify_pokemon_growth_rate(
         self, growth_rate: Optional[PokemonExternalBase] = None

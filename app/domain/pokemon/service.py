@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, Query
 
 from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
+from app.core.service import BaseService
 from app.domain.ability.service import PokemonAbilityService
 from app.domain.growth_rate.service import PokemonGrowthRateService
 from app.domain.move.service import PokemonMoveService
@@ -34,7 +35,7 @@ PokemonGrowthRateService = Annotated[PokemonGrowthRateService, Depends()]
 logger = logging.getLogger(__name__)
 
 
-class PokemonService:
+class PokemonService(BaseService[Repository, Pokemon]):
     def __init__(
         self,
         repository: Repository,
@@ -50,8 +51,9 @@ class PokemonService:
         self.pokemon_growth_rate_service = pokemon_growth_rate_service
         self.external_service = PokemonExternalService()
         self.business = PokemonBusiness()
-        self.logger_params = LoggingParams(logger=logger, service='pokemon', operation='')
-        self.pokemon_cache_service = PokemonCacheService(logger_params=self.logger_params)
+        logger_params = LoggingParams(logger=logger, service='pokemon', operation='')
+        self.pokemon_cache_service = PokemonCacheService(logger_params=logger_params)
+        super().__init__(repository, logger_params)
 
     async def total(self) -> int:
         log_service_success(
@@ -92,6 +94,8 @@ class PokemonService:
     async def list_all(
         self,
         page_filter: Annotated[PokemonFilterPage, Query()] = None,
+        user_request: str | None = None,
+        trainer_id: str | None = None,
     ):
         try:
             await self.list_sync()
@@ -103,12 +107,21 @@ class PokemonService:
                 logger=self.logger_params.logger,
                 service=self.logger_params.service,
                 operation='list_all',
+                user_request=user_request,
                 raise_exception=False,
             )
-        return exception_pagination(page_filter)
+            return exception_pagination(page_filter)
+        finally:
+            log_service_success(
+                self.logger_params,
+                operation='list_all',
+                message='List all pokemon successfully',
+                user_request=user_request,
+            )
 
     async def list_all_cached(
         self,
+        user_request: str,
         page_filter: Annotated[PokemonFilterPage, Query()] = None,
     ):
         key = self.pokemon_cache_service.build_key_all(page_filter=page_filter)
@@ -116,7 +129,7 @@ class PokemonService:
         cached = await self.pokemon_cache_service.get_all(key)
         if cached:
             return cached
-        list_pokemons = await self.list_all(page_filter=page_filter)
+        list_pokemons = await self.list_all(page_filter=page_filter, user_request=user_request)
         await self.pokemon_cache_service.set_all(key, list_pokemons)
         return list_pokemons
 
@@ -183,11 +196,12 @@ class PokemonService:
             )
             return []
 
-    async def fetch_one(self, name: str) -> Pokemon | None:
+    async def fetch_one(self, name: str, user_request: str) -> Pokemon | None:
         log_service_success(
             self.logger_params,
             operation='initialize_database',
             message='Fetch One Pokémon successfully',
+            user_request=user_request,
         )
         return await self.validate_entity(name)
 
