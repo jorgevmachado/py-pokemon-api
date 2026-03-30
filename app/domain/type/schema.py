@@ -26,11 +26,11 @@ class PokemonTypeSchema(BaseModel):
     order: int
     text_color: str
     background_color: str
+    weaknesses: list[PokemonTypeDamageSchema] = []
+    strengths: list[PokemonTypeDamageSchema] = []
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None
-    weaknesses: list[PokemonTypeDamageSchema] = []
-    strengths: list[PokemonTypeDamageSchema] = []
 
 
 class InitialPokemonTypeSchema(BaseModel):

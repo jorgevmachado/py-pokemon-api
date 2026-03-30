@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Optional
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -10,6 +13,9 @@ class PokemonGrowthRateSchema(BaseModel):
     order: int
     formula: str
     description: str
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: Optional[datetime] = None
 
 
 class CreatePokemonGrowthRateSchema(BaseModel):

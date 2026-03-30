@@ -8,6 +8,7 @@ from app.domain.ability.route import router as ability_router
 from app.domain.auth.route import router as auth_router
 from app.domain.battle.route import router as battle_router
 from app.domain.captured_pokemon.route import router as captured_pokemon_router
+from app.domain.growth_rate.route import router as growth_rate_router
 from app.domain.move.route import router as move_router
 from app.domain.pokedex.route import router as pokedex_router
 from app.domain.pokemon.route import router as pokemon_router
@@ -30,6 +31,7 @@ app.include_router(battle_router)
 app.include_router(ability_router)
 app.include_router(move_router)
 app.include_router(type_router)
+app.include_router(growth_rate_router)
 
 add_pagination(app)
 
