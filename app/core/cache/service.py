@@ -19,11 +19,13 @@ class CacheService:
         prefix: str = 'cache',
         logger_params: LoggingParams,
         schema_class: Type[SchemaT],
+        default_ttl: int = 86400,
     ):
         self.alias = alias
         self.prefix = prefix
         self.logger_params = logger_params
         self.schema_class = schema_class
+        self.ttl = default_ttl
         self.cache = CacheManager()
 
     def build_key_list(
@@ -67,12 +69,20 @@ class CacheService:
 
         return None
 
-    async def set_list(self, key: str, data: list[SchemaT] | LimitOffsetPage[SchemaT]) -> None:
+    async def set_list(
+        self,
+        key: str,
+        data: list[SchemaT] | LimitOffsetPage[SchemaT],
+        ttl: Optional[int] = None,
+    ) -> None:
+        cache_ttl = ttl or self.ttl
         if isinstance(data, list):
             list_serialized = [
                 self.schema_class.model_validate(item).model_dump(mode='json') for item in data
             ]
-            await self.cache.set_cache(key, {'type': 'list', 'data': list_serialized})
+            await self.cache.set_cache(
+                key, {'type': 'list', 'data': list_serialized}, cache_ttl
+            )
             log_service_success(
                 self.logger_params,
                 operation='cache_set_list',
@@ -83,7 +93,9 @@ class CacheService:
             list_serialized = (
                 LimitOffsetPage[self.schema_class].model_validate(data).model_dump(mode='json')
             )
-            await self.cache.set_cache(key, {'type': 'paginate', 'data': list_serialized})
+            await self.cache.set_cache(
+                key, {'type': 'paginate', 'data': list_serialized}, cache_ttl
+            )
             log_service_success(
                 self.logger_params,
                 operation='cache_set_list',
@@ -122,7 +134,10 @@ class CacheService:
         )
         return None
 
-    async def set_one(self, key: str, data: Optional[SchemaT] = None) -> None:
+    async def set_one(
+        self, key: str, data: Optional[SchemaT] = None, ttl: Optional[int] = None
+    ) -> None:
+        cache_ttl = ttl or self.ttl
         if not data:
             log_service_exception(
                 self.logger_params,
@@ -131,7 +146,7 @@ class CacheService:
             )
             return None
         serialized = self.schema_class.model_validate(data).model_dump(mode='json')
-        await self.cache.set_cache(key, serialized)
+        await self.cache.set_cache(key, serialized, cache_ttl)
         log_service_success(
             self.logger_params,
             operation='cache_set_one',

@@ -143,6 +143,19 @@ class TestCacheServiceSetList:
 
     @staticmethod
     @pytest.mark.asyncio
+    async def test_cache_service_set_all_list_with_ttl(cache_service):
+        key = f'{cache_service.prefix}:list'
+
+        cache_service.cache.set_cache = AsyncMock(return_value=None)
+        result = await cache_service.set_list(
+            key,
+            [MOCK_ITEM],
+            400
+        )
+        assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
     async def test_cache_service_set_list_invalid_type(cache_service):
         key = f'{cache_service.prefix}:list'
         invalid_data = object()
@@ -185,6 +198,14 @@ class TestCacheServiceSetOne:
         key = 'test_cache:name'
         cache_service.cache.set_cache = AsyncMock(return_value=None)
         result = await cache_service.set_one(key, MOCK_ITEM)
+        assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_cache_service_set_one_with_ttl(cache_service):
+        key = 'test_cache:name'
+        cache_service.cache.set_cache = AsyncMock(return_value=None)
+        result = await cache_service.set_one(key, MOCK_ITEM, 300)
         assert result is None
 
     @staticmethod

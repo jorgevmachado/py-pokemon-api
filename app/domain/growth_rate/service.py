@@ -31,7 +31,7 @@ class PokemonGrowthRateService(BaseService[Repository, PokemonGrowthRate]):
             repository,
             logger_params,
             PokemonGrowthRateSchema,
-            'pokemon_growth_rate'
+            'pokemon_growth_rate',
         )
 
     async def verify_pokemon_growth_rate(

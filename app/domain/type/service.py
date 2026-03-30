@@ -73,7 +73,6 @@ class PokemonTypeService(BaseService[Repository, PokemonType]):
                 message='Verify Pokemon Type successfully',
             )
 
-
     async def add_relations(self, pokemon_type: PokemonType) -> PokemonType:
         if not pokemon_type.weaknesses or not pokemon_type.strengths:
             pokemon_type_external = await self.external_service.pokemon_external_type(
