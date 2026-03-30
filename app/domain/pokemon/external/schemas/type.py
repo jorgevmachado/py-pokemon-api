@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, ConfigDict
 
 from app.domain.pokemon.external.schemas import PokemonExternalBase
@@ -32,6 +34,6 @@ class PokemonExternalTypeSchemaResponse(BaseModel):
     game_indices: list[PokemonExternalTypeGameIndicesSchemaResponse]
     generation: PokemonExternalBase
     id: int
-    move_damage_class: PokemonExternalBase
+    move_damage_class: Optional[PokemonExternalBase] = None
     moves: list[PokemonExternalBase]
     names: list[PokemonExternalTypeLanguageSchemaResponse]

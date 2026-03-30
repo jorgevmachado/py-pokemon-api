@@ -32,7 +32,6 @@ class PokemonEvolutionSchema(BaseModel):
     status: StatusEnum
     external_image: str
     image: Optional[str] = None
-    types: list[PokemonTypeSchema] = []
 
 
 class PublicPokemonSchema(BaseModel):

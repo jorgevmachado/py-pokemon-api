@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from app.core.exceptions.exceptions import handle_service_exception
+from app.core.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.core.service import BaseService
 from app.domain.pokemon.external.schemas import (
@@ -13,9 +13,6 @@ from app.domain.pokemon.external.schemas import (
 from app.domain.pokemon.external.service import PokemonExternalService
 from app.domain.type.business import PokemonTypeBusiness
 from app.domain.type.repository import PokemonTypeRepository
-from app.domain.type.schema import (
-    ValidatePokemonTypeDamageRelationSchema,
-)
 from app.models.pokemon_type import PokemonType
 from app.shared.utils.number import ensure_order_number
 
@@ -36,20 +33,30 @@ class PokemonTypeService(BaseService[Repository, PokemonType]):
     async def verify_pokemon_type(
         self, types: list[PokemonExternalBaseTypeSchemaResponse]
     ) -> list[PokemonType]:
+        result: list[PokemonType] = []
         try:
-            result_pokemon_type = []
             for type_response in types:
                 url = type_response.type.url
                 order = ensure_order_number(url)
 
                 db_pokemon_type = await self.repository.find_by(order=order)
                 if db_pokemon_type:
-                    result_pokemon_type.append(db_pokemon_type)
+                    db_pokemon_type_with_relations = await self.add_relations(
+                        pokemon_type=db_pokemon_type
+                    )
+                    result.append(db_pokemon_type_with_relations)
                     continue
-                pokemon_type = await self.persist(pokemon_type=type_response.type)
-                result_pokemon_type.append(pokemon_type)
-            log_service_success(self.logger_params, message='Verify Pokemon Type successfully')
-            return result_pokemon_type
+
+                pokemon_type = await self.save(
+                    create=PokemonExternalBase(
+                        url=url,
+                        name=type_response.type.name,
+                    )
+                )
+                db_pokemon_type_with_relations = await self.add_relations(
+                    pokemon_type=pokemon_type
+                )
+                result.append(db_pokemon_type_with_relations)
         except Exception as exception:
             handle_service_exception(
                 exception,
@@ -58,114 +65,62 @@ class PokemonTypeService(BaseService[Repository, PokemonType]):
                 operation=self.logger_params.operation,
                 raise_exception=False,
             )
-            return []
-
-    async def validate_damage_relations(
-        self, url: str
-    ) -> ValidatePokemonTypeDamageRelationSchema:
-        weaknesses = []
-        strengths = []
-        external_type_data = await self.external_service.pokemon_external_type(url=url)
-
-        if external_type_data is None:
+        finally:
             log_service_success(
                 self.logger_params,
-                operation='validate_damage_relations',
-                message='Validate Damage Relation Type successfully',
+                operation=self.logger_params.operation,
+                message='Verify Pokemon Type successfully',
             )
-            return ValidatePokemonTypeDamageRelationSchema(
-                weaknesses=weaknesses,
-                strengths=strengths,
+            return result
+
+    async def add_relations(self, pokemon_type: PokemonType) -> PokemonType:
+        if not pokemon_type.weaknesses or not pokemon_type.strengths:
+            pokemon_type_external = await self.external_service.pokemon_external_type(
+                url=pokemon_type.url
+            )
+            pokemon_type_damage_relations = PokemonTypeBusiness().ensure_damage_relations(
+                damage_relations=pokemon_type_external.damage_relations
             )
 
-        pokemon_type_damage_relations = PokemonTypeBusiness().ensure_damage_relations(
-            damage_relations=external_type_data.damage_relations
-        )
-        weaknesses = await self.persist_damage_relations(
-            pokemon_type_damage_relations.weakness
-        )
-        strengths = await self.persist_damage_relations(
-            pokemon_type_damage_relations.strengths
-        )
-        log_service_success(
-            self.logger_params,
-            operation='validate_damage_relations',
-            message='Validate Damage Relation Type successfully',
-        )
-        return ValidatePokemonTypeDamageRelationSchema(
-            weaknesses=weaknesses,
-            strengths=strengths,
-        )
+            weaknesses: list[PokemonType] = await self.persist_relations(
+                relations=pokemon_type_damage_relations.weakness
+            )
+            strengths: list[PokemonType] = await self.persist_relations(
+                relations=pokemon_type_damage_relations.strengths
+            )
 
-    async def persist_damage_relations(
-        self,
-        damage_relations: list[PokemonExternalBase],
+            if weaknesses or strengths:
+                pokemon_type.weaknesses = weaknesses
+                pokemon_type.strengths = strengths
+                return await self.repository.update(pokemon_type)
+
+            return pokemon_type
+        return pokemon_type
+
+    async def persist_relations(
+        self, relations: list[PokemonExternalBase]
     ) -> list[PokemonType]:
-        if not damage_relations:
-            return []
-        result = []
-        for damage_relation in damage_relations:
-            damage = await self.persist(
-                pokemon_type=damage_relation,
-                with_damage_relations=False,
-            )
-            result.append(damage)
-        log_service_success(
-            self.logger_params,
-            operation='persist_damage_relations',
-            message='Persist Damage Relation Type successfully',
-        )
+        result: list[PokemonType] = []
+        for relation in relations:
+            entity = await self.save(create=relation)
+            if entity:
+                result.append(entity)
         return result
 
-    async def persist(
-        self,
-        pokemon_type: PokemonExternalBase,
-        with_damage_relations: bool = True,
-    ) -> PokemonType:
-        url = pokemon_type.url
-        order = ensure_order_number(url)
+    async def save(self, create: PokemonExternalBase) -> PokemonType | None:
+        url = create.url
+        name = create.name
+        order = ensure_order_number(create.url)
 
-        # Check by order
-        existing_type = await self.repository.find_by(order=order)
-        # If not found by order, check by name
-        if not existing_type:
-            existing_type = await self.repository.find_by(name=pokemon_type.name)
+        db_pokemon_type = await self.repository.find_by(order=order)
+        if db_pokemon_type:
+            return db_pokemon_type
 
-        if existing_type:
-            if (
-                with_damage_relations
-                and not existing_type.weaknesses
-                and not existing_type.strengths
-            ):
-                damages = await self.validate_damage_relations(url=url)
-                if damages.weaknesses:
-                    existing_type.weaknesses = damages.weaknesses
-                if damages.strengths:
-                    existing_type.strengths = damages.strengths
-                return await self.repository.update(existing_type)
-            log_service_success(
-                self.logger_params,
-                operation='persist',
-                message='Persist Type when exist successfully',
-            )
-            return existing_type
-
-        # Double-check before insert: ensure no type with same name exists
-        double_check = await self.repository.find_by(name=pokemon_type.name)
-        if double_check:
-            return double_check
-
-        type_colors = PokemonTypeBusiness().ensure_colors(pokemon_type.name)
-
-        log_service_success(
-            self.logger_params,
-            operation='persist',
-            message='Persist Type when not exist successfully',
-        )
+        type_colors = PokemonTypeBusiness().ensure_colors(create.name)
         return await self.repository.save(
             entity=PokemonType(
                 url=url,
-                name=pokemon_type.name,
+                name=name,
                 order=order,
                 text_color=type_colors.text_color,
                 background_color=type_colors.background_color,

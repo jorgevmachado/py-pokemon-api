@@ -22,7 +22,6 @@ def test_pokemon_evolution_schema_fields():
         'status': 'COMPLETE',
         'external_image': 'https://img.pokemondb.net/artwork/bulbasaur.jpg',
         'image': None,
-        'types': [],
     }
     schema = PokemonEvolutionSchema(**data)
     assert schema.id == '1'
@@ -32,7 +31,6 @@ def test_pokemon_evolution_schema_fields():
     assert schema.status == 'COMPLETE'
     assert schema.external_image == data['external_image']
     assert schema.image is None
-    assert schema.types == []
 
 
 def test_public_pokemon_schema_fields():
