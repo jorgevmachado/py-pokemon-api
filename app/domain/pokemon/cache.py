@@ -120,3 +120,37 @@ class PokemonCacheService:
         await self.cache.set_cache(
             self.build_key_meta(), {'db_total': db_total, 'external_total': external_total}
         )
+
+    def build_key_one(self, name: str):
+        log_service_success(
+            self.logger_params,
+            operation='cache_build_key_one',
+            message='The Pokémon cache key was successfully created.',
+        )
+        return self.cache.build_key(self.prefix,  name)
+
+    async def set_one(self, key: str, pokemon: PokemonSchema) -> None:
+        pokemon_serialized = PokemonSchema.model_validate(pokemon).serialize()
+        await self.cache.set_cache(key, pokemon_serialized)
+        log_service_success(
+            self.logger_params,
+            operation='cache_set_one',
+            message='Pokémon successfully cached.',
+        )
+        return None
+
+    async def get_one(self, key: str) -> PokemonSchema | None:
+        cached = await self.cache.get_cache(key)
+        if cached:
+            log_service_success(
+                self.logger_params,
+                operation='cache_get_one',
+                message=f'Pokémon {key} stored in cache',
+            )
+            return PokemonSchema.model_validate(cached)
+        log_service_success(
+            self.logger_params,
+            operation='cache_get_one',
+            message=f'No Pokémon {key} is cached.',
+        )
+        return None

@@ -219,3 +219,58 @@ class TestPokemonCacheServiceGetMeta:
         result = await pokemon_cache_service.get_meta()
         assert result['db_total'] == POKEMON_DB_TOTAL
         assert result['external_total'] == POKEMON_EXTERNAL_TOTAL
+
+
+class TestPokemonCacheServiceBuildKeyOne:
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_build_key_one(pokemon_cache_service):
+        key = pokemon_cache_service.build_key_one('pikachu')
+        assert key == 'pokemon:pikachu'
+
+class TestPokemonCacheServiceSetOne:
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_cache_service_set_one(pokemon_cache_service):
+        pokemon = PokemonSchema(
+            id='1',
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            name='bulbasaur',
+            order=1,
+            status=StatusEnum.COMPLETE,
+            external_image='https://img.pokemondb.net/artwork/bulbasaur.jpg',
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        key = 'pokemon:pikachu'
+        pokemon_cache_service.cache.set_cache = AsyncMock(return_value=None)
+        result = await pokemon_cache_service.set_one(key, pokemon)
+        assert result is None
+
+class TestPokemonCacheServiceGetOne:
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_cache_service_get_one_returns_none_when_cache_misses(
+            pokemon_cache_service
+    ):
+        key = 'pokemon:pikachu'
+        result = await pokemon_cache_service.get_one(key)
+        assert result is None
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_cache_service_get_one_returns_pokemon(pokemon_cache_service):
+        pokemon = PokemonSchema(
+            id='1',
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            name='bulbasaur',
+            order=1,
+            status=StatusEnum.COMPLETE,
+            external_image='https://img.pokemondb.net/artwork/bulbasaur.jpg',
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        key = 'pokemon:bulbasaur'
+        await pokemon_cache_service.set_one(key, pokemon)
+        result = await pokemon_cache_service.get_one(key)
+        assert isinstance(result, PokemonSchema)
