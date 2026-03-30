@@ -27,7 +27,11 @@ class PokemonGrowthRateService(BaseService[Repository, PokemonGrowthRate]):
             logger=logger, service='growth_rate', operation='verify_pokemon_growth_rate'
         )
         super().__init__(
-            'Pokemon Growth Rate', repository, logger_params, PokemonGrowthRateSchema
+            'Pokemon Growth Rate',
+            repository,
+            logger_params,
+            PokemonGrowthRateSchema,
+            'pokemon_growth_rate'
         )
 
     async def verify_pokemon_growth_rate(
