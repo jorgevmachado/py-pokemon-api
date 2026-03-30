@@ -1,4 +1,4 @@
-from app.domain.pokemon.external.business import (
+from app.domain.pokemon.external.business.business import (
     EnsureAttributesSchemaResult,
     EnsureSpecieAttributesSchemaResult,
 )
@@ -12,6 +12,7 @@ MOCK_ATTRIBUTES_SPECIAL_DEFENSE = 65
 MOCK_ATTRIBUTES_HEIGHT = 7
 MOCK_ATTRIBUTES_WEIGHT = 69
 MOCK_ATTRIBUTES_BASE_EXPERIENCE = 64
+MOCK_EXTERNAL_API_URL = 'https://pokeapi.co/api/v2'
 
 MOCK_BUSINESS_ENSURE_ATTRIBUTES = EnsureAttributesSchemaResult(
     hp=MOCK_ATTRIBUTES_HP,

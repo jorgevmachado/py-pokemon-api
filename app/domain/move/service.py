@@ -45,8 +45,8 @@ class PokemonMoveService(BaseService[PokemonMoveRepository, PokemonExternalServi
                     result_pokemon_moves.append(db_pokemon_move)
                     continue
 
-                external_move_data = await self.external_service.pokemon_external_move_by_name(
-                    name
+                external_move_data = await self.external_service.pokemon_external_move(
+                    name=name
                 )
 
                 if not external_move_data:

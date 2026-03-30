@@ -293,8 +293,8 @@ class PokemonService(BaseService[Repository, Pokemon]):
         evolutions: list[Pokemon] = []
 
         try:
-            evolution_chain = await self.external_service.pokemon_external_evolution_by_url(
-                evolution_chain_url
+            evolution_chain = await self.external_service.pokemon_external_evolution(
+                url=evolution_chain_url
             )
 
             if not evolution_chain:

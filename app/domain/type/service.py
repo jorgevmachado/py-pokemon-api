@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 class PokemonTypeService(BaseService[Repository, PokemonType]):
+    alias = 'Pokemon Type'
+
     def __init__(self, repository: Repository):
         self.external_service = PokemonExternalService()
         logger_params = LoggingParams(
@@ -61,27 +63,37 @@ class PokemonTypeService(BaseService[Repository, PokemonType]):
     async def validate_damage_relations(
         self, url: str
     ) -> ValidatePokemonTypeDamageRelationSchema:
-        weakness = []
+        weaknesses = []
         strengths = []
-        external_type_data = await self.external_service.pokemon_external_type_by_url(url=url)
+        external_type_data = await self.external_service.pokemon_external_type(url=url)
 
-        if external_type_data is not None:
-            pokemon_type_damage_relations = PokemonTypeBusiness().ensure_damage_relations(
-                damage_relations=external_type_data.damage_relations
+        if external_type_data is None:
+            log_service_success(
+                self.logger_params,
+                operation='validate_damage_relations',
+                message='Validate Damage Relation Type successfully',
             )
-            weakness = await self.persist_damage_relations(
-                pokemon_type_damage_relations.weakness
+            return ValidatePokemonTypeDamageRelationSchema(
+                weaknesses=weaknesses,
+                strengths=strengths,
             )
-            strengths = await self.persist_damage_relations(
-                pokemon_type_damage_relations.strengths
-            )
+
+        pokemon_type_damage_relations = PokemonTypeBusiness().ensure_damage_relations(
+            damage_relations=external_type_data.damage_relations
+        )
+        weaknesses = await self.persist_damage_relations(
+            pokemon_type_damage_relations.weakness
+        )
+        strengths = await self.persist_damage_relations(
+            pokemon_type_damage_relations.strengths
+        )
         log_service_success(
             self.logger_params,
             operation='validate_damage_relations',
             message='Validate Damage Relation Type successfully',
         )
         return ValidatePokemonTypeDamageRelationSchema(
-            weaknesses=weakness,
+            weaknesses=weaknesses,
             strengths=strengths,
         )
 
@@ -89,6 +101,8 @@ class PokemonTypeService(BaseService[Repository, PokemonType]):
         self,
         damage_relations: list[PokemonExternalBase],
     ) -> list[PokemonType]:
+        if not damage_relations:
+            return []
         result = []
         for damage_relation in damage_relations:
             damage = await self.persist(
@@ -111,7 +125,9 @@ class PokemonTypeService(BaseService[Repository, PokemonType]):
         url = pokemon_type.url
         order = ensure_order_number(url)
 
+        # Check by order
         existing_type = await self.repository.find_by(order=order)
+        # If not found by order, check by name
         if not existing_type:
             existing_type = await self.repository.find_by(name=pokemon_type.name)
 
@@ -133,6 +149,11 @@ class PokemonTypeService(BaseService[Repository, PokemonType]):
                 message='Persist Type when exist successfully',
             )
             return existing_type
+
+        # Double-check before insert: ensure no type with same name exists
+        double_check = await self.repository.find_by(name=pokemon_type.name)
+        if double_check:
+            return double_check
 
         type_colors = PokemonTypeBusiness().ensure_colors(pokemon_type.name)
 

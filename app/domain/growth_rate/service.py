@@ -46,7 +46,7 @@ class PokemonGrowthRateService(BaseService[Repository, PokemonGrowthRate]):
                 return db_pokemon_growth_rate
 
             external_growth_rate_data = await (
-                self.external_service.pokemon_external_growth_rate_by_order(order)
+                self.external_service.pokemon_external_growth_rate(order=order)
             )
 
             if not external_growth_rate_data:

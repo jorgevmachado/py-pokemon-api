@@ -78,7 +78,7 @@ class TestPokemonTypeServiceVerifyPokemonType:
             result = await pokemon_type_service.verify_pokemon_type(
                 types=[response_pokemon_type]
             )
-        total_call_count = 3
+        total_call_count = 4
         assert len(result) == total_results
         assert result[0].name == 'fire'
         assert result[0].order == pokemon_type_order
@@ -88,6 +88,7 @@ class TestPokemonTypeServiceVerifyPokemonType:
         pokemon_type_service.repository.find_by.assert_has_calls([
             call(order=pokemon_type_order),
             call(order=pokemon_type_order),
+            call(name='fire'),
             call(name='fire'),
         ])
         pokemon_type_service.repository.save.assert_called_once()
@@ -281,11 +282,26 @@ class TestPokemonTypeServiceValidateDamageRelations:
             names=[],
         )
 
-        pokemon_type_service.external_service.pokemon_external_type_by_url = AsyncMock(
+        pokemon_type_service.external_service.pokemon_external_type = AsyncMock(
             return_value=external_type
         )
-        pokemon_type_service.repository.find_by = AsyncMock(return_value=None)
-        pokemon_type_service.repository.find_one = AsyncMock(return_value=None)
+        dummy_weakness = PokemonType(
+            url='https://pokeapi.co/api/v2/type/11/',
+            name='water',
+            order=11,
+            text_color='#fff',
+            background_color='#4592c4',
+        )
+        dummy_strength = PokemonType(
+            url='https://pokeapi.co/api/v2/type/12/',
+            name='grass',
+            order=12,
+            text_color='#fff',
+            background_color='#9bcc50',
+        )
+        pokemon_type_service.persist_damage_relations = AsyncMock(
+            side_effect=[[dummy_weakness], [dummy_strength]]
+        )
 
         type_color = TypeColor(
             id=3, name='fire', text_color='#fff', background_color='#fd7d24'
@@ -304,9 +320,10 @@ class TestPokemonTypeServiceValidateDamageRelations:
     async def test_validate_damage_relations_no_external_data(pokemon_type_service):
         """Should return empty relations when external API returns None"""
 
-        pokemon_type_service.external_service.pokemon_external_type_by_url = AsyncMock(
+        pokemon_type_service.external_service.pokemon_external_type = AsyncMock(
             return_value=None
         )
+        pokemon_type_service.persist_damage_relations = AsyncMock(return_value=[])
 
         result = await pokemon_type_service.validate_damage_relations(
             url='https://pokeapi.co/api/v2/type/10/'

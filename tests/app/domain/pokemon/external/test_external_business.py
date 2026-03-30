@@ -1,4 +1,5 @@
-from app.domain.pokemon.external.business import PokemonExternalBusiness
+from app.domain.pokemon.external.business.business import PokemonExternalBusiness
+from app.domain.pokemon.external.enums.service_enum import ServiceType
 from tests.app.domain.pokemon.external.mocks.business_mock import (
     MOCK_ATTRIBUTES_ATTACK,
     MOCK_ATTRIBUTES_DEFENSE,
@@ -6,6 +7,7 @@ from tests.app.domain.pokemon.external.mocks.business_mock import (
     MOCK_ATTRIBUTES_SPECIAL_ATTACK,
     MOCK_ATTRIBUTES_SPECIAL_DEFENSE,
     MOCK_ATTRIBUTES_SPEED,
+    MOCK_EXTERNAL_API_URL,
 )
 from tests.app.domain.pokemon.external.mocks.external_mock import (
     MOCK_POKEMON_BASE_EXPERIENCE,
@@ -135,3 +137,100 @@ class TestPokemonExternalBusinessEnsureSpecieAttributes:
         assert not result.evolution_chain_url
         assert not result.evolves_from_species
         assert result.has_gender_differences == result_empty_specie.has_gender_differences
+
+
+class TestPokemonExternalBusinessBuildUrl:
+    @staticmethod
+    def test_pokemon_external_business_build_url_return_url():
+        result_url = f'{MOCK_EXTERNAL_API_URL}/pokemon/1'
+        result = PokemonExternalBusiness.build_url(
+            base_url=MOCK_EXTERNAL_API_URL,
+            url=result_url,
+            name=None,
+            order=None,
+            service_type=None,
+        )
+        assert result == result_url
+
+    @staticmethod
+    def test_pokemon_external_business_build_url_return_none():
+        result = PokemonExternalBusiness.build_url(
+            base_url=MOCK_EXTERNAL_API_URL,
+            url=None,
+            name=None,
+            order=None,
+            service_type=None,
+        )
+        assert not result
+
+    @staticmethod
+    def test_pokemon_external_business_build_url_return_service_type():
+        result_url = f'{MOCK_EXTERNAL_API_URL}/type/fire'
+        result = PokemonExternalBusiness.build_url(
+            base_url=MOCK_EXTERNAL_API_URL,
+            url=None,
+            name='fire',
+            order=None,
+            service_type=ServiceType.TYPE,
+        )
+        assert result == result_url
+
+    @staticmethod
+    def test_pokemon_external_business_build_url_return_service_move():
+        result_url = f'{MOCK_EXTERNAL_API_URL}/move/1'
+        result = PokemonExternalBusiness.build_url(
+            base_url=MOCK_EXTERNAL_API_URL,
+            url=None,
+            name=None,
+            order=1,
+            service_type=ServiceType.MOVE,
+        )
+        assert result == result_url
+
+    @staticmethod
+    def test_pokemon_external_business_build_url_return_service_specie():
+        result_url = f'{MOCK_EXTERNAL_API_URL}/pokemon-species/1'
+        result = PokemonExternalBusiness.build_url(
+            base_url=MOCK_EXTERNAL_API_URL,
+            url=None,
+            name=None,
+            order=1,
+            service_type=ServiceType.SPECIE,
+        )
+        assert result == result_url
+
+    @staticmethod
+    def test_pokemon_external_business_build_url_return_service_pokemon_name():
+        result_url = f'{MOCK_EXTERNAL_API_URL}/pokemon/bulbasaur'
+        result = PokemonExternalBusiness.build_url(
+            base_url=MOCK_EXTERNAL_API_URL,
+            url=None,
+            name='bulbasaur',
+            order=None,
+            service_type=ServiceType.POKEMON,
+        )
+        assert result == result_url
+
+    @staticmethod
+    def test_pokemon_external_business_build_url_return_service_evolution():
+        result_url = f'{MOCK_EXTERNAL_API_URL}/evolution-chain/1'
+        result = PokemonExternalBusiness.build_url(
+            base_url=MOCK_EXTERNAL_API_URL,
+            url=None,
+            name=None,
+            order=1,
+            service_type=ServiceType.EVOLUTION,
+        )
+        assert result == result_url
+
+    @staticmethod
+    def test_pokemon_external_business_build_url_return_service_growth_rate():
+        result_url = f'{MOCK_EXTERNAL_API_URL}/growth-rate/1'
+        result = PokemonExternalBusiness.build_url(
+            base_url=MOCK_EXTERNAL_API_URL,
+            url=None,
+            name=None,
+            order=1,
+            service_type=ServiceType.GROWTH_RATE,
+        )
+        assert result == result_url

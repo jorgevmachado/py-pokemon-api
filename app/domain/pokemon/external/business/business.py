@@ -1,50 +1,17 @@
 from typing import Optional
 
-from pydantic import BaseModel
-
+from app.domain.pokemon.external.business.schemas import (
+    EnsureAttributesSchemaResult,
+    EnsureSpecieAttributesSchemaResult,
+    EnsureStaticsAttributesSchemaResult,
+)
+from app.domain.pokemon.external.enums.service_enum import ServiceType
 from app.domain.pokemon.external.schemas import PokemonExternalByNameSpritesSchemaResponse
 from app.domain.pokemon.external.schemas.name import (
     PokemonExternalByNameSchemaResponse,
     PokemonExternalByNameStatsSchemaResponse,
 )
 from app.domain.pokemon.external.schemas.specie import PokemonExternalSpecieSchemaResponse
-
-
-class EnsureStaticsAttributesSchemaResult(BaseModel):
-    hp: int
-    speed: int
-    attack: int
-    defense: int
-    special_attack: int
-    special_defense: int
-
-
-class EnsureAttributesSchemaResult(BaseModel):
-    hp: int
-    speed: int
-    height: int
-    weight: int
-    attack: int
-    defense: int
-    special_attack: int
-    special_defense: int
-    base_experience: int
-
-
-class EnsureSpecieAttributesSchemaResult(BaseModel):
-    habitat: Optional[str] = None
-    is_baby: bool
-    shape_name: Optional[str] = None
-    shape_url: Optional[str] = None
-    is_mythical: bool
-    gender_rate: int
-    is_legendary: bool
-    capture_rate: int
-    hatch_counter: int
-    base_happiness: int
-    evolution_chain_url: Optional[str] = None
-    evolves_from_species: Optional[str] = None
-    has_gender_differences: bool
 
 
 class PokemonExternalBusiness:
@@ -148,3 +115,31 @@ class PokemonExternalBusiness:
             evolves_from_species=evolves_from_species,
             has_gender_differences=pokemon_specie.has_gender_differences,
         )
+
+    @staticmethod
+    def build_url(
+        base_url: str,
+        url: Optional[str] = None,
+        name: Optional[str] = None,
+        order: Optional[int] = None,
+        service_type: Optional[ServiceType] = ServiceType.POKEMON,
+    ) -> str | None:
+        if url is not None:
+            return url
+
+        param = order or name
+
+        if not param:
+            return None
+
+        path_map = {
+            ServiceType.TYPE: 'type',
+            ServiceType.MOVE: 'move',
+            ServiceType.SPECIE: 'pokemon-species',
+            ServiceType.EVOLUTION: 'evolution-chain',
+            ServiceType.GROWTH_RATE: 'growth-rate',
+            ServiceType.POKEMON: 'pokemon',
+        }
+
+        path = path_map.get(service_type, 'pokemon')
+        return f'{base_url}/{path}/{param}'

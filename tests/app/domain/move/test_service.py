@@ -117,7 +117,7 @@ class TestPokemonMoveServiceVerifyPokemonMove:
         ):
             with patch.object(
                 pokemon_move_service.external_service,
-                'pokemon_external_move_by_name',
+                'pokemon_external_move',
                 return_value=external_move_data,
             ):
                 result = await pokemon_move_service.verify_pokemon_move(
@@ -146,7 +146,7 @@ class TestPokemonMoveServiceVerifyPokemonMove:
 
         with patch.object(
             pokemon_move_service.external_service,
-            'pokemon_external_move_by_name',
+            'pokemon_external_move',
             return_value=None,
         ):
             result = await pokemon_move_service.verify_pokemon_move(
@@ -250,7 +250,7 @@ class TestPokemonMoveServiceVerifyPokemonMove:
 
         with patch.object(
             pokemon_move_service.external_service,
-            'pokemon_external_move_by_name',
+            'pokemon_external_move',
             side_effect=Exception('External API error'),
         ):
             result = await pokemon_move_service.verify_pokemon_move(
@@ -302,7 +302,7 @@ class TestPokemonMoveServiceVerifyPokemonMove:
         ):
             with patch.object(
                 pokemon_move_service.external_service,
-                'pokemon_external_move_by_name',
+                'pokemon_external_move',
                 return_value=external_move_data,
             ):
                 result = await pokemon_move_service.verify_pokemon_move(
@@ -349,7 +349,7 @@ class TestPokemonMoveServiceVerifyPokemonMove:
         ):
             with patch.object(
                 pokemon_move_service.external_service,
-                'pokemon_external_move_by_name',
+                'pokemon_external_move',
                 return_value=external_move_data,
             ):
                 result = await pokemon_move_service.verify_pokemon_move(

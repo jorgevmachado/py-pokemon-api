@@ -1,12 +1,14 @@
 import logging
 from http import HTTPStatus
+from typing import Optional
 
 import httpx
 from fastapi import HTTPException
 
 from app.core.exceptions.exceptions import handle_service_exception
-from app.core.logging import LoggingParams
-from app.domain.pokemon.external.business import PokemonExternalBusiness
+from app.core.logging import LoggingParams, log_service_success
+from app.domain.pokemon.external.business.business import PokemonExternalBusiness
+from app.domain.pokemon.external.enums.service_enum import ServiceType
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseSchemaResponse,
     PokemonExternalEvolutionSchemaResponse,
@@ -36,6 +38,53 @@ class PokemonExternalService:
     LOGGING_PARAMS = LoggingParams(
         logger=logger, service='pokemon_external_service', operation=''
     )
+
+    @staticmethod
+    async def fetch(
+        operation: str,
+        url: Optional[str] = None,
+        order: Optional[int] = None,
+        name: Optional[str] = None,
+        service_type: Optional[ServiceType] = None,
+    ):
+        current_url = PokemonExternalBusiness.build_url(
+            url=url,
+            name=name,
+            order=order,
+            base_url=PokemonExternalService.BASE_URL,
+            service_type=service_type,
+        )
+        if not current_url:
+            return None
+        try:
+            async with httpx.AsyncClient(verify=False) as client:
+                response = await client.get(
+                    current_url,
+                    timeout=30.0,
+                )
+                response.raise_for_status()
+                response_data = response.json()
+                condition_param = 'name'
+                if service_type == ServiceType.EVOLUTION:
+                    condition_param = 'id'
+
+                if not response_data or condition_param not in response_data:
+                    return None
+
+                return response_data
+        except httpx.HTTPError as exception:
+            handle_service_exception(
+                exception,
+                logger=PokemonExternalService.LOGGING_PARAMS.logger,
+                service=PokemonExternalService.LOGGING_PARAMS.service,
+                operation=operation,
+            )
+        finally:
+            log_service_success(
+                PokemonExternalService.LOGGING_PARAMS,
+                operation=operation,
+                message=f'Fetch external service {service_type} successfully',
+            )
 
     @staticmethod
     async def pokemon_external_total() -> int | None:
@@ -107,147 +156,96 @@ class PokemonExternalService:
     async def pokemon_external_by_name(
         name: str,
     ) -> PokemonExternalByNameSchemaResponse | None:
-        try:
-            async with httpx.AsyncClient(verify=False) as client:
-                response = await client.get(
-                    f'{PokemonExternalService.BASE_URL}/pokemon/{name}',
-                    timeout=10.0,
-                )
-                response.raise_for_status()
-                response_data = response.json()
-
-                if not response_data or 'name' not in response_data:
-                    return None
-
-                return PokemonExternalByNameSchemaResponse(**response_data)
-        except httpx.HTTPError as exception:
-            handle_service_exception(
-                exception,
-                logger=PokemonExternalService.LOGGING_PARAMS.logger,
-                service=PokemonExternalService.LOGGING_PARAMS.service,
-                operation='pokemon_external_by_name',
-            )
+        response = await PokemonExternalService.fetch(
+            operation='pokemon_external_by_name',
+            name=name,
+        )
+        if response is None:
+            return None
+        return PokemonExternalByNameSchemaResponse(**response)
 
     @staticmethod
-    async def pokemon_external_specie_by_name(
-        name: str,
+    async def pokemon_external_specie(
+        url: Optional[str] = None,
+        order: Optional[int] = None,
+        name: Optional[str] = None,
     ) -> PokemonExternalSpecieSchemaResponse | None:
-        try:
-            async with httpx.AsyncClient(verify=False) as client:
-                response = await client.get(
-                    f'{PokemonExternalService.BASE_URL}/pokemon-species/{name}',
-                    timeout=10.0,
-                )
-                response.raise_for_status()
-                response_data = response.json()
+        response = await PokemonExternalService.fetch(
+            operation='pokemon_external_specie',
+            url=url,
+            name=name,
+            order=order,
+            service_type=ServiceType.SPECIE,
+        )
+        if response is None:
+            return None
 
-                if not response_data or 'name' not in response_data:
-                    return None
-
-                return PokemonExternalSpecieSchemaResponse(**response_data)
-        except httpx.HTTPError as exception:
-            handle_service_exception(
-                exception,
-                logger=PokemonExternalService.LOGGING_PARAMS.logger,
-                service=PokemonExternalService.LOGGING_PARAMS.service,
-                operation='pokemon_external_specie_by_name',
-            )
+        return PokemonExternalSpecieSchemaResponse(**response)
 
     @staticmethod
-    async def pokemon_external_move_by_name(
-        name: str,
+    async def pokemon_external_move(
+        url: Optional[str] = None,
+        order: Optional[int] = None,
+        name: Optional[str] = None,
     ) -> PokemonExternalMoveSchemaResponse | None:
-        try:
-            async with httpx.AsyncClient(verify=False) as client:
-                response = await client.get(
-                    f'{PokemonExternalService.BASE_URL}/move/{name}',
-                    timeout=10.0,
-                )
-                response.raise_for_status()
-                response_data = response.json()
-
-                if not response_data or 'name' not in response_data:
-                    return None
-
-                return PokemonExternalMoveSchemaResponse(**response_data)
-        except httpx.HTTPError as exception:
-            handle_service_exception(
-                exception,
-                logger=PokemonExternalService.LOGGING_PARAMS.logger,
-                service=PokemonExternalService.LOGGING_PARAMS.service,
-                operation='pokemon_external_move_by_name',
-            )
+        response = await PokemonExternalService.fetch(
+            operation='pokemon_external_move',
+            url=url,
+            name=name,
+            order=order,
+            service_type=ServiceType.MOVE,
+        )
+        if response is None:
+            return None
+        return PokemonExternalMoveSchemaResponse(**response)
 
     @staticmethod
-    async def pokemon_external_growth_rate_by_order(
-        order: int,
+    async def pokemon_external_growth_rate(
+        url: Optional[str] = None,
+        order: Optional[int] = None,
+        name: Optional[str] = None,
     ) -> PokemonExternalGrowthRateSchemaResponse | None:
-        try:
-            async with httpx.AsyncClient(verify=False) as client:
-                response = await client.get(
-                    f'{PokemonExternalService.BASE_URL}/growth-rate/{order}',
-                    timeout=10.0,
-                )
-                response.raise_for_status()
-                response_data = response.json()
-                if not response_data or 'name' not in response_data:
-                    return None
-                return PokemonExternalGrowthRateSchemaResponse(**response_data)
-        except httpx.HTTPError as exception:
-            handle_service_exception(
-                exception,
-                logger=PokemonExternalService.LOGGING_PARAMS.logger,
-                service=PokemonExternalService.LOGGING_PARAMS.service,
-                operation='pokemon_external_growth_rate_by_order',
-            )
+        response = await PokemonExternalService.fetch(
+            operation='pokemon_external_growth_rate',
+            url=url,
+            name=name,
+            order=order,
+            service_type=ServiceType.GROWTH_RATE,
+        )
+        if response is None:
+            return None
+        return PokemonExternalGrowthRateSchemaResponse(**response)
 
     @staticmethod
-    async def pokemon_external_evolution_by_url(
-        url: str,
+    async def pokemon_external_evolution(
+        url: Optional[str] = None,
+        order: Optional[int] = None,
     ) -> PokemonExternalEvolutionSchemaResponse | None:
-        try:
-            async with httpx.AsyncClient(verify=False) as client:
-                response = await client.get(
-                    url,
-                    timeout=10.0,
-                )
-                response.raise_for_status()
-                response_data = response.json()
-                if not response_data or 'id' not in response_data:
-                    return None
+        response = await PokemonExternalService.fetch(
+            operation='pokemon_external_evolution',
+            url=url,
+            order=order,
+            service_type=ServiceType.EVOLUTION,
+        )
+        if response is None:
+            return None
 
-                return PokemonExternalEvolutionSchemaResponse(**response_data)
-        except httpx.HTTPError as exception:
-            handle_service_exception(
-                exception,
-                logger=PokemonExternalService.LOGGING_PARAMS.logger,
-                service=PokemonExternalService.LOGGING_PARAMS.service,
-                operation='pokemon_external_evolution_by_url',
-            )
+        return PokemonExternalEvolutionSchemaResponse(**response)
 
     @staticmethod
-    async def pokemon_external_type_by_url(
-        url: str,
+    async def pokemon_external_type(
+        url: Optional[str] = None,
+        name: Optional[str] = None,
     ) -> PokemonExternalTypeSchemaResponse | None:
-        try:
-            async with httpx.AsyncClient(verify=False) as client:
-                response = await client.get(
-                    url,
-                    timeout=10.0,
-                )
-                response.raise_for_status()
-                response_data = response.json()
-                if not response_data or 'id' not in response_data:
-                    return None
-
-                return PokemonExternalTypeSchemaResponse(**response_data)
-        except httpx.HTTPError as exception:
-            handle_service_exception(
-                exception,
-                logger=PokemonExternalService.LOGGING_PARAMS.logger,
-                service=PokemonExternalService.LOGGING_PARAMS.service,
-                operation='pokemon_external_type_by_url',
-            )
+        response = await PokemonExternalService.fetch(
+            operation='pokemon_external_type',
+            url=url,
+            name=name,
+            service_type=ServiceType.TYPE,
+        )
+        if response is None:
+            return None
+        return PokemonExternalTypeSchemaResponse(**response)
 
     @staticmethod
     async def fetch_by_name(
@@ -304,8 +302,8 @@ class PokemonExternalService:
                 deleted_at=pokemon.deleted_at,
             )
 
-            pokemon_specie_response = await (
-                PokemonExternalService.pokemon_external_specie_by_name(pokemon.name)
+            pokemon_specie_response = await PokemonExternalService.pokemon_external_specie(
+                name=pokemon.name
             )
 
             if pokemon_specie_response is None:

@@ -1,11 +1,11 @@
 from http import HTTPStatus
 
 
-class TestPokemonAbilityRouterList:
+class TestPokemonMoveRouterList:
     @staticmethod
-    def test_pokemon_ability_router_list_success(client, trainer, token, pokemon_ability):
+    def test_pokemon_move_router_list_success(client, trainer, token, pokemon_move):
         response = client.get(
-            '/ability',
+            '/move',
             headers={'Authorization': f'Bearer {token}'},
         )
         assert response.status_code == HTTPStatus.OK
@@ -14,14 +14,17 @@ class TestPokemonAbilityRouterList:
         assert len(data) == 1
 
 
-class TestPokemonAbilityRouterFindOne:
+class TestPokemonMoveRouterFindOne:
     @staticmethod
-    def test_pokemon_ability_router_find_one_success(client, trainer, token, pokemon_ability):
+    def test_pokemon_move_router_find_one_success(client, trainer, token, pokemon_move):
         response = client.get(
-            f'/ability/{pokemon_ability.id}',
+            f'/move/{pokemon_move.id}',
             headers={'Authorization': f'Bearer {token}'},
         )
         assert response.status_code == HTTPStatus.OK
         data = response.json()
         assert isinstance(data, dict)
-        assert data['name'] == pokemon_ability.name
+        assert data['name'] == pokemon_move.name
+        assert data['created_at'] is not None
+        assert data['updated_at'] is not None
+        assert data['deleted_at'] is None

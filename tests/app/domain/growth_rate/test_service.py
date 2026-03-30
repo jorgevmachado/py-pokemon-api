@@ -85,7 +85,7 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
         ):
             with patch.object(
                 pokemon_growth_rate_service.external_service,
-                'pokemon_external_growth_rate_by_order',
+                'pokemon_external_growth_rate',
                 return_value=external_growth_rate_data,
             ):
                 result = await pokemon_growth_rate_service.verify_pokemon_growth_rate(
@@ -114,7 +114,7 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
 
         with patch.object(
             pokemon_growth_rate_service.external_service,
-            'pokemon_external_growth_rate_by_order',
+            'pokemon_external_growth_rate',
             return_value=None,
         ):
             result = await pokemon_growth_rate_service.verify_pokemon_growth_rate(
@@ -163,7 +163,7 @@ class TestPokemonGrowthRateServiceVerifyPokemonGrowthRate:
         ) as mock_ensure_description:
             with patch.object(
                 pokemon_growth_rate_service.external_service,
-                'pokemon_external_growth_rate_by_order',
+                'pokemon_external_growth_rate',
                 return_value=external_growth_rate_data,
             ):
                 result = await pokemon_growth_rate_service.verify_pokemon_growth_rate(
