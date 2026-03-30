@@ -53,7 +53,7 @@ class PokemonService(BaseService[Repository, Pokemon]):
         self.business = PokemonBusiness()
         logger_params = LoggingParams(logger=logger, service='pokemon', operation='')
         self.pokemon_cache_service = PokemonCacheService(logger_params=logger_params)
-        super().__init__('pokemon', repository, logger_params)
+        super().__init__('pokemon', repository, logger_params, PokemonSchema)
 
     async def total(self) -> int:
         log_service_success(

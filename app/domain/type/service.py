@@ -13,6 +13,7 @@ from app.domain.pokemon.external.schemas import (
 from app.domain.pokemon.external.service import PokemonExternalService
 from app.domain.type.business import PokemonTypeBusiness
 from app.domain.type.repository import PokemonTypeRepository
+from app.domain.type.schema import PokemonTypeSchema
 from app.models.pokemon_type import PokemonType
 from app.shared.utils.number import ensure_order_number
 
@@ -26,7 +27,7 @@ class PokemonTypeService(BaseService[Repository, PokemonType]):
         logger_params = LoggingParams(
             logger=logger, service='type', operation='verify_pokemon_type'
         )
-        super().__init__('Pokemon Type', repository, logger_params)
+        super().__init__('Pokemon Type', repository, logger_params, PokemonTypeSchema)
 
     async def verify_pokemon_type(
         self, types: list[PokemonExternalBaseTypeSchemaResponse]
@@ -55,6 +56,7 @@ class PokemonTypeService(BaseService[Repository, PokemonType]):
                     pokemon_type=pokemon_type
                 )
                 result.append(db_pokemon_type_with_relations)
+            return result
         except Exception as exception:
             handle_service_exception(
                 exception,
@@ -63,13 +65,14 @@ class PokemonTypeService(BaseService[Repository, PokemonType]):
                 operation=self.logger_params.operation,
                 raise_exception=False,
             )
+            return result
         finally:
             log_service_success(
                 self.logger_params,
                 operation=self.logger_params.operation,
                 message='Verify Pokemon Type successfully',
             )
-            return result
+
 
     async def add_relations(self, pokemon_type: PokemonType) -> PokemonType:
         if not pokemon_type.weaknesses or not pokemon_type.strengths:

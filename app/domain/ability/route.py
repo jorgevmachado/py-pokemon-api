@@ -21,7 +21,7 @@ async def list_abilities(
     trainer: CurrentTrainer,
     page_filter: Annotated[PokemonAbilityFilterPage, Depends()] = None,
 ):
-    return await service.list_all(page_filter=page_filter, user_request=trainer.name)
+    return await service.list_all_cached(page_filter=page_filter, user_request=trainer.name)
 
 
 @router.get('/{param}', response_model=PokemonAbilitySchema)
@@ -30,4 +30,4 @@ async def find_one_ability(
     service: Service,
     trainer: CurrentTrainer,
 ):
-    return await service.find_one(param=param, user_request=trainer.name)
+    return await service.find_one_cached(param=param, user_request=trainer.name)

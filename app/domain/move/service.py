@@ -8,6 +8,7 @@ from app.core.logging import LoggingParams, log_service_success
 from app.core.service import BaseService
 from app.domain.move.business import PokemonMoveBusiness
 from app.domain.move.repository import PokemonMoveRepository
+from app.domain.move.schema import PokemonMoveSchema
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseMoveSchemaResponse,
 )
@@ -25,7 +26,7 @@ class PokemonMoveService(BaseService[PokemonMoveRepository, PokemonExternalServi
         logger_params = LoggingParams(
             logger=logger, service='move', operation='verify_pokemon_move'
         )
-        super().__init__('Pokemon Move', repository, logger_params)
+        super().__init__('Pokemon Move', repository, logger_params, PokemonMoveSchema)
 
     async def verify_pokemon_move(
         self, moves: list[PokemonExternalBaseMoveSchemaResponse]

@@ -1,7 +1,8 @@
 from http import HTTPStatus
-from typing import Annotated, Generic, TypeVar
+from typing import Annotated, Generic, Type, TypeVar
 
 from fastapi import HTTPException, Query
+from pydantic import BaseModel
 
 from app.core.cache.service import CacheService
 from app.core.exceptions import handle_service_exception
@@ -12,6 +13,7 @@ from app.shared.utils.string import is_valid_uuid
 
 RepositoryT = TypeVar('RepositoryT')
 ModelT = TypeVar('ModelT')
+SchemaT = TypeVar('SchemaT', bound=BaseModel)
 UpdateSchemaT = TypeVar('UpdateSchemaT')
 
 
@@ -21,6 +23,7 @@ class BaseService(Generic[RepositoryT, ModelT]):
         alias: str,
         repository: RepositoryT,
         logger_params: LoggingParams,
+        schema_class: Type[SchemaT],
         cache_prefix: str | None = None,
     ):
         prefix = cache_prefix or alias.replace(' ', '_').lower()
@@ -29,7 +32,10 @@ class BaseService(Generic[RepositoryT, ModelT]):
         self.cache_prefix = cache_prefix
         self.logger_params = logger_params
         self.cache_service = CacheService(
-            alias=alias, prefix=prefix, logger_params=logger_params
+            alias=alias,
+            prefix=prefix,
+            logger_params=logger_params,
+            schema_class=schema_class,
         )
 
     async def list_all(
@@ -58,6 +64,25 @@ class BaseService(Generic[RepositoryT, ModelT]):
                 message='List all successfully',
                 user_request=user_request,
             )
+
+    async def list_all_cached(
+        self,
+        page_filter: Annotated[FilterPage, Query()] = None,
+        user_request: str | None = None,
+        trainer_id: str | None = None,
+    ):
+        filter_page = FilterPage.build(page_filter, trainer_id=trainer_id)
+        key = self.cache_service.build_key_list(page_filter=filter_page)
+        cached = await self.cache_service.get_list(key)
+        if cached:
+            return cached
+        result = await self.list_all(
+            page_filter=page_filter, user_request=user_request, trainer_id=trainer_id
+        )
+
+        await self.cache_service.set_list(key, result)
+
+        return result
 
     async def find_one(
         self,
@@ -92,6 +117,19 @@ class BaseService(Generic[RepositoryT, ModelT]):
                 message=f'Find one {self.alias} successfully',
                 user_request=user_request,
             )
+
+    async def find_one_cached(
+        self,
+        param: str,
+        user_request: str | None = None,
+    ):
+        key = self.cache_service.build_key_one(param=param)
+        cached = await self.cache_service.get_one(key)
+        if cached:
+            return cached
+        item = await self.find_one(param, user_request)
+        await self.cache_service.set_one(key, item)
+        return item
 
     async def find_by(self, **kwargs):
         user_request = kwargs.get('user_request', None)

@@ -8,6 +8,7 @@ from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.core.service import BaseService
 from app.domain.pokedex.repository import PokedexRepository
+from app.domain.pokedex.schema import PokedexPublicSchema
 from app.domain.pokemon.service import PokemonService
 from app.domain.progression.business import PokemonProgressionBusiness
 from app.models.pokedex import Pokedex
@@ -24,7 +25,7 @@ class PokedexService(BaseService[Repository, Pokedex]):
         self.pokemon_service = pokemon_service
         self.business = PokemonProgressionBusiness()
         logger_params = LoggingParams(logger=logger, service='pokedex', operation='')
-        super().__init__('Pokedex', repository, logger_params)
+        super().__init__('Pokedex', repository, logger_params, PokedexPublicSchema)
 
     async def initialize_pokemon(
         self, pokemon: Pokemon, trainer_id: str, discovered: bool = False

@@ -16,6 +16,7 @@ from app.domain.trainer.repository import TrainerRepository
 from app.domain.trainer.schema import (
     CreateTrainerSchema,
     InitializeTrainerSchema,
+    TrainerPublicSchema,
 )
 from app.models.trainer import Trainer
 from app.shared.enums.role_enum import RoleEnum
@@ -41,7 +42,7 @@ class TrainerService(BaseService[Repository, Trainer]):
         self.captured_pokemon_service = captured_pokemon_service
         self.battle_business = PokemonBattleBusiness()
         logger_params = LoggingParams(logger=logger, service='trainer', operation='')
-        super().__init__('Trainer', repository, logger_params)
+        super().__init__('Trainer', repository, logger_params, TrainerPublicSchema)
 
     async def create(self, create_trainer: CreateTrainerSchema) -> Trainer:
         try:

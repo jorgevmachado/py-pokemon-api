@@ -8,6 +8,7 @@ from app.core.logging import LoggingParams, log_service_success
 from app.core.service import BaseService
 from app.domain.growth_rate.business import PokemonGrowthRateBusiness
 from app.domain.growth_rate.repository import PokemonGrowthRateRepository
+from app.domain.growth_rate.schema import PokemonGrowthRateSchema
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBase,
 )
@@ -25,7 +26,9 @@ class PokemonGrowthRateService(BaseService[Repository, PokemonGrowthRate]):
         logger_params = LoggingParams(
             logger=logger, service='growth_rate', operation='verify_pokemon_growth_rate'
         )
-        super().__init__('Pokemon Growth Rate', repository, logger_params)
+        super().__init__(
+            'Pokemon Growth Rate', repository, logger_params, PokemonGrowthRateSchema
+        )
 
     async def verify_pokemon_growth_rate(
         self, growth_rate: Optional[PokemonExternalBase] = None

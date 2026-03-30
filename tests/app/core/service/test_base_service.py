@@ -3,10 +3,18 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
+from pydantic import BaseModel, ConfigDict
 
 from app.core.logging import LoggingParams
 from app.core.service.base import BaseService
 from app.shared.schemas import FilterPage
+
+
+class BaseModelSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    name: str
+    value: int
 
 
 @pytest.fixture
@@ -28,7 +36,7 @@ def logger_params():
 
 @pytest.fixture
 def base_service(mock_repository, logger_params):
-    service = BaseService('test_service', mock_repository, logger_params)
+    service = BaseService('test_service', mock_repository, logger_params, BaseModelSchema)
     return service
 
 
@@ -69,6 +77,47 @@ class TestBaseServiceListAll:
             mock_log_success.assert_called_once()
 
 
+class TestBaseServiceListAllCached:
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_base_service_list_all_cached_success(base_service, mock_repository):
+        values = [
+            BaseModelSchema(id='1', name='item1', value=1),
+            BaseModelSchema(id='2', name='item2', value=2),
+        ]
+        base_service.cache_service.build_key_list = AsyncMock(return_value='test_service:list')
+        base_service.cache_service.get_list = AsyncMock(return_value=values)
+
+        result = await base_service.list_all_cached(user_request='user1')
+        assert isinstance(result, list)
+        assert len(result) == len(values)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_base_service_list_all_cached_not_cached(base_service, mock_repository):
+        values = [
+            BaseModelSchema(id='1', name='item1', value=1),
+            BaseModelSchema(id='2', name='item2', value=2),
+        ]
+        with patch(
+            'app.core.cache.redis.redis_client', new_callable=AsyncMock
+        ) as mock_redis_client:
+            mock_redis_client.setex.return_value = None
+            base_service.cache_service.build_key_list = AsyncMock(
+                return_value='test_service:list'
+            )
+            base_service.cache_service.get_list = AsyncMock(return_value=None)
+            base_service.list_all = AsyncMock(return_value=values)
+
+            with patch(
+                'app.core.cache.manager.CacheManager.set_cache', new_callable=AsyncMock
+            ) as mock_set_cache:
+                mock_set_cache.return_value = None
+                result = await base_service.list_all_cached(user_request='user2')
+                assert isinstance(result, list)
+                assert len(result) == len(values)
+
+
 class TestBaseServiceFindOne:
     @staticmethod
     @pytest.mark.asyncio
@@ -96,6 +145,53 @@ class TestBaseServiceFindOne:
             await base_service.find_one(param='not_found')
         assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
         assert exc_info.value.detail == 'test_service not found'
+
+
+class TestBaseServiceFindOneCached:
+    """Test scope for fetch_one_cached method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_base_service_find_one_cached_success(base_service, mock_repository):
+        """Should return complete pokemon when found"""
+        item = BaseModelSchema(id='1', name='item1', value=1)
+        mock_repository.find_by.return_value = item
+        base_service.cache_service.build_key_one = AsyncMock(
+            return_value=f'test_service:{item.name}'
+        )
+        base_service.cache_service.get_one = AsyncMock(return_value=item)
+        result = await base_service.find_one_cached(param=item.name, user_request='user1')
+        assert result is not None
+        assert result.id == item.id
+        assert result.name == item.name
+        assert result.value == item.value
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_base_service_find_one_cached_not_cached(base_service, mock_repository):
+        item = BaseModelSchema(id='1', name='item1', value=1)
+        with patch(
+            'app.core.cache.redis.redis_client', new_callable=AsyncMock
+        ) as mock_redis_client:
+            mock_redis_client.setex.return_value = None
+            base_service.cache_service.build_key_one = AsyncMock(
+                return_value=f'test_service:{item.name}'
+            )
+            base_service.cache_service.get_one = AsyncMock(return_value=None)
+
+            base_service.find_one = AsyncMock(return_value=item)
+
+            with patch(
+                'app.core.cache.manager.CacheManager.set_cache', new_callable=AsyncMock
+            ) as mock_set_cache:
+                mock_set_cache.return_value = None
+                result = await base_service.find_one_cached(
+                    param=item.name, user_request='user2'
+                )
+                assert result is not None
+                assert result.id == item.id
+                assert result.name == item.name
+                assert result.value == item.value
 
 
 class TestBaseServiceFindBy:

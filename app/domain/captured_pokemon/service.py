@@ -10,6 +10,7 @@ from app.core.logging import LoggingParams, log_service_success
 from app.core.service import BaseService
 from app.domain.captured_pokemon.repository import CapturedPokemonRepository
 from app.domain.captured_pokemon.schema import (
+    CapturedPokemonPublicSchema,
     CapturePokemonHealSchema,
     CapturePokemonSchema,
 )
@@ -31,7 +32,9 @@ class CapturedPokemonService(BaseService[Repository, CapturedPokemon]):
         self.business = PokemonProgressionBusiness()
         self.pokemon_service = pokemon_service
         logger_params = LoggingParams(logger=logger, service='captured_pokemon', operation='')
-        super().__init__('Captured Pokemon', repository, logger_params)
+        super().__init__(
+            'Captured Pokemon', repository, logger_params, CapturedPokemonPublicSchema
+        )
 
     async def create(
         self,

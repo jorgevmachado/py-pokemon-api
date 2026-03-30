@@ -7,6 +7,7 @@ from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.core.service import BaseService
 from app.domain.ability.repository import PokemonAbilityRepository
+from app.domain.ability.schema import PokemonAbilitySchema
 from app.domain.pokemon.external.schemas import (
     PokemonExternalBaseAbilitySchemaResponse,
 )
@@ -22,7 +23,7 @@ class PokemonAbilityService(BaseService[Repository, PokemonAbility]):
         logger_params = LoggingParams(
             logger=logger, service='ability', operation='verify_pokemon_abilities'
         )
-        super().__init__('ability', repository, logger_params)
+        super().__init__('ability', repository, logger_params, PokemonAbilitySchema)
 
     async def verify_pokemon_abilities(
         self, abilities: list[PokemonExternalBaseAbilitySchemaResponse]
