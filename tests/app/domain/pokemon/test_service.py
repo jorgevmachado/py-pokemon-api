@@ -521,6 +521,51 @@ class TestPokemonServiceFetchOne:
         assert result.status == StatusEnum.COMPLETE
         pokemon_service.complete_pokemon_data.assert_called_once()
 
+class TestPokemonServiceFetchOneCached:
+    """Test scope for fetch_one_cached method"""
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_service_fetch_one_cached_success(
+            pokemon,
+            pokemon_service
+    ):
+        """Should return complete pokemon when found"""
+        pokemon_service.pokemon_cache_service.build_key_one = AsyncMock(
+            return_value=f'pokemon:{pokemon.name}'
+        )
+        pokemon_service.pokemon_cache_service.get_one = AsyncMock(return_value=pokemon)
+        result = await pokemon_service.fetch_one_cached(name=pokemon.name,user_request='guy')
+        assert result is not None
+        assert result.name == pokemon.name
+        assert result.status == StatusEnum.COMPLETE
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_service_fetch_one_not_cached(
+            pokemon,
+            pokemon_service
+    ):
+        """Should return complete pokemon when found"""
+        with patch(
+            'app.core.cache.redis.redis_client', new_callable=AsyncMock
+        ) as mock_redis_client:
+            mock_redis_client.setex.return_value = None
+            pokemon_service.pokemon_cache_service.build_key_one = AsyncMock(
+                return_value=f'pokemon:{pokemon.name}'
+            )
+            pokemon_service.pokemon_cache_service.get_one = AsyncMock(return_value=None)
+
+            pokemon_service.fetch_one = AsyncMock(return_value=pokemon)
+
+            with patch(
+                'app.core.cache.manager.CacheManager.set_cache', new_callable=AsyncMock
+            ) as mock_set_cache:
+                mock_set_cache.return_value = None
+                result = await pokemon_service.fetch_one_cached(name=pokemon.name,user_request='rubens')
+                assert result is not None
+                assert result.name == pokemon.name
+                assert result.status == StatusEnum.COMPLETE
+
 
 class TestPokemonServiceValidateEntity:
     """Test scope for validate_entity method"""

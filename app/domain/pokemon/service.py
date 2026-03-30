@@ -199,11 +199,18 @@ class PokemonService(BaseService[Repository, Pokemon]):
     async def fetch_one(self, name: str, user_request: str | None = None) -> Pokemon | None:
         log_service_success(
             self.logger_params,
-            operation='initialize_database',
+            operation='fetch_one',
             message='Fetch One Pokémon successfully',
             user_request=user_request,
         )
         return await self.validate_entity(name)
+
+    async def fetch_one_cached(self, name: str, user_request: str | None = None):
+        key = self.pokemon_cache_service.build_key_one(name=name)
+        cached = await self.pokemon_cache_service.get_one(key)
+        if cached and cached.status == StatusEnum.COMPLETE:
+            return cached
+        return await self.fetch_one(name=name, user_request=user_request)
 
     async def validate_entity(
         self,
