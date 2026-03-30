@@ -486,9 +486,14 @@ class TestPokemonRouterDetail:
     @staticmethod
     def test_detail_pokemon_success(client, trainer, token, session, pokemon):
         """Should return pokemon detail found"""
-        response = client.get(
-            f'/pokemon/{pokemon.name}',
-            headers={'Authorization': f'Bearer {token}'},
-        )
-        assert response.status_code == HTTPStatus.OK
-        assert response.json()['name'] == pokemon.name
+        with patch(
+            'app.domain.pokemon.service.PokemonService.fetch_one_cached',
+            new_callable=AsyncMock,
+        ) as mock_fetch:
+            mock_fetch.return_value = pokemon
+            response = client.get(
+                f'/pokemon/{pokemon.name}',
+                headers={'Authorization': f'Bearer {token}'},
+            )
+            assert response.status_code == HTTPStatus.OK
+            assert response.json()['name'] == pokemon.name

@@ -210,7 +210,9 @@ class PokemonService(BaseService[Repository, Pokemon]):
         cached = await self.pokemon_cache_service.get_one(key)
         if cached and cached.status == StatusEnum.COMPLETE:
             return cached
-        return await self.fetch_one(name=name, user_request=user_request)
+        pokemon = await self.fetch_one(name=name, user_request=user_request)
+        await self.pokemon_cache_service.set_one(key, pokemon)
+        return pokemon
 
     async def validate_entity(
         self,

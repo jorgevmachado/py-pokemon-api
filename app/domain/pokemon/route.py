@@ -28,5 +28,5 @@ async def find_one_pokemon(
     service: Service,
     trainer: CurrentTrainer,
 ):
-    pokemon = await service.fetch_one(name=pokemon_name, user_request=trainer.name)
+    pokemon = await service.fetch_one_cached(name=pokemon_name, user_request=trainer.name)
     return PokemonSchema.model_validate(pokemon)

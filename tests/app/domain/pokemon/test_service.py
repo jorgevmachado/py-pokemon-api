@@ -46,12 +46,18 @@ class TestPokemonServiceListSync:
     @staticmethod
     @pytest.mark.asyncio
     async def test_pokemon_service_list_sync_not_cached_total_0(pokemon, pokemon_service):
-        pokemon_service.pokemon_cache_service.get_meta = AsyncMock(return_value=None)
-        pokemon_service.repository.total = AsyncMock(return_value=0)
-        pokemon_service.external_service.pokemon_external_total = AsyncMock(return_value=1350)
-        pokemon_service.initialize_database = AsyncMock(return_value=[pokemon])
-        result = await pokemon_service.list_sync()
-        assert result
+        with patch(
+                'app.core.cache.manager.CacheManager.set_cache', new_callable=AsyncMock
+        ) as mock_set_cache:
+            mock_set_cache.return_value = None
+            pokemon_service.pokemon_cache_service.get_meta = AsyncMock(return_value=None)
+            pokemon_service.repository.total = AsyncMock(return_value=0)
+            pokemon_service.external_service.pokemon_external_total = AsyncMock(
+                return_value=1350
+            )
+            pokemon_service.initialize_database = AsyncMock(return_value=[pokemon])
+            result = await pokemon_service.list_sync()
+            assert result
 
     @staticmethod
     @pytest.mark.asyncio
@@ -521,30 +527,26 @@ class TestPokemonServiceFetchOne:
         assert result.status == StatusEnum.COMPLETE
         pokemon_service.complete_pokemon_data.assert_called_once()
 
+
 class TestPokemonServiceFetchOneCached:
     """Test scope for fetch_one_cached method"""
+
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokemon_service_fetch_one_cached_success(
-            pokemon,
-            pokemon_service
-    ):
+    async def test_pokemon_service_fetch_one_cached_success(pokemon, pokemon_service):
         """Should return complete pokemon when found"""
         pokemon_service.pokemon_cache_service.build_key_one = AsyncMock(
             return_value=f'pokemon:{pokemon.name}'
         )
         pokemon_service.pokemon_cache_service.get_one = AsyncMock(return_value=pokemon)
-        result = await pokemon_service.fetch_one_cached(name=pokemon.name,user_request='guy')
+        result = await pokemon_service.fetch_one_cached(name=pokemon.name, user_request='guy')
         assert result is not None
         assert result.name == pokemon.name
         assert result.status == StatusEnum.COMPLETE
 
     @staticmethod
     @pytest.mark.asyncio
-    async def test_pokemon_service_fetch_one_not_cached(
-            pokemon,
-            pokemon_service
-    ):
+    async def test_pokemon_service_fetch_one_not_cached(pokemon, pokemon_service):
         """Should return complete pokemon when found"""
         with patch(
             'app.core.cache.redis.redis_client', new_callable=AsyncMock
@@ -561,7 +563,9 @@ class TestPokemonServiceFetchOneCached:
                 'app.core.cache.manager.CacheManager.set_cache', new_callable=AsyncMock
             ) as mock_set_cache:
                 mock_set_cache.return_value = None
-                result = await pokemon_service.fetch_one_cached(name=pokemon.name,user_request='rubens')
+                result = await pokemon_service.fetch_one_cached(
+                    name=pokemon.name, user_request='rubens'
+                )
                 assert result is not None
                 assert result.name == pokemon.name
                 assert result.status == StatusEnum.COMPLETE

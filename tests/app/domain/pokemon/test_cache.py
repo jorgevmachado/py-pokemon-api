@@ -228,6 +228,7 @@ class TestPokemonCacheServiceBuildKeyOne:
         key = pokemon_cache_service.build_key_one('pikachu')
         assert key == 'pokemon:pikachu'
 
+
 class TestPokemonCacheServiceSetOne:
     @staticmethod
     @pytest.mark.asyncio
@@ -247,11 +248,20 @@ class TestPokemonCacheServiceSetOne:
         result = await pokemon_cache_service.set_one(key, pokemon)
         assert result is None
 
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokemon_cache_service_set_one_when_not_received_data(pokemon_cache_service):
+        key = 'pokemon:pikachu'
+        pokemon_cache_service.cache.set_cache = AsyncMock(return_value=None)
+        result = await pokemon_cache_service.set_one(key, None)
+        assert result is None
+
+
 class TestPokemonCacheServiceGetOne:
     @staticmethod
     @pytest.mark.asyncio
     async def test_pokemon_cache_service_get_one_returns_none_when_cache_misses(
-            pokemon_cache_service
+        pokemon_cache_service,
     ):
         key = 'pokemon:pikachu'
         result = await pokemon_cache_service.get_one(key)

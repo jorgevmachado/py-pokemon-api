@@ -1,10 +1,10 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import Query
 from fastapi_pagination import LimitOffsetPage
 
 from app.core.cache.manager import CacheManager
-from app.core.logging import LoggingParams, log_service_success
+from app.core.logging import LoggingParams, log_service_exception, log_service_success
 from app.domain.pokemon.business import PokemonBusiness
 from app.domain.pokemon.schema import PokemonFilterPage, PokemonSchema
 
@@ -127,9 +127,16 @@ class PokemonCacheService:
             operation='cache_build_key_one',
             message='The Pokémon cache key was successfully created.',
         )
-        return self.cache.build_key(self.prefix,  name)
+        return self.cache.build_key(self.prefix, name)
 
-    async def set_one(self, key: str, pokemon: PokemonSchema) -> None:
+    async def set_one(self, key: str, pokemon: Optional[PokemonSchema] = None) -> None:
+        if not pokemon:
+            log_service_exception(
+                self.logger_params,
+                operation='cache_set_one',
+                message='Pokémon not provided for caching',
+            )
+            return None
         pokemon_serialized = PokemonSchema.model_validate(pokemon).serialize()
         await self.cache.set_cache(key, pokemon_serialized)
         log_service_success(
