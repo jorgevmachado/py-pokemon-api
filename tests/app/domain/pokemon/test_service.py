@@ -47,7 +47,7 @@ class TestPokemonServiceListSync:
     @pytest.mark.asyncio
     async def test_pokemon_service_list_sync_not_cached_total_0(pokemon, pokemon_service):
         with patch(
-                'app.core.cache.manager.CacheManager.set_cache', new_callable=AsyncMock
+            'app.core.cache.manager.CacheManager.set_cache', new_callable=AsyncMock
         ) as mock_set_cache:
             mock_set_cache.return_value = None
             pokemon_service.pokemon_cache_service.get_meta = AsyncMock(return_value=None)

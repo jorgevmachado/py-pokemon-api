@@ -20,14 +20,12 @@ logger = logging.getLogger(__name__)
 
 
 class PokemonMoveService(BaseService[PokemonMoveRepository, PokemonExternalService]):
-    alias = 'Pokemon Move'
-
     def __init__(self, repository: Repository):
         self.external_service = PokemonExternalService()
         logger_params = LoggingParams(
             logger=logger, service='move', operation='verify_pokemon_move'
         )
-        super().__init__(repository, logger_params)
+        super().__init__('Pokemon Move', repository, logger_params)
 
     async def verify_pokemon_move(
         self, moves: list[PokemonExternalBaseMoveSchemaResponse]

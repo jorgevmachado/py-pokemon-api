@@ -28,8 +28,7 @@ def logger_params():
 
 @pytest.fixture
 def base_service(mock_repository, logger_params):
-    service = BaseService(mock_repository, logger_params)
-    service.alias = 'test_service'
+    service = BaseService('test_service', mock_repository, logger_params)
     return service
 
 

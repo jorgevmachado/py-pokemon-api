@@ -27,13 +27,11 @@ logger = logging.getLogger(__name__)
 
 
 class CapturedPokemonService(BaseService[Repository, CapturedPokemon]):
-    alias = 'Captured Pokemon'
-
     def __init__(self, repository: Repository, pokemon_service: PokemonService):
         self.business = PokemonProgressionBusiness()
         self.pokemon_service = pokemon_service
         logger_params = LoggingParams(logger=logger, service='captured_pokemon', operation='')
-        super().__init__(repository, logger_params)
+        super().__init__('Captured Pokemon', repository, logger_params)
 
     async def create(
         self,

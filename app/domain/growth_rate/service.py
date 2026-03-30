@@ -20,14 +20,12 @@ logger = logging.getLogger(__name__)
 
 
 class PokemonGrowthRateService(BaseService[Repository, PokemonGrowthRate]):
-    alias = 'Pokemon Growth Rate'
-
     def __init__(self, repository: Repository):
         self.external_service = PokemonExternalService()
         logger_params = LoggingParams(
             logger=logger, service='growth_rate', operation='verify_pokemon_growth_rate'
         )
-        super().__init__(repository, logger_params)
+        super().__init__('Pokemon Growth Rate', repository, logger_params)
 
     async def verify_pokemon_growth_rate(
         self, growth_rate: Optional[PokemonExternalBase] = None

@@ -20,13 +20,11 @@ logger = logging.getLogger(__name__)
 
 
 class PokedexService(BaseService[Repository, Pokedex]):
-    alias = 'Pokedex'
-
     def __init__(self, repository: Repository, pokemon_service: PokemonService):
         self.pokemon_service = pokemon_service
         self.business = PokemonProgressionBusiness()
         logger_params = LoggingParams(logger=logger, service='pokedex', operation='')
-        super().__init__(repository, logger_params)
+        super().__init__('Pokedex', repository, logger_params)
 
     async def initialize_pokemon(
         self, pokemon: Pokemon, trainer_id: str, discovered: bool = False

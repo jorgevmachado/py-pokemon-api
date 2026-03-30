@@ -21,14 +21,12 @@ logger = logging.getLogger(__name__)
 
 
 class PokemonTypeService(BaseService[Repository, PokemonType]):
-    alias = 'Pokemon Type'
-
     def __init__(self, repository: Repository):
         self.external_service = PokemonExternalService()
         logger_params = LoggingParams(
             logger=logger, service='type', operation='verify_pokemon_type'
         )
-        super().__init__(repository, logger_params)
+        super().__init__('Pokemon Type', repository, logger_params)
 
     async def verify_pokemon_type(
         self, types: list[PokemonExternalBaseTypeSchemaResponse]

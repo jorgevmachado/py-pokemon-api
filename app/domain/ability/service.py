@@ -18,13 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 class PokemonAbilityService(BaseService[Repository, PokemonAbility]):
-    alias = 'ability'
-
     def __init__(self, repository: Repository):
         logger_params = LoggingParams(
             logger=logger, service='ability', operation='verify_pokemon_abilities'
         )
-        super().__init__(repository, logger_params)
+        super().__init__('ability', repository, logger_params)
 
     async def verify_pokemon_abilities(
         self, abilities: list[PokemonExternalBaseAbilitySchemaResponse]

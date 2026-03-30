@@ -3,6 +3,7 @@ from typing import Annotated, Generic, TypeVar
 
 from fastapi import HTTPException, Query
 
+from app.core.cache.service import CacheService
 from app.core.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.shared.schemas import FilterPage
@@ -15,11 +16,21 @@ UpdateSchemaT = TypeVar('UpdateSchemaT')
 
 
 class BaseService(Generic[RepositoryT, ModelT]):
-    alias: str
-
-    def __init__(self, repository: RepositoryT, logger_params: LoggingParams):
+    def __init__(
+        self,
+        alias: str,
+        repository: RepositoryT,
+        logger_params: LoggingParams,
+        cache_prefix: str | None = None,
+    ):
+        prefix = cache_prefix or alias.replace(' ', '_').lower()
+        self.alias = alias
         self.repository = repository
+        self.cache_prefix = cache_prefix
         self.logger_params = logger_params
+        self.cache_service = CacheService(
+            alias=alias, prefix=prefix, logger_params=logger_params
+        )
 
     async def list_all(
         self,
