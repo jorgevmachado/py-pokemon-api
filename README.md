@@ -154,6 +154,22 @@ Below is a summary of the main API routes for each service, with a brief explana
 ### Battle Service (Need authentication)
 - `POST /battle/` — Create a new battle
 
+### Pokémon Abilities (Need authentication)
+- `GET /ability/` — List all Pokémon abilities.
+- `GET /ability/{id}` — Get details of a specific Pokémon ability.
+
+### Pokémon Growth Rate (Need authentication)
+- `GET /growth-rate/` — List all Pokémon growth rates.
+- `GET /growth-rate/{id}` — Get details of a specific Pokémon growth rate.
+
+### Pokémon Move (Need authentication)
+- `GET /move/` — List all Pokémon move.
+- `GET /move/{id}` — Get details of a specific Pokémon move.
+
+### Pokémon Type (Need authentication)
+- `GET /type/` — List all Pokémon type.
+- `GET /type/{id}` — Get details of a specific Pokémon type.
+
 > For a complete list and details of all endpoints, see the interactive API docs at `/docs` after running the project.
 
 ### 📸 API Preview

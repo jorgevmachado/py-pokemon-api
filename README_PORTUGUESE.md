@@ -148,6 +148,22 @@ Abaixo está um resumo das principais rotas da API para cada serviço, com uma b
 ### Serviço de Batalha (Necessita autenticação)
 - `POST /battle/` — Cria uma nova batalha
 
+### Serviço de habilidades Pokémon (Necessita autenticação)
+- `GET /ability/` — Lista todas as habilidades dos pokémons.
+- `GET /ability/{id}` — Detalha uma habilidade Pokémon especifica.
+
+### Serviço de taxa de crescimento de Pokémon (Necessita autenticação)
+- `GET /growth-rate/` — Lista todas as taxas de crescimento de um Pokémon.
+- `GET /growth-rate/{id}` — Detalha uma taxa de crescimento de um pokémon especifica.
+
+### Serviço de movimentos de Pokémon (Necessita autenticação)
+- `GET /move/` — Lista todos os movimentos de um Pokémon.
+- `GET /move/{id}` — Detalha um movimento de um Pokémon especifico.
+
+### Serviço de tipos de Pokémon (Necessita autenticação)
+- `GET /type/` — Lista todos os tipos de Pokémon.
+- `GET /type/{id}` — Detalha um tipo de Pokémon especifico.
+
 > Para a lista completa e detalhes de todos os endpoints, consulte a documentação interativa da API em `/docs` após rodar o projeto.
 
 ### 📸 Visualização da API
