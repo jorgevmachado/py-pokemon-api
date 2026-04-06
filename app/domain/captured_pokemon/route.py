@@ -1,8 +1,8 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from fastapi_pagination import LimitOffsetPage
 
+from app.core.pagination import CustomLimitOffsetPage
 from app.core.security import get_current_user
 from app.domain.captured_pokemon.schema import (
     CapturedPokemonPublicSchema,
@@ -20,7 +20,7 @@ CurrentTrainer = Annotated[Trainer, Depends(get_current_user)]
 
 @router.get(
     '/',
-    response_model=LimitOffsetPage[CapturedPokemonPublicSchema]
+    response_model=CustomLimitOffsetPage[CapturedPokemonPublicSchema]
     | list[CapturedPokemonPublicSchema],
 )
 async def get_captured_pokemons(

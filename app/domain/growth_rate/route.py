@@ -1,8 +1,8 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from fastapi_pagination import LimitOffsetPage
 
+from app.core.pagination import CustomLimitOffsetPage
 from app.core.security import get_current_user
 from app.domain.growth_rate.schema import PokemonGrowthRateSchema
 from app.domain.growth_rate.service import PokemonGrowthRateService
@@ -16,7 +16,8 @@ CurrentTrainer = Annotated[Trainer, Depends(get_current_user)]
 
 @router.get(
     '/',
-    response_model=LimitOffsetPage[PokemonGrowthRateSchema] | list[PokemonGrowthRateSchema],
+    response_model=CustomLimitOffsetPage[PokemonGrowthRateSchema]
+    | list[PokemonGrowthRateSchema],
 )
 async def list_growth_rates(
     service: Service, page_filter: Annotated[FilterPage, Depends()], trainer: CurrentTrainer

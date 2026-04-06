@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi_pagination import LimitOffsetPage, LimitOffsetParams
 from sqlalchemy import inspect
 
+from app.core.pagination import is_paginate, limit_paginate
 from app.domain.pokemon.external.schemas.evolution import (
     PokemonExternalEvolutionChainEvolvesToSchemaResponse,
     PokemonExternalEvolutionChainSchemaResponse,
@@ -10,7 +11,6 @@ from app.domain.pokemon.external.schemas.evolution import (
 from app.domain.pokemon.schema import PokemonFilterPage, PokemonSchema
 from app.models.pokemon import Pokemon
 from app.shared.enums.status_enum import StatusEnum
-from app.shared.utils.pagination import is_paginate, limit_paginate
 
 
 class PokemonBusiness:

@@ -1,8 +1,8 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from fastapi_pagination import LimitOffsetPage
 
+from app.core.pagination import CustomLimitOffsetPage
 from app.core.security import get_current_user
 from app.domain.ability.schema import PokemonAbilityFilterPage, PokemonAbilitySchema
 from app.domain.ability.service import PokemonAbilityService
@@ -14,7 +14,8 @@ CurrentTrainer = Annotated[Trainer, Depends(get_current_user)]
 
 
 @router.get(
-    '/', response_model=LimitOffsetPage[PokemonAbilitySchema] | list[PokemonAbilitySchema]
+    '/',
+    response_model=CustomLimitOffsetPage[PokemonAbilitySchema] | list[PokemonAbilitySchema],
 )
 async def list_abilities(
     service: Service,

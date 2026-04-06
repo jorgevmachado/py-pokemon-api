@@ -7,8 +7,8 @@ from pydantic import BaseModel
 from app.core.cache.service import CacheService
 from app.core.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
+from app.core.pagination.pagination import exception_pagination
 from app.shared.schemas import FilterPage
-from app.shared.utils.pagination import exception_pagination
 from app.shared.utils.string import is_valid_uuid
 
 RepositoryT = TypeVar('RepositoryT')

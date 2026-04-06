@@ -114,7 +114,9 @@ class TestPokemonServiceList:
 
         assert hasattr(result, 'items')
         assert len(result.items) == 0
-        assert result.total == 0
+        assert hasattr(result, 'meta')
+        meta = result.meta
+        assert meta.total == 0
 
 
 class TestPokemonServiceListAllCached:

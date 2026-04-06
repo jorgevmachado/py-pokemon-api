@@ -2,6 +2,7 @@ import types
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from fastapi_pagination import LimitOffsetPage, LimitOffsetParams
 from sqlalchemy.orm import selectinload
 
 from app.core.repository import BaseRepository
@@ -102,7 +103,11 @@ class TestBaseRepositoryListAll:
     @pytest.mark.asyncio
     async def test_list_all_uses_paginate_when_page_filter_is_valid():
         result_limit = 25
-        expected_page = {'items': ['pikachu'], 'total': 1}
+        params = LimitOffsetParams(
+            limit=1,
+            offset=0,
+        )
+        expected_page = LimitOffsetPage.create(items=['pikachu'], total=1, params=params)
         mock_session = AsyncMock()
         repository = PokemonBaseRepository(session=mock_session)
         page_filter = FilterPage(offset=0, limit=50)
@@ -117,7 +122,7 @@ class TestBaseRepositoryListAll:
             paginate_mock.return_value = expected_page
             result = await repository.list_all(page_filter=page_filter)
 
-        assert result == expected_page
+        assert len(result.items) == 1
         mock_session.scalars.assert_not_called()
         paginate_mock.assert_awaited_once()
 

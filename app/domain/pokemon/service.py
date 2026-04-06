@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, Query
 
 from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
+from app.core.pagination import exception_pagination
 from app.core.service import BaseService
 from app.domain.ability.service import PokemonAbilityService
 from app.domain.growth_rate.service import PokemonGrowthRateService
@@ -24,7 +25,6 @@ from app.domain.pokemon.schema import (
 from app.domain.type.service import PokemonTypeService
 from app.models.pokemon import Pokemon
 from app.shared.enums.status_enum import StatusEnum
-from app.shared.utils.pagination import exception_pagination
 
 POKEMON_TOTAL_LIMIT = 1302
 Repository = Annotated[PokemonRepository, Depends()]

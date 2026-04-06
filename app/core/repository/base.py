@@ -7,8 +7,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
+from app.core.pagination import CustomLimitOffsetPage, is_paginate, limit_paginate
 from app.shared.schemas import FilterPage
-from app.shared.utils.pagination import is_paginate, limit_paginate
 
 ModelT = TypeVar('ModelT')
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -67,7 +67,10 @@ class BaseRepository(Generic[ModelT]):
                 limit=limit_paginate(page_filter.limit),
                 offset=page_filter.offset,
             )
-            return await paginate(self.session, query, params=params)
+            result_paginate = await paginate(self.session, query, params=params)
+            return CustomLimitOffsetPage[ModelT].create(
+                items=result_paginate.items, total=result_paginate.total, params=params
+            )
         result = await self.session.scalars(query)
         return result.all()
 

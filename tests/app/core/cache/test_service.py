@@ -147,11 +147,7 @@ class TestCacheServiceSetList:
         key = f'{cache_service.prefix}:list'
 
         cache_service.cache.set_cache = AsyncMock(return_value=None)
-        result = await cache_service.set_list(
-            key,
-            [MOCK_ITEM],
-            400
-        )
+        result = await cache_service.set_list(key, [MOCK_ITEM], 400)
         assert result is None
 
     @staticmethod

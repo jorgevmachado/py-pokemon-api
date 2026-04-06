@@ -66,13 +66,12 @@ class TestBaseServiceListAll:
         ):
             result = await base_service.list_all(page_filter=filter_page, user_request='user2')
             assert hasattr(result, 'items')
-            assert hasattr(result, 'total')
-            assert hasattr(result, 'limit')
-            assert hasattr(result, 'offset')
-            assert result.total == 0
+            assert hasattr(result, 'meta')
+            meta = result.meta
+            assert meta.total == 0
             assert result.items == []
-            assert result.limit == filter_page.limit
-            assert result.offset == filter_page.offset
+            assert meta.limit == filter_page.limit
+            assert meta.offset == filter_page.offset
             mock_handle_exc.assert_called_once()
             mock_log_success.assert_called_once()
 

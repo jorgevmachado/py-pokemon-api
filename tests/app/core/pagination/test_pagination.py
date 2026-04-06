@@ -3,8 +3,8 @@ from unittest.mock import patch
 import pytest
 from pydantic import ValidationError
 
+from app.core.pagination import exception_pagination, is_paginate, limit_paginate
 from app.shared.schemas import FilterPage
-from app.shared.utils.pagination import exception_pagination, is_paginate, limit_paginate
 
 
 class TestPaginationLimitPaginate:
@@ -54,8 +54,9 @@ class TestPaginationExceptionPagination:
         """Should return paginated page when FilterPage is valid"""
         result = exception_pagination(FilterPage(offset=0, limit=10))
         assert hasattr(result, 'items')
+        assert hasattr(result, 'meta')
         assert len(result.items) == 0
-        assert result.total == 0
+        assert result.meta.total == 0
 
     @staticmethod
     def test_exception_pagination_with_exception_invalid_offset():
@@ -79,9 +80,10 @@ class TestPaginationExceptionPagination:
         assert hasattr(result, 'items')
         assert isinstance(result.items, list)
         assert len(result.items) == 0
-        assert result.total == 0
-        assert result.offset == offset
-        assert result.limit == limit
+        assert hasattr(result, 'meta')
+        assert result.meta.total == 0
+        assert result.meta.offset == offset
+        assert result.meta.limit == limit
 
     @staticmethod
     def test_exception_pagination_with_max_limit():
@@ -91,8 +93,9 @@ class TestPaginationExceptionPagination:
 
         assert hasattr(result, 'items')
         assert len(result.items) == 0
-        assert result.total == 0
-        assert result.limit == limit
+        assert hasattr(result, 'meta')
+        assert result.meta.total == 0
+        assert result.meta.limit == limit
 
     @staticmethod
     def test_exception_pagination_only_offset_no_limit():
@@ -114,7 +117,7 @@ class TestPaginationExceptionPagination:
     def test_exception_pagination_catch_exception():
         """Should catch exception and return empty list when LimitOffsetParams raises error"""
         with patch(
-            'app.shared.utils.pagination.is_paginate', side_effect=Exception('Test error')
+            'app.core.pagination.pagination.is_paginate', side_effect=Exception('Test error')
         ):
             result = exception_pagination(FilterPage(offset=0, limit=10))
 
@@ -125,17 +128,14 @@ class TestPaginationExceptionPagination:
     @staticmethod
     def test_exception_pagination_catch_exception_limit_offset_params():
         """Should catch exception when LimitOffsetParams creation fails"""
-        # Mock is_paginate to return True so we enter the try block
-        # Then mock LimitOffsetParams to raise an exception
         with (
-            patch('app.shared.utils.pagination.is_paginate', return_value=True),
+            patch('app.core.pagination.pagination.is_paginate', return_value=True),
             patch(
-                'app.shared.utils.pagination.LimitOffsetParams',
+                'app.core.pagination.pagination.LimitOffsetParams',
                 side_effect=ValueError('Invalid params'),
             ),
         ):
             result = exception_pagination(FilterPage(offset=0, limit=10))
 
-            # Should return empty list due to exception handling
             assert result == []
             assert isinstance(result, list)
