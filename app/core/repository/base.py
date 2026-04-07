@@ -1,13 +1,13 @@
 from typing import Annotated, Any, Generic, TypeVar
 
 from fastapi import Depends, Query
-from fastapi_pagination import LimitOffsetParams
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
-from app.core.pagination import CustomLimitOffsetPage, is_paginate, limit_paginate
+from app.core.pagination import CustomLimitOffsetPage, is_paginate
+from app.core.pagination.pagination import get_limit_offset_params
 from app.shared.schemas import FilterPage
 
 ModelT = TypeVar('ModelT')
@@ -53,6 +53,7 @@ class BaseRepository(Generic[ModelT]):
 
             raw_filters.pop('offset', None)
             raw_filters.pop('limit', None)
+            raw_filters.pop('page', None)
 
             valid_columns = set(self.model.__mapper__.columns.keys())
             filters = {
@@ -63,10 +64,8 @@ class BaseRepository(Generic[ModelT]):
                 query = query.filter_by(**filters)
 
         if is_paginate(page_filter):
-            params = LimitOffsetParams(
-                limit=limit_paginate(page_filter.limit),
-                offset=page_filter.offset,
-            )
+            params = get_limit_offset_params(page_filter)
+            print('params => ', params)
             result_paginate = await paginate(self.session, query, params=params)
             return CustomLimitOffsetPage[ModelT].create(
                 items=result_paginate.items, total=result_paginate.total, params=params

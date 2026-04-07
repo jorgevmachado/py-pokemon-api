@@ -13,6 +13,7 @@ TFilterPage = TypeVar('TFilterPage', bound='FilterPage')
 class FilterPage(BaseModel):
     model_config = ConfigDict()
 
+    page: Optional[int] = Field(None, ge=0)
     offset: Optional[int] = Field(None, ge=0)
     limit: Optional[int] = Field(None, ge=1)
 

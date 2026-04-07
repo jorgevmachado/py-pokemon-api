@@ -1,9 +1,11 @@
 from unittest.mock import patch
 
 import pytest
+from fastapi_pagination import LimitOffsetParams
 from pydantic import ValidationError
 
 from app.core.pagination import exception_pagination, is_paginate, limit_paginate
+from app.core.pagination.pagination import calculate_offset, get_limit_offset_params
 from app.shared.schemas import FilterPage
 
 
@@ -139,3 +141,54 @@ class TestPaginationExceptionPagination:
 
             assert result == []
             assert isinstance(result, list)
+
+
+class TestPaginationCalculateOffset:
+    @staticmethod
+    def test_calculate_offset_without_page_filter():
+        limit = 10
+        offset = 0
+        page = None
+        result = calculate_offset(limit, offset, page)
+        assert result == offset
+
+    @staticmethod
+    def test_calculate_offset_with_valid_page_filter():
+        result_offset = 10
+        limit = 10
+        offset = 0
+        page = 2
+        result = calculate_offset(limit, offset, page)
+        assert result == result_offset
+
+    @staticmethod
+    def test_calculate_offset_with_invalid_page_filter():
+        result_offset = 1
+        limit = 10
+        offset = 0
+        page = 0
+        result = calculate_offset(limit, offset, page)
+        assert result == result_offset
+
+    @staticmethod
+    def test_calculate_offset_with_offset_none():
+        result_offset = 0
+        limit = 10
+        offset = None
+        page = None
+        result = calculate_offset(limit, offset, page)
+        assert result == result_offset
+
+
+class TestPaginationGetLimitOffsetParams:
+    @staticmethod
+    def test_pagination_get_limit_offset_params_page_filter_is_none():
+        result_params = LimitOffsetParams(limit=100, offset=0)
+        result = get_limit_offset_params(page_filter=None)
+        assert result == result_params
+
+    @staticmethod
+    def test_pagination_get_limit_offset_page_params_with_page_filter():
+        result_params = LimitOffsetParams(limit=10, offset=10)
+        result = get_limit_offset_params(page_filter=FilterPage(offset=10, limit=10))
+        assert result == result_params

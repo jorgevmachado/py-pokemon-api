@@ -20,7 +20,8 @@ def limit_paginate(limit: Optional[int] = None, max_limit: int = 100) -> int:
 def is_paginate(page_filter: Annotated[FilterPage, Query()] = None) -> bool:
     if not page_filter:
         return False
-    has_offset = page_filter.offset is not None
+    has_page = page_filter.page is not None
+    has_offset = page_filter.offset is not None or has_page
     has_limit = page_filter.limit is not None
     return has_offset and has_limit
 
@@ -43,3 +44,24 @@ def exception_pagination(page_filter: Annotated[FilterPage, Query()] = None):
         )
         return []
     return []
+
+
+def calculate_offset(
+    limit: int, offset: Optional[int] = None, page: Optional[int] = None
+) -> int:
+    if page is not None:
+        page_offset = (page - 1) * limit
+        if page_offset <= 0:
+            return 1
+        return page_offset
+    return offset or 0
+
+
+def get_limit_offset_params(
+    page_filter: Annotated[FilterPage, Query()] = None,
+) -> LimitOffsetParams:
+    if page_filter is None:
+        return LimitOffsetParams(limit=100, offset=0)
+    limit = limit_paginate(page_filter.limit)
+    offset = calculate_offset(limit, page_filter.offset, page_filter.page)
+    return LimitOffsetParams(limit=limit, offset=offset)

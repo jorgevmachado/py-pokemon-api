@@ -102,7 +102,7 @@ class TestBaseRepositoryListAll:
     @staticmethod
     @pytest.mark.asyncio
     async def test_list_all_uses_paginate_when_page_filter_is_valid():
-        result_limit = 25
+        result_limit = 50
         params = LimitOffsetParams(
             limit=1,
             offset=0,
@@ -114,7 +114,10 @@ class TestBaseRepositoryListAll:
 
         with (
             patch('app.core.repository.base.is_paginate', return_value=True),
-            patch('app.core.repository.base.limit_paginate', return_value=25),
+            patch(
+                'app.core.repository.base.get_limit_offset_params',
+                return_value=LimitOffsetParams(limit=50, offset=0),
+            ),
             patch(
                 'app.core.repository.base.paginate', new_callable=AsyncMock
             ) as paginate_mock,
