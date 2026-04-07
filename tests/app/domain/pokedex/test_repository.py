@@ -438,6 +438,33 @@ class TestPokedexRepositoryList:
         assert isinstance(result, list)
         assert len(result) == total_results
 
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_pokedex_repository_list_with_pokemon_type_filter(
+        session, trainer, pokemon, pokemon_type, pokedex_repository
+    ):
+        pokemon.types.append(pokemon_type)
+        session.add(pokemon)
+        await session.commit()
+        await session.refresh(pokemon)
+
+        entry = PokedexFactory(trainer_id=trainer.id, pokemon_id=pokemon.id)
+        session.add(entry)
+        await session.commit()
+
+        result = await pokedex_repository.list_all(
+            page_filter=FilterPage.build(
+                trainer_id=trainer.id,
+                pokemon_type='fire',
+                offset=None,
+                limit=None,
+            )
+        )
+
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0].pokemon.id == pokemon.id
+
 
 class TestPokedexRepositoryQueryBranches:
     """Query-specific branch tests removed as they duplicated behavior assertions."""

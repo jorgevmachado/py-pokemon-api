@@ -122,6 +122,278 @@ class TestBaseRepositoryApplyOrderBy:
             repository._apply_order_by(query, page_filter)
 
 
+class TestBaseRepositoryRelationHelpers:
+    @staticmethod
+    def test_extract_relations_filters_extracts_and_mutates_raw_filters():
+        raw_filters = {
+            'pokemon_name': 'pikachu',
+            'pokemon_type': 'fire',
+            'pokemon_': 'ignored',
+            'trainer_id': 'trainer-id',
+            'pokemon_order': None,
+        }
+
+        result = BaseRepository._extract_relations_filters(raw_filters, relation='pokemon')
+
+        assert result == {
+            'name': 'pikachu',
+            'type': 'fire',
+        }
+        assert 'pokemon_name' not in raw_filters
+        assert 'pokemon_type' not in raw_filters
+        assert 'trainer_id' in raw_filters
+        assert 'pokemon_' in raw_filters
+
+    @staticmethod
+    def test_build_name_predicate_returns_none_when_attr_has_no_mapper():
+        predicate = BaseRepository._build_name_predicate(
+            Pokemon.name,
+            Pokemon.name.property,
+            'pikachu',
+        )
+
+        assert predicate is None
+
+    @staticmethod
+    def test_build_name_predicate_builds_any_for_uselist_relationship():
+        predicate = BaseRepository._build_name_predicate(
+            Pokemon.types,
+            Pokemon.types.property,
+            'fire',
+        )
+
+        predicate_sql = str(predicate)
+        assert predicate is not None
+        assert 'types.name' in predicate_sql
+
+    @staticmethod
+    def test_build_name_predicate_builds_has_for_scalar_relationship():
+        predicate = BaseRepository._build_name_predicate(
+            Pokedex.pokemon,
+            Pokedex.pokemon.property,
+            'pikachu',
+        )
+
+        predicate_sql = str(predicate)
+        assert predicate is not None
+        assert 'pokemon.name' in predicate_sql
+
+    @staticmethod
+    def test_build_name_predicate_returns_none_when_related_model_has_no_name_attr():
+        related_model = types.SimpleNamespace()
+        model_property = types.SimpleNamespace(
+            mapper=types.SimpleNamespace(class_=related_model),
+            uselist=False,
+        )
+
+        predicate = BaseRepository._build_name_predicate(
+            model_attr=Mock(),
+            model_property=model_property,
+            value='pikachu',
+        )
+
+        assert predicate is None
+
+    @staticmethod
+    def test_build_single_token_predicate_delegates_to_build_name_predicate():
+        repository = PokemonBaseRepository(session=AsyncMock())
+
+        with patch.object(
+            repository,
+            '_build_name_predicate',
+            return_value='delegated-predicate',
+        ) as build_name_predicate_mock:
+            result = repository._build_single_token_predicate(
+                Pokemon.types,
+                Pokemon.types.property,
+                'fire',
+            )
+
+        assert result == 'delegated-predicate'
+        build_name_predicate_mock.assert_called_once_with(
+            Pokemon.types,
+            Pokemon.types.property,
+            'fire',
+        )
+
+    @staticmethod
+    def test_build_nested_predicate_returns_none_when_property_is_not_relationship():
+        repository = PokemonBaseRepository(session=AsyncMock())
+
+        predicate = repository._build_nested_predicate(
+            Pokemon.name,
+            Pokemon.name.property,
+            ['name', 'id'],
+            'pikachu',
+        )
+
+        assert predicate is None
+
+    @staticmethod
+    def test_build_nested_predicate_builds_predicate_for_relationship_path():
+        repository = PokemonBaseRepository(session=AsyncMock())
+
+        predicate = repository._build_nested_predicate(
+            Pokemon.types,
+            Pokemon.types.property,
+            ['types', 'name'],
+            'fire',
+        )
+
+        predicate_sql = str(predicate)
+        assert predicate is not None
+        assert 'types.name' in predicate_sql
+
+    @staticmethod
+    def test_build_nested_predicate_returns_none_when_nested_predicate_is_none():
+        repository = PokedexBaseRepository(session=AsyncMock())
+
+        with patch.object(repository, '_build_relation_predicate', return_value=None):
+            predicate = repository._build_nested_predicate(
+                Pokedex.pokemon,
+                Pokedex.pokemon.property,
+                ['pokemon', 'name'],
+                'pikachu',
+            )
+
+        assert predicate is None
+
+    @staticmethod
+    def test_build_nested_predicate_builds_has_for_scalar_relationship():
+        repository = PokedexBaseRepository(session=AsyncMock())
+        nested_predicate = Pokemon.name == 'pikachu'
+
+        with patch.object(
+            repository,
+            '_build_relation_predicate',
+            return_value=nested_predicate,
+        ):
+            predicate = repository._build_nested_predicate(
+                Pokedex.pokemon,
+                Pokedex.pokemon.property,
+                ['pokemon', 'name'],
+                'pikachu',
+            )
+
+        assert predicate is not None
+        assert 'pokemon.name' in str(predicate)
+
+    @staticmethod
+    def test_build_relation_predicate_handles_empty_path():
+        repository = PokemonBaseRepository(session=AsyncMock())
+
+        predicate = repository._build_relation_predicate(Pokemon, [], 'fire')
+
+        assert predicate is None
+
+    @staticmethod
+    def test_build_relation_predicate_returns_none_for_invalid_attr():
+        repository = PokemonBaseRepository(session=AsyncMock())
+
+        predicate = repository._build_relation_predicate(Pokemon, ['not_exists'], 'fire')
+
+        assert predicate is None
+
+    @staticmethod
+    def test_build_relation_predicate_builds_column_predicate_for_single_token():
+        repository = PokemonBaseRepository(session=AsyncMock())
+
+        predicate = repository._build_relation_predicate(Pokemon, ['name'], 'pikachu')
+
+        assert predicate is not None
+        assert 'pokemon.name' in str(predicate)
+
+    @staticmethod
+    def test_build_relation_predicate_builds_nested_relationship_predicate():
+        repository = PokemonBaseRepository(session=AsyncMock())
+
+        predicate = repository._build_relation_predicate(Pokemon, ['types', 'name'], 'fire')
+
+        assert predicate is not None
+        assert 'types.name' in str(predicate)
+
+    @staticmethod
+    def test_apply_relations_filters_returns_query_when_relation_attr_not_found():
+        repository = PokedexBaseRepository(session=AsyncMock())
+        query = select(Pokedex)
+
+        result_query = repository._apply_relations_filters(
+            query,
+            relations_filters={'name': 'pikachu'},
+            relation='not_exists',
+        )
+
+        assert result_query is query
+
+    @staticmethod
+    def test_apply_relations_filters_returns_query_when_relation_has_no_mapper():
+        repository = PokedexBaseRepository(session=AsyncMock())
+        query = select(Pokedex)
+
+        result_query = repository._apply_relations_filters(
+            query,
+            relations_filters={'name': 'pikachu'},
+            relation='nickname',
+        )
+
+        assert result_query is query
+
+    @staticmethod
+    def test_apply_relations_filters_skips_none_values_and_returns_same_query():
+        repository = PokedexBaseRepository(session=AsyncMock())
+        query = select(Pokedex)
+
+        result_query = repository._apply_relations_filters(
+            query,
+            relations_filters={'name': None},
+            relation='pokemon',
+        )
+
+        assert result_query is query
+
+    @staticmethod
+    def test_apply_relations_filters_uses_valid_column_fallback_when_predicate_is_none():
+        repository = PokedexBaseRepository(session=AsyncMock())
+        query = select(Pokedex)
+
+        with patch.object(repository, '_build_relation_predicate', return_value=None):
+            result_query = repository._apply_relations_filters(
+                query,
+                relations_filters={'name': 'pikachu'},
+                relation='pokemon',
+            )
+
+        assert result_query is not query
+        assert 'pokemon.name' in str(result_query)
+
+    @staticmethod
+    def test_apply_relations_filters_returns_same_query_when_no_predicates_generated():
+        repository = PokedexBaseRepository(session=AsyncMock())
+        query = select(Pokedex)
+
+        result_query = repository._apply_relations_filters(
+            query,
+            relations_filters={'not_a_column': 'value'},
+            relation='pokemon',
+        )
+
+        assert result_query is query
+
+    @staticmethod
+    def test_apply_relations_filters_uses_any_for_uselist_relation():
+        repository = PokemonBaseRepository(session=AsyncMock())
+        query = select(Pokemon)
+
+        result_query = repository._apply_relations_filters(
+            query,
+            relations_filters={'name': 'fire'},
+            relation='types',
+        )
+
+        assert result_query is not query
+        assert 'types.name' in str(result_query)
+
+
 class TestBaseRepositoryTotal:
     @staticmethod
     @pytest.mark.asyncio
@@ -281,6 +553,61 @@ class TestBaseRepositoryListAll:
         assert result == expected_items
         assert 'pokedex.trainer_id' in str(query)
         assert 'pokemon."order"' in str(query)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_list_all_applies_pokemon_type_relation_filter():
+        expected_items = ['pokedex-item']
+        scalars_result = Mock()
+        scalars_result.all.return_value = expected_items
+
+        mock_session = AsyncMock()
+        mock_session.scalars = AsyncMock(return_value=scalars_result)
+
+        repository = PokedexBaseRepository(session=mock_session)
+
+        with patch('app.core.repository.base.is_paginate', return_value=False):
+            result = await repository.list_all(
+                page_filter=FilterPage.build(pokemon_type='fire')
+            )
+
+        query = mock_session.scalars.await_args.args[0]
+        query_str = str(query)
+
+        assert result == expected_items
+        assert 'types.name' in query_str
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_list_all_uses_manual_paginate_path_when_relations_filter_exists():
+        expected_items = ['pikachu']
+        scalars_result = Mock()
+        scalars_result.all.return_value = expected_items
+
+        mock_session = AsyncMock()
+        mock_session.scalar = AsyncMock(return_value=1)
+        mock_session.scalars = AsyncMock(return_value=scalars_result)
+
+        repository = PokemonBaseRepository(session=mock_session)
+        page_filter = FilterPage.build(pokemon_name='pikachu', offset=0, limit=10)
+
+        with (
+            patch('app.core.repository.base.is_paginate', return_value=True),
+            patch(
+                'app.core.repository.base.get_limit_offset_params',
+                return_value=LimitOffsetParams(limit=10, offset=0),
+            ),
+            patch(
+                'app.core.repository.base.paginate',
+                new_callable=AsyncMock,
+            ) as paginate_mock,
+        ):
+            result = await repository.list_all(page_filter=page_filter)
+
+        assert result.items == expected_items
+        mock_session.scalar.assert_awaited_once()
+        mock_session.scalars.assert_awaited_once()
+        paginate_mock.assert_not_awaited()
 
 
 class TestBaseRepositoryFindBy:

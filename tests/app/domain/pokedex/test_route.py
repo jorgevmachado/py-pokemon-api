@@ -114,3 +114,30 @@ class TestPokedexRoute:
         mock_service.discover.assert_awaited_once_with(
             trainer_id=trainer.id, pokemon_name='bulbasaur'
         )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_get_pokedex_route_filters_by_pokemon_type(
+        *, client, token, session, pokemon, pokemon_type, pokedex
+    ):
+        """Should return 200 and filter pokedex items by pokemon type"""
+        pokemon.types.append(pokemon_type)
+        session.add(pokemon)
+
+        await session.commit()
+        await session.refresh(pokemon)
+
+        response = client.get(
+            '/pokedex/',
+            params={
+                'limit': LIMIT,
+                'offset': OFFSET,
+                'pokemon_type': 'fire',
+            },
+            headers={'Authorization': f'Bearer {token}'},
+        )
+
+        assert response.status_code == HTTPStatus.OK
+        response_data = response.json()
+        assert 'items' in response_data
+        assert len(response_data['items']) >= 1

@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.domain.pokemon.schema import PublicPokemonSchema
+from app.domain.pokemon.schema import PokemonSchema
 from app.shared.schemas import FilterPage
 
 
@@ -74,12 +74,13 @@ class PokedexPublicSchema(BaseModel):
     ev_special_defense: int
     discovered: bool = Field(default=False)
     discovered_at: Optional[datetime] = None
-    pokemon: PublicPokemonSchema
+    pokemon: PokemonSchema
 
 
 class PokedexFilterPage(FilterPage):
     nickname: Optional[str] = None
     discovered: Optional[bool] = None
+    pokemon_type: Optional[str] = None
 
 
 class FindPokedexSchema(BaseModel):

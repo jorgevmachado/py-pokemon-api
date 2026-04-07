@@ -2,7 +2,7 @@ from typing import Annotated, Any, Generic, TypeVar
 
 from fastapi import Depends, Query
 from fastapi_pagination.ext.sqlalchemy import paginate
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
@@ -79,6 +79,142 @@ class BaseRepository(Generic[ModelT]):
 
         return query.order_by(order_attr)
 
+    @staticmethod
+    def _extract_relations_filters(
+        raw_filters: dict[str, Any],
+        relation: str,
+    ) -> dict[str, Any]:
+        relations_filters: dict[str, Any] = {}
+
+        for key in list(raw_filters.keys()):
+            value = raw_filters[key]
+            if value is None:
+                continue
+            if '_' not in key or not key.startswith(f'{relation}_'):
+                continue
+            field = key.removeprefix(f'{relation}_').strip()
+            if not field:
+                continue
+
+            relations_filters[field] = value
+            raw_filters.pop(key, None)
+        return relations_filters
+
+    @staticmethod
+    def _resolve_model_attr(current_model, attr_name: str):
+        model_attr = getattr(current_model, attr_name, None)
+        model_property = getattr(model_attr, 'property', None)
+        return model_attr, model_property
+
+    @staticmethod
+    def _build_name_predicate(model_attr, model_property, value: Any):
+        if not hasattr(model_property, 'mapper'):
+            return None
+
+        related_model = model_property.mapper.class_
+        name_attr = getattr(related_model, 'name', None)
+        name_property = getattr(name_attr, 'property', None)
+
+        if name_attr is None or name_property is None or not hasattr(name_property, 'columns'):
+            return None
+
+        if model_property.uselist:
+            return model_attr.any(name_attr == value)
+
+        return model_attr.has(name_attr == value)
+
+    def _build_single_token_predicate(self, model_attr, model_property, value: Any):
+        if hasattr(model_property, 'columns'):
+            return model_attr == value
+
+        return self._build_name_predicate(model_attr, model_property, value)
+
+    def _build_nested_predicate(
+        self,
+        model_attr,
+        model_property,
+        path_tokens: list[str],
+        value: Any,
+    ):
+        if not hasattr(model_property, 'mapper'):
+            return None
+
+        related_model = model_property.mapper.class_
+        nested_predicate = self._build_relation_predicate(
+            related_model,
+            path_tokens[1:],
+            value,
+        )
+
+        if nested_predicate is None:
+            return None
+
+        if model_property.uselist:
+            return model_attr.any(nested_predicate)
+
+        return model_attr.has(nested_predicate)
+
+    def _build_relation_predicate(self, current_model, path_tokens: list[str], value: Any):
+        if not path_tokens:
+            return None
+
+        model_attr, model_property = self._resolve_model_attr(current_model, path_tokens[0])
+        if model_attr is None or model_property is None:
+            return None
+
+        if len(path_tokens) == 1:
+            return self._build_single_token_predicate(model_attr, model_property, value)
+
+        return self._build_nested_predicate(model_attr, model_property, path_tokens, value)
+
+    def _apply_relations_filters(
+        self, query, relations_filters: dict[str, Any], relation: str
+    ):
+        if not relations_filters:
+            return query
+
+        relation_attr = getattr(self.model, relation, None)
+        relation_property = getattr(relation_attr, 'property', None)
+
+        if relation_attr is None or relation_property is None:
+            return query
+
+        if not hasattr(relation_property, 'mapper'):
+            return query
+
+        relation_model = relation_property.mapper.class_
+        valid_columns = set(relation_model.__mapper__.columns.keys())
+
+        predicates = []
+
+        for field, value in relations_filters.items():
+            if value is None:
+                continue
+
+            path_tokens = field.split('__') if '__' in field else [field]
+            predicate = self._build_relation_predicate(relation_model, path_tokens, value)
+
+            if predicate is None and len(path_tokens) == 1:
+                # Shorthand: pokemon_type -> pokemon.types.name
+                plural_path = [f'{path_tokens[0]}s', 'name']
+                predicate = self._build_relation_predicate(relation_model, plural_path, value)
+
+            if predicate is None and field in valid_columns:
+                predicate = getattr(relation_model, field) == value
+
+            if predicate is not None:
+                predicates.append(predicate)
+
+        if not predicates:
+            return query
+
+        combined_predicate = and_(*predicates)
+
+        if relation_property.uselist:
+            return query.where(relation_attr.any(combined_predicate))
+
+        return query.where(relation_attr.has(combined_predicate))
+
     async def total(self):
         query = select(func.count()).select_from(self.model)
         value = await self.session.scalar(query)
@@ -98,6 +234,8 @@ class BaseRepository(Generic[ModelT]):
 
     async def list_all(self, page_filter: Annotated[FilterPage, Query()] = None):
         query = select(self.model)
+        relation = 'pokemon'
+        relations_filters: dict[str, Any] = {}
 
         for option in self.relations:
             query = query.options(option)
@@ -110,6 +248,8 @@ class BaseRepository(Generic[ModelT]):
             raw_filters.pop('page', None)
             raw_filters.pop('order_by', None)
 
+            relations_filters = self._extract_relations_filters(raw_filters, relation)
+
             valid_columns = set(self.model.__mapper__.columns.keys())
             filters = {
                 k: v for k, v in raw_filters.items() if k in valid_columns and v is not None
@@ -120,13 +260,31 @@ class BaseRepository(Generic[ModelT]):
                     getattr(self.model, key) == value for key, value in filters.items()
                 ]
                 query = query.where(*conditions)
+            query = self._apply_relations_filters(query, relations_filters, relation)
 
         query = self._apply_order_by(query, page_filter)
 
         if is_paginate(page_filter):
             params = get_limit_offset_params(page_filter)
+
+            if relations_filters:
+                count_query = select(func.count()).select_from(query.order_by(None).subquery())
+                total = int(await self.session.scalar(count_query) or 0)
+
+                paginated_query = query.limit(params.limit).offset(params.offset)
+                for option in self.relations:
+                    paginated_query = paginated_query.options(option)
+
+                paginated_result = await self.session.scalars(paginated_query)
+
+                return CustomLimitOffsetPage.create(
+                    items=paginated_result.all(),
+                    total=total,
+                    params=params,
+                )
+
             result_paginate = await paginate(self.session, query, params=params)
-            return CustomLimitOffsetPage[ModelT].create(
+            return CustomLimitOffsetPage.create(
                 items=result_paginate.items, total=result_paginate.total, params=params
             )
         result = await self.session.scalars(query)
