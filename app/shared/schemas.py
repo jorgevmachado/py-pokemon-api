@@ -16,6 +16,7 @@ class FilterPage(BaseModel):
     page: Optional[int] = Field(None, ge=0)
     offset: Optional[int] = Field(None, ge=0)
     limit: Optional[int] = Field(None, ge=1)
+    order_by: Optional[str] = Field(None)
 
     @classmethod
     def _build_dynamic(cls: type[TFilterPage], payload: dict[str, Any]) -> TFilterPage:

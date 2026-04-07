@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi_pagination import LimitOffsetPage, LimitOffsetParams
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.core.repository import BaseRepository
@@ -19,6 +20,106 @@ class PokemonBaseRepository(BaseRepository[Pokemon]):
 
 class PokedexBaseRepository(BaseRepository[Pokedex]):
     model = Pokedex
+
+
+class TestBaseRepositoryApplyOrderBy:
+    @staticmethod
+    def test_apply_order_by_returns_same_query_when_order_by_is_none():
+        repository = PokedexBaseRepository(session=AsyncMock())
+        query = select(Pokedex)
+        page_filter = FilterPage()
+
+        result_query = repository._apply_order_by(query, page_filter)
+
+        assert result_query is query
+        assert 'ORDER BY' not in str(result_query)
+
+    @staticmethod
+    def test_apply_order_by_returns_same_query_when_order_path_is_blank():
+        repository = PokemonBaseRepository(session=AsyncMock())
+        query = select(Pokemon)
+        page_filter = FilterPage.build(order_by='   ')
+
+        result_query = repository._apply_order_by(query, page_filter)
+
+        assert result_query is query
+        assert 'ORDER BY' not in str(result_query)
+
+    @staticmethod
+    def test_apply_order_by_uses_default_order_by_when_page_filter_is_none():
+        repository = PokemonBaseRepository(session=AsyncMock())
+        query = select(Pokemon)
+
+        result_query = repository._apply_order_by(query)
+
+        assert 'ORDER BY pokemon."order"' in str(result_query)
+
+    @staticmethod
+    def test_apply_order_by_uses_page_filter_order_by_when_provided():
+        repository = PokemonBaseRepository(session=AsyncMock())
+        query = select(Pokemon)
+        page_filter = FilterPage.build(order_by='name')
+
+        result_query = repository._apply_order_by(query, page_filter)
+
+        assert 'ORDER BY pokemon.name' in str(result_query)
+
+    @staticmethod
+    def test_apply_order_by_applies_outer_join_for_relationship_path():
+        repository = PokedexBaseRepository(session=AsyncMock())
+        query = select(Pokedex)
+        page_filter = FilterPage.build(order_by='pokemon.order')
+
+        result_query = repository._apply_order_by(query, page_filter)
+        result_query_str = str(result_query)
+
+        assert 'LEFT OUTER JOIN pokemon' in result_query_str
+        assert 'ORDER BY pokemon."order"' in result_query_str
+
+    @staticmethod
+    def test_apply_order_by_raises_error_when_relation_is_invalid():
+        repository = PokedexBaseRepository(session=AsyncMock())
+        query = select(Pokedex)
+        page_filter = FilterPage.build(order_by='invalid.order')
+
+        with pytest.raises(ValueError, match='Invalid default_order_by relation'):
+            repository._apply_order_by(query, page_filter)
+
+    @staticmethod
+    def test_apply_order_by_raises_error_for_collection_relationship():
+        repository = PokemonBaseRepository(session=AsyncMock())
+        query = select(Pokemon)
+        page_filter = FilterPage.build(order_by='moves.name')
+
+        with pytest.raises(ValueError, match='collection relationships are not supported'):
+            repository._apply_order_by(query, page_filter)
+
+    @staticmethod
+    def test_apply_order_by_raises_error_when_path_token_is_not_relationship():
+        repository = PokemonBaseRepository(session=AsyncMock())
+        query = select(Pokemon)
+        page_filter = FilterPage.build(order_by='order.name')
+
+        with pytest.raises(ValueError, match='is not a relationship'):
+            repository._apply_order_by(query, page_filter)
+
+    @staticmethod
+    def test_apply_order_by_raises_error_when_last_field_is_invalid():
+        repository = PokedexBaseRepository(session=AsyncMock())
+        query = select(Pokedex)
+        page_filter = FilterPage.build(order_by='pokemon.invalid_field')
+
+        with pytest.raises(ValueError, match='Invalid default_order_by field'):
+            repository._apply_order_by(query, page_filter)
+
+    @staticmethod
+    def test_apply_order_by_raises_error_when_last_token_is_not_column():
+        repository = PokedexBaseRepository(session=AsyncMock())
+        query = select(Pokedex)
+        page_filter = FilterPage.build(order_by='pokemon.moves')
+
+        with pytest.raises(ValueError, match='last token must be a mapped column'):
+            repository._apply_order_by(query, page_filter)
 
 
 class TestBaseRepositoryTotal:
@@ -156,6 +257,30 @@ class TestBaseRepositoryListAll:
 
         assert result == expected_items
         assert 'pokemon.name' in str(query)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_list_all_applies_model_filter_with_relational_order_by():
+        expected_items = ['pokedex-item']
+        scalars_result = Mock()
+        scalars_result.all.return_value = expected_items
+
+        mock_session = AsyncMock()
+        mock_session.scalars = AsyncMock(return_value=scalars_result)
+
+        repository = PokedexBaseRepository(session=mock_session)
+        repository.default_order_by = 'pokemon.order'
+
+        with patch('app.core.repository.base.is_paginate', return_value=False):
+            result = await repository.list_all(
+                page_filter=FilterPage.build(trainer_id='trainer-id')
+            )
+
+        query = mock_session.scalars.await_args.args[0]
+
+        assert result == expected_items
+        assert 'pokedex.trainer_id' in str(query)
+        assert 'pokemon."order"' in str(query)
 
 
 class TestBaseRepositoryFindBy:

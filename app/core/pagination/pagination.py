@@ -51,7 +51,7 @@ def calculate_offset(
 ) -> int:
     if page is not None:
         page_offset = (page - 1) * limit
-        if page_offset <= 0:
+        if page_offset < 0:
             return 1
         return page_offset
     return offset or 0

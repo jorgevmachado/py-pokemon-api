@@ -22,6 +22,63 @@ class BaseRepository(Generic[ModelT]):
     def __init__(self, session: Session):
         self.session = session
 
+    def _apply_order_by(self, query, page_filter: Annotated[FilterPage, Query()] = None):
+        order_by = getattr(page_filter, 'order_by', None) if page_filter else None
+        if not order_by:
+            order_by = self.default_order_by
+        if order_by is None:
+            return query
+
+        order_path = order_by.strip()
+
+        if not order_path:
+            return query
+
+        path_parts = order_path.split('.')
+        current_model = self.model
+
+        for relation_name in path_parts[:-1]:
+            relation_attr = getattr(current_model, relation_name, None)
+            relation_property = getattr(relation_attr, 'property', None)
+
+            if relation_attr is None or relation_property is None:
+                raise ValueError(
+                    f'Invalid default_order_by relation "{relation_name}"'
+                    f' for {current_model.__name__}'
+                )
+
+            if not hasattr(relation_property, 'mapper'):
+                raise ValueError(
+                    f'Invalid default_order_by path "{order_path}": "{relation_name}"'
+                    f' is not a relationship'
+                )
+
+            if relation_property.uselist:
+                raise ValueError(
+                    f'Invalid default_order_by path "{order_path}":'
+                    f' collection relationships are not supported'
+                )
+
+            query = query.outerjoin(relation_attr)
+            current_model = relation_property.mapper.class_
+
+        field_name = path_parts[-1]
+        order_attr = getattr(current_model, field_name, None)
+        order_property = getattr(order_attr, 'property', None)
+
+        if order_attr is None or order_property is None:
+            raise ValueError(
+                f'Invalid default_order_by field "{field_name}" for {current_model.__name__}'
+            )
+
+        if not hasattr(order_property, 'columns'):
+            raise ValueError(
+                f'Invalid default_order_by path "{order_path}": '
+                f'last token must be a mapped column'
+            )
+
+        return query.order_by(order_attr)
+
     async def total(self):
         query = select(func.count()).select_from(self.model)
         value = await self.session.scalar(query)
@@ -45,15 +102,13 @@ class BaseRepository(Generic[ModelT]):
         for option in self.relations:
             query = query.options(option)
 
-        if self.default_order_by is not None:
-            query = query.order_by(self.default_order_by)
-
         if page_filter is not None:
             raw_filters = page_filter.model_dump(exclude_none=True)
 
             raw_filters.pop('offset', None)
             raw_filters.pop('limit', None)
             raw_filters.pop('page', None)
+            raw_filters.pop('order_by', None)
 
             valid_columns = set(self.model.__mapper__.columns.keys())
             filters = {
@@ -61,11 +116,15 @@ class BaseRepository(Generic[ModelT]):
             }
 
             if filters:
-                query = query.filter_by(**filters)
+                conditions = [
+                    getattr(self.model, key) == value for key, value in filters.items()
+                ]
+                query = query.where(*conditions)
+
+        query = self._apply_order_by(query, page_filter)
 
         if is_paginate(page_filter):
             params = get_limit_offset_params(page_filter)
-            print('params => ', params)
             result_paginate = await paginate(self.session, query, params=params)
             return CustomLimitOffsetPage[ModelT].create(
                 items=result_paginate.items, total=result_paginate.total, params=params
