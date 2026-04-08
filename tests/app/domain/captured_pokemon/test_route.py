@@ -1,12 +1,13 @@
 from datetime import datetime
 from http import HTTPStatus
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
 
 from app.core.security import get_current_user
 from app.domain.captured_pokemon.route import CurrentTrainer, Service, router
+from app.domain.captured_pokemon.schema import CapturedPokemonPublicSchema
 from app.domain.captured_pokemon.service import CapturedPokemonService
 from app.main import app
 from tests.factories.captured_pokemon import CapturedPokemonFactory
@@ -116,3 +117,23 @@ class TestCapturedPokemonRoute:
         app.dependency_overrides.clear()
 
         assert response.status_code == HTTPStatus.OK
+
+    @staticmethod
+    def test_find_one_pokedex(client, trainer, token, pokedex):
+        captured_pokemon_payload = CapturedPokemonPublicSchema.model_validate(
+            build_captured_response(),
+        ).model_dump(mode='json')
+
+        with patch(
+            'app.domain.captured_pokemon.service.CapturedPokemonService.find_one_cached',
+            new_callable=AsyncMock,
+        ) as mock_fetch:
+            mock_fetch.return_value = captured_pokemon_payload
+            response = client.get(
+                f'/captured-pokemons/{pokedex.id}',
+                headers={'Authorization': f'Bearer {token}'},
+            )
+            assert response.status_code == HTTPStatus.OK
+            data = response.json()
+            assert isinstance(data, dict)
+            assert data['nickname'] == captured_pokemon_payload['nickname']

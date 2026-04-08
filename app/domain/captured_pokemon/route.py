@@ -35,6 +35,14 @@ async def get_captured_pokemons(
     )
 
 
+@router.get('/{param}', response_model=CapturedPokemonPublicSchema)
+async def find_one_captured_pokemon(param: str, service: Service, trainer: CurrentTrainer):
+    return await service.find_one_cached(
+        param=param,
+        user_request=trainer.name,
+    )
+
+
 @router.post('/capture', response_model=CapturedPokemonPublicSchema)
 async def capture_pokemon(
     service: Service,
