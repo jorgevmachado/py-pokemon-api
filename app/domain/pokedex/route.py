@@ -27,6 +27,11 @@ async def get_pokedex(
     )
 
 
+@router.get('/{param}', response_model=PokedexPublicSchema)
+async def find_one_pokedex(param: str, service: Service, trainer: CurrentTrainer):
+    return await service.find_one_cached(param=param, user_request=trainer.name)
+
+
 @router.post('/discover', response_model=PokedexPublicSchema)
 async def discover_pokemon(
     service: Service, trainer: CurrentTrainer, discover: PokedexDiscover

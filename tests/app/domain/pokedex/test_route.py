@@ -1,12 +1,13 @@
 from datetime import datetime
 from http import HTTPStatus
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
 
 from app.core.security import get_current_user
 from app.domain.pokedex.route import CurrentTrainer, Service, router
+from app.domain.pokedex.schema import PokedexPublicSchema
 from app.domain.pokedex.service import PokedexService
 from app.main import app
 from app.shared.enums.status_enum import StatusEnum
@@ -141,3 +142,23 @@ class TestPokedexRoute:
         response_data = response.json()
         assert 'items' in response_data
         assert len(response_data['items']) >= 1
+
+    @staticmethod
+    def test_find_one_pokedex(client, trainer, token, pokedex):
+        pokedex_payload = PokedexPublicSchema.model_validate(
+            build_pokedex_response()
+        ).model_dump(mode='json')
+
+        with patch(
+            'app.domain.pokedex.service.PokedexService.find_one_cached',
+            new_callable=AsyncMock,
+        ) as mock_fetch:
+            mock_fetch.return_value = pokedex_payload
+            response = client.get(
+                f'/pokedex/{pokedex.id}',
+                headers={'Authorization': f'Bearer {token}'},
+            )
+            assert response.status_code == HTTPStatus.OK
+            data = response.json()
+            assert isinstance(data, dict)
+            assert data['nickname'] == pokedex_payload['nickname']
