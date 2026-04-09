@@ -49,6 +49,13 @@ def test_refresh_token(client, token):
     assert data['token_type'] == 'bearer'
 
 
+def test_auth_me(client, trainer, token):
+    response = client.get('/auth/me', headers={'Authorization': f'Bearer {token}'})
+    data = response.json()
+    assert response.status_code == HTTPStatus.OK
+    assert data['email'] == trainer.email
+
+
 def test_token_expired_dont_refresh(client, trainer):
     with freeze_time('2023-07-14 12:00:00'):
         response = client.post(
@@ -58,7 +65,7 @@ def test_token_expired_dont_refresh(client, trainer):
         assert response.status_code == HTTPStatus.OK
         token = response.json()['access_token']
 
-    with freeze_time('2023-07-14 12:31:00'):
+    with freeze_time('2023-07-14 13:01:00'):
         response = client.post(
             '/auth/refresh_token', headers={'Authorization': f'Bearer {token}'}
         )

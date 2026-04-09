@@ -6,6 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.core.security import create_access_token, get_current_user
 from app.domain.auth.schema import Login, Token
 from app.domain.auth.service import AuthService
+from app.domain.trainer.schema import TrainerPublicSchema
 from app.models.trainer import Trainer
 
 router = APIRouter(prefix='/auth', tags=['auth'])
@@ -27,3 +28,11 @@ async def refresh_access_token(user: CurrentTrainer):
     new_access_token = create_access_token(data={'sub': user.email})
 
     return {'access_token': new_access_token, 'token_type': 'bearer'}
+
+
+@router.get('/me', response_model=TrainerPublicSchema)
+async def me(
+    trainer: CurrentTrainer,
+    service: Service,
+):
+    return await service.trainer_service.find_one(trainer_id=trainer.id, trainer=trainer)
