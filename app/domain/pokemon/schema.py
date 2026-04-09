@@ -190,3 +190,4 @@ class PokemonFilterPage(FilterPage):
 
     name: Optional[str] = None
     status: Optional[StatusEnum] = None
+    habitat: Optional[str] = None

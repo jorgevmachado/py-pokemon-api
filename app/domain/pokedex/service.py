@@ -1,14 +1,16 @@
 import logging
 from datetime import datetime
+from http import HTTPStatus
 from typing import Annotated, Optional
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 
 from app.core.exceptions.exceptions import handle_service_exception
 from app.core.logging import LoggingParams, log_service_success
 from app.core.service import BaseService
 from app.domain.pokedex.repository import PokedexRepository
-from app.domain.pokedex.schema import PokedexPublicSchema
+from app.domain.pokedex.schema import GetWildPokemon, PokedexPublicSchema
+from app.domain.pokemon.schema import PokemonFilterPage
 from app.domain.pokemon.service import PokemonService
 from app.domain.progression.business import PokemonProgressionBusiness
 from app.models.pokedex import Pokedex
@@ -241,3 +243,31 @@ class PokedexService(BaseService[Repository, Pokedex]):
             message='Pokémon already discovered in the Pokédex',
         )
         return pokedex
+
+    async def get_wild_pokemon(
+        self, params: GetWildPokemon, trainer_id: str, user_request: Optional[str] = None
+    ) -> Pokedex | None:
+        try:
+            pokemon = await self.pokemon_service.random_pokemon_by_filter(
+                page_filter=PokemonFilterPage(habitat=params.habitat)
+            )
+            if not pokemon:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    detail=(
+                        'No wild pokemon found! Try changing the habitat or try again later.'
+                    ),
+                )
+            return await self.discovered(
+                trainer_id=trainer_id, pokemon=pokemon, discovered=True
+            )
+
+        except Exception as exception:
+            handle_service_exception(
+                exception,
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
+                operation='get_wild_pokemon',
+                user_request=user_request,
+                raise_exception=True,
+            )

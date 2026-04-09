@@ -60,7 +60,7 @@ class PokemonExternalService:
             async with httpx.AsyncClient(verify=False) as client:
                 response = await client.get(
                     current_url,
-                    timeout=30.0,
+                    timeout=60.0,
                 )
                 response.raise_for_status()
                 response_data = response.json()

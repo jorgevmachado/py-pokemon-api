@@ -1,7 +1,7 @@
 from datetime import datetime
 from http import HTTPStatus
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 from uuid import uuid4
 
 import pytest
@@ -1314,3 +1314,152 @@ class TestPokemonServiceFirstPokemon:
         assert result is not None
         assert result.pokemon is not None
         pokemon_service.fetch_one.assert_called_once_with(name='bulbasaur')
+
+
+class TestPokemonServiceRandomPokemonByFilter:
+    """Test scope for random_pokemon_by_filter method"""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_random_pokemon_by_filter_with_filter(pokemon_service):
+        bulbasaur = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        ivysaur = Pokemon(
+            name='ivysaur',
+            order=2,
+            url='https://pokeapi.co/api/v2/pokemon/2/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/2.png',
+        )
+        venusaur = Pokemon(
+            name='venusaur',
+            order=3,
+            url='https://pokeapi.co/api/v2/pokemon/3/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/3.png',
+        )
+
+        bulbasaur.id = str(uuid4())
+        ivysaur.id = str(uuid4())
+        venusaur.id = str(uuid4())
+        pokemons = [bulbasaur, ivysaur, venusaur]
+
+        pokemon_service.list_all = AsyncMock(return_value=pokemons)
+        pokemon_service.business.get_random_pokemon = MagicMock(return_value=ivysaur)
+        pokemon_service.fetch_one = AsyncMock(return_value=ivysaur)
+        result = await pokemon_service.random_pokemon_by_filter(
+            page_filter=PokemonFilterPage(habitat='grass')
+        )
+        assert result is not None
+        assert result.name == ivysaur.name
+        pokemon_service.business.get_random_pokemon.assert_called_once_with(
+            pokemons=pokemons,
+            complete=False,
+        )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_random_pokemon_by_filter_not_found_with_filter(pokemon_service):
+        bulbasaur = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        ivysaur = Pokemon(
+            name='ivysaur',
+            order=2,
+            url='https://pokeapi.co/api/v2/pokemon/2/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/2.png',
+        )
+        venusaur = Pokemon(
+            name='venusaur',
+            order=3,
+            url='https://pokeapi.co/api/v2/pokemon/3/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/3.png',
+        )
+
+        bulbasaur.id = str(uuid4())
+        ivysaur.id = str(uuid4())
+        venusaur.id = str(uuid4())
+        pokemons = [bulbasaur, ivysaur, venusaur]
+
+        pokemon_service.list_all = AsyncMock(side_effect=[[], pokemons])
+        pokemon_service.business.get_random_pokemon = MagicMock(return_value=venusaur)
+        pokemon_service.fetch_one = AsyncMock(return_value=venusaur)
+        result = await pokemon_service.random_pokemon_by_filter(
+            page_filter=PokemonFilterPage(habitat='grass')
+        )
+        total_await_count = 2
+        assert result is not None
+        assert result.name == venusaur.name
+        assert pokemon_service.list_all.await_count == total_await_count
+        pokemon_service.list_all.assert_has_awaits(
+            [call(page_filter=PokemonFilterPage(habitat='grass')), call()],
+            any_order=False,
+        )
+        pokemon_service.business.get_random_pokemon.assert_called_once_with(
+            pokemons=pokemons,
+            complete=False,
+        )
+        pokemon_service.fetch_one.assert_awaited_once_with(name=venusaur.name)
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_random_pokemon_by_filter_return_none(pokemon_service):
+        bulbasaur = Pokemon(
+            name='bulbasaur',
+            order=1,
+            url='https://pokeapi.co/api/v2/pokemon/1/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/1.png',
+        )
+        ivysaur = Pokemon(
+            name='ivysaur',
+            order=2,
+            url='https://pokeapi.co/api/v2/pokemon/2/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/2.png',
+        )
+        venusaur = Pokemon(
+            name='venusaur',
+            order=3,
+            url='https://pokeapi.co/api/v2/pokemon/3/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/3.png',
+        )
+
+        bulbasaur.id = str(uuid4())
+        ivysaur.id = str(uuid4())
+        venusaur.id = str(uuid4())
+        pokemons = [bulbasaur, ivysaur, venusaur]
+
+        pokemon_service.list_all = AsyncMock(return_value=pokemons)
+        pokemon_service.business.get_random_pokemon = MagicMock(return_value=None)
+        result = await pokemon_service.random_pokemon_by_filter(page_filter=None)
+        assert result is None
+        pokemon_service.business.get_random_pokemon.assert_called_once_with(
+            pokemons=pokemons,
+            complete=False,
+        )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_random_pokemon_by_filter_raises_http_exception(pokemon_service):
+        """Should raise HTTPException when fetch_all fails"""
+
+        pokemon_service.list_all = AsyncMock(side_effect=Exception('Database error'))
+
+        with pytest.raises(HTTPException) as exc_info:
+            await pokemon_service.random_pokemon_by_filter(page_filter=None)
+
+        assert exc_info.value.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert exc_info.value.detail == 'Internal server error'

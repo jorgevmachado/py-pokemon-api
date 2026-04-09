@@ -162,3 +162,24 @@ class TestPokedexRoute:
             data = response.json()
             assert isinstance(data, dict)
             assert data['nickname'] == pokedex_payload['nickname']
+
+    @staticmethod
+    def test_pokedex_wild_pokemon(client, trainer, token, pokedex):
+        pokedex_payload = PokedexPublicSchema.model_validate(
+            build_pokedex_response()
+        ).model_dump(mode='json')
+
+        with patch(
+            'app.domain.pokedex.service.PokedexService.get_wild_pokemon',
+            new_callable=AsyncMock,
+        ) as mock_fetch:
+            mock_fetch.return_value = pokedex_payload
+            response = client.post(
+                '/pokedex/wild',
+                headers={'Authorization': f'Bearer {token}'},
+                json={'habitat': 'grass'},
+            )
+            assert response.status_code == HTTPStatus.OK
+            data = response.json()
+            assert isinstance(data, dict)
+            assert data['nickname'] == pokedex_payload['nickname']

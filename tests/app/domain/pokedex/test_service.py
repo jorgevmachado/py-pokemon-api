@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException
 
-from app.domain.pokedex.schema import PartialPokedexSchema
+from app.domain.pokedex.schema import GetWildPokemon, PartialPokedexSchema
 
 MOCK_REFRESH_CALL_COUNT = 2
 MOCK_UPDATED_HP = 30
@@ -367,3 +367,37 @@ class TestPokedexServiceInitializePokemon:
         )
 
         assert result.discovered_at is not None
+
+
+class TestPokedexServiceGetWildPokemon:
+    """Test scope for get_wild_pokemon method."""
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_get_wild_pokemon_returns_none_when_not_found(pokedex_service):
+        """Should return None when pokedex is not found."""
+        pokedex_service.pokemon_service.random_pokemon_by_filter = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc_info:
+            await pokedex_service.get_wild_pokemon(
+                params=GetWildPokemon(habitat='grass'),
+                trainer_id='trainer-id',
+                user_request=None,
+            )
+        assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
+        assert exc_info.value.detail == (
+            'No wild pokemon found! Try changing the habitat or try again later.'
+        )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_get_wild_pokemon_returns_pokedex(pokedex_service, pokedex, pokemon):
+        """Should return None when pokedex is not found."""
+        pokedex_service.pokemon_service.random_pokemon_by_filter = AsyncMock(
+            return_value=pokemon
+        )
+        pokedex_service.discovered = AsyncMock(return_value=pokedex)
+        result = await pokedex_service.get_wild_pokemon(
+            params=GetWildPokemon(habitat='grass'), trainer_id='trainer-id', user_request=None
+        )
+        assert result is not None
+        assert result.nickname == pokedex.nickname

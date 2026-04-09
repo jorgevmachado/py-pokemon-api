@@ -101,3 +101,9 @@ class PartialPokedexSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     hp: Optional[int] = None
+
+
+class GetWildPokemon(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    habitat: Optional[str] = None

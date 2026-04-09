@@ -853,6 +853,38 @@ class TestPokemonBusinessGetRandomPokemon:
         assert result in pokemons
         assert result.order in MOCK_VARIOUS_ORDERS
 
+    @staticmethod
+    def test_get_random_pokemon_not_prefers_complete():
+        """Should always not prefer complete pokemon over incomplete"""
+        business = PokemonBusiness()
+        pokemon_1 = Pokemon(
+            name='pokemon1',
+            order=100,
+            url='https://pokeapi.co/api/v2/pokemon/100/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/100.png',
+        )
+        pokemon_2 = Pokemon(
+            name='pokemon2',
+            order=50,
+            url='https://pokeapi.co/api/v2/pokemon/50/',
+            status=StatusEnum.INCOMPLETE,
+            external_image='https://example.com/50.png',
+        )
+        pokemon_3 = Pokemon(
+            name='pokemon3',
+            order=200,
+            url='https://pokeapi.co/api/v2/pokemon/200/',
+            status=StatusEnum.COMPLETE,
+            external_image='https://example.com/200.png',
+        )
+        pokemons = [pokemon_1, pokemon_2, pokemon_3]
+
+        result = business.get_random_pokemon(pokemons=pokemons, complete=False)
+        assert result is not None
+        assert result in pokemons
+        assert result.order in MOCK_VARIOUS_ORDERS
+
 
 class TestPokemonBusinessFilterAndPaginateCatalog:
     """Test scope for filter_and_paginate_catalog and _matches_filter methods"""

@@ -409,3 +409,28 @@ class PokemonService(BaseService[Repository, Pokemon]):
                 service=self.logger_params.service,
                 operation='first_pokemon',
             )
+
+    async def random_pokemon_by_filter(
+        self, page_filter: Annotated[PokemonFilterPage, Query()] = None
+    ) -> Pokemon | None:
+        try:
+            pokemons = await self.list_all(page_filter=page_filter)
+            if not pokemons:
+                pokemons = await self.list_all()
+
+            random_pokemon = self.business.get_random_pokemon(
+                pokemons=pokemons, complete=False
+            )
+
+            if not random_pokemon:
+                return None
+            pokemon = await self.fetch_one(name=random_pokemon.name)
+            return pokemon
+
+        except Exception as exception:
+            handle_service_exception(
+                exception,
+                logger=self.logger_params.logger,
+                service=self.logger_params.service,
+                operation='random_pokemon_by_filter',
+            )

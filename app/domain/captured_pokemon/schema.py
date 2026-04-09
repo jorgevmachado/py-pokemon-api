@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 from app.domain.move.schema import PokemonMoveSchema
-from app.domain.pokemon.schema import PublicPokemonSchema, PokemonSchema
+from app.domain.pokemon.schema import PokemonSchema
 from app.models.pokemon import Pokemon
 from app.models.trainer import Trainer
 

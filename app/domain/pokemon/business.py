@@ -76,7 +76,9 @@ class PokemonBusiness:
         )
 
     @staticmethod
-    def get_random_pokemon(pokemons: list[Pokemon]) -> Optional[Pokemon]:
+    def get_random_pokemon(
+        pokemons: list[Pokemon], complete: Optional[bool] = True
+    ) -> Optional[Pokemon]:
         if not pokemons:
             return None
 
@@ -84,7 +86,7 @@ class PokemonBusiness:
             (p for p in pokemons if p.status == StatusEnum.COMPLETE),
             None,
         )
-        if pokemon_complete:
+        if complete and pokemon_complete:
             return pokemon_complete
 
         orders = [p.order for p in pokemons]
