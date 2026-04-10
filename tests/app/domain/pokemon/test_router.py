@@ -4,9 +4,10 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
-from fastapi_pagination import LimitOffsetPage, LimitOffsetParams
+from fastapi_pagination import LimitOffsetParams
 
 from app.core.database import get_session
+from app.core.pagination import CustomLimitOffsetPage
 from app.main import app
 from app.shared.enums.status_enum import StatusEnum
 from tests.app.domain.pokemon.external.mocks.business_mock import (
@@ -52,7 +53,7 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.list_all_cached', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = LimitOffsetPage.create(
+            mock_fetch.return_value = CustomLimitOffsetPage.create(
                 pokemons_data,
                 total=total_results,
                 params=LimitOffsetParams(limit=10, offset=0),
@@ -75,7 +76,7 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.list_all_cached', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = LimitOffsetPage.create(
+            mock_fetch.return_value = CustomLimitOffsetPage.create(
                 [],
                 total=0,
                 params=LimitOffsetParams(limit=10, offset=0),
@@ -109,7 +110,7 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.list_all_cached', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = LimitOffsetPage.create(
+            mock_fetch.return_value = CustomLimitOffsetPage.create(
                 pokemons_data,
                 total=1,
                 params=LimitOffsetParams(limit=1, offset=10),
@@ -157,7 +158,7 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.list_all_cached', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = LimitOffsetPage.create(
+            mock_fetch.return_value = CustomLimitOffsetPage.create(
                 pokemons_data,
                 total=total_results,
                 params=LimitOffsetParams(limit=2, offset=0),
@@ -219,7 +220,7 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.list_all_cached', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = LimitOffsetPage.create(
+            mock_fetch.return_value = CustomLimitOffsetPage.create(
                 [pokemons_data[0]],
                 total=3,
                 params=LimitOffsetParams(limit=1, offset=2),
@@ -339,7 +340,7 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.list_all_cached', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = LimitOffsetPage.create(
+            mock_fetch.return_value = CustomLimitOffsetPage.create(
                 pokemons_data,
                 total=1,
                 params=LimitOffsetParams(limit=10, offset=0),
@@ -379,7 +380,7 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.list_all_cached', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = LimitOffsetPage.create(
+            mock_fetch.return_value = CustomLimitOffsetPage.create(
                 pokemons_data,
                 total=1,
                 params=LimitOffsetParams(limit=10, offset=0),
@@ -407,7 +408,7 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.list_all_cached', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = LimitOffsetPage.create(
+            mock_fetch.return_value = CustomLimitOffsetPage.create(
                 [],
                 total=0,
                 params=LimitOffsetParams(limit=10, offset=1300),
@@ -444,7 +445,7 @@ class TestPokemonRouterList:
         with patch(
             'app.domain.pokemon.service.PokemonService.list_all_cached', new_callable=AsyncMock
         ) as mock_fetch:
-            mock_fetch.return_value = LimitOffsetPage.create(
+            mock_fetch.return_value = CustomLimitOffsetPage.create(
                 pokemons_data,
                 total=total_results,
                 params=LimitOffsetParams(limit=100, offset=0),

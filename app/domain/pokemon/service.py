@@ -121,15 +121,18 @@ class PokemonService(BaseService[Repository, Pokemon]):
 
     async def list_all_cached(
         self,
-        user_request: str,
         page_filter: Annotated[PokemonFilterPage, Query()] = None,
+        user_request: str | None = None,
+        trainer_id: str | None = None,
     ):
         key = self.pokemon_cache_service.build_key_all(page_filter=page_filter)
 
         cached = await self.pokemon_cache_service.get_all(key)
         if cached:
+            print('CACHED')
             return cached
         list_pokemons = await self.list_all(page_filter=page_filter, user_request=user_request)
+        print('# => list_Pokemons => ')
         await self.pokemon_cache_service.set_all(key, list_pokemons)
         return list_pokemons
 
